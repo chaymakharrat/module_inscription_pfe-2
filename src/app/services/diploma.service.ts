@@ -1,15 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { DiplomeEtudier, NiveauDiplomeSpecifique } from '../models/diploma.model';
+import { map, Observable } from 'rxjs';
+import { DiplomeEtudier, DiplomeResponsable, NiveauDiplomeSpecifique, TypeDiplome } from '../models/diploma.model';
 import { environment } from '../envirements/enviremetns';
 
 @Injectable({
     providedIn: 'root'
 })
 export class DiplomaService {
-    // Note: Gateway routes to etudiant-service? Need to check gateway config again.
     private apiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/diplomes`;
+    private typesUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/types`;
 
     constructor(private http: HttpClient) { }
 
@@ -19,5 +19,29 @@ export class DiplomaService {
 
     getNiveauxByDiploma(diplomaId: number): Observable<NiveauDiplomeSpecifique[]> {
         return this.http.get<NiveauDiplomeSpecifique[]>(`${this.apiUrl}/${diplomaId}/niveaux`);
+    }
+
+    getNiveauxByDiplomeName(nomDiplome: string): Observable<NiveauDiplomeSpecifique[]> {
+        return this.http.get<NiveauDiplomeSpecifique[]>(`${this.apiUrl}/nom/${nomDiplome}/niveaux`);
+    }
+
+    getDiplomesResponsables(): Observable<DiplomeResponsable[]> {
+        return this.http.get<DiplomeResponsable[]>(
+            `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/departements/diplomes-responsables`
+        );
+    }
+
+    getLanguesByDiplomeName(nomDiplome: string): Observable<string[]> {
+        return this.getDiplomesResponsables().pipe(
+            map((diplomes: DiplomeResponsable[]) => {
+                const found = diplomes.find(d => d.nomDiplome === nomDiplome);
+                return found ? found.langues : [];
+            })
+        );
+    }
+
+    /** Récupère tous les types de diplôme (ex: Licence, Master, Ingénieur…) */
+    getTypes(): Observable<TypeDiplome[]> {
+        return this.http.get<TypeDiplome[]>(this.typesUrl);
     }
 }

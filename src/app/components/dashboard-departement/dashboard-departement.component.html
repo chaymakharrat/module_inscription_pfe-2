@@ -1,0 +1,839 @@
+<main class="dept-main animate-fadeIn">
+
+    <!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+    <header
+        class="bg-white/80 backdrop-blur-xl border-b border-[#e8eaf0] px-8 py-5 sticky top-0 z-40 flex items-center justify-between">
+        <div class="flex flex-col">
+            <h1 class="text-2xl font-bold text-[#0f1117] tracking-tight flex items-center gap-3">
+                {{ dashboard?.nomDiplome || 'Dashboard Département' }}
+                <span
+                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#2563eb] border border-[#dbe6ff] uppercase tracking-wider">
+                    {{ dashboard?.langue || 'Département' }}
+                </span>
+                <span class="text-[#8b92a9] text-lg font-medium">| {{ dashboard?.nomDepartement }}</span>
+            </h1>
+            <div class="flex items-center mt-1 gap-2">
+                <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                <p class="text-[11px] font-semibold text-[#8b92a9]">
+                    Bienvenue, <strong>{{ userProfile?.firstName }} {{ userProfile?.lastName }}</strong>
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-6">
+            <!-- Capacité Pill -->
+            <div class="capacity-pill-premium" *ngIf="getCapaciteGlobale() as cap">
+                <div class="cap-info">
+                    <span class="cap-label">Remplissage global</span>
+                    <span class="cap-value">{{ cap.inscrits }}/{{ cap.max }}</span>
+                </div>
+                <div class="cap-bar-mini">
+                    <div class="cap-fill-mini" [class.fill-green]="cap.pct < 70"
+                        [class.fill-orange]="cap.pct >= 70 && cap.pct < 90" [class.fill-red]="cap.pct >= 90"
+                        [style.width.%]="cap.pct">
+                    </div>
+                </div>
+                <span class="cap-pct" [class.text-green-600]="cap.pct < 70"
+                    [class.text-orange-600]="cap.pct >= 70 && cap.pct < 90" [class.text-red-600]="cap.pct >= 90">
+                    {{ cap.pct | number:'1.0-0' }}%
+                </span>
+            </div>
+
+            <!-- Profile Section -->
+            <div class="flex items-center pl-6 border-l border-[#e8eaf0]">
+                <div class="text-right mr-4 hidden md:block">
+                    <p class="text-sm font-bold text-[#0f1117] leading-tight">
+                        {{userProfile?.firstName}} {{userProfile?.lastName}}
+                    </p>
+                    <p class="text-[10px] font-bold text-[#2563eb] uppercase tracking-widest mt-0.5">
+                        {{getDisplayRole()}}
+                    </p>
+                </div>
+                <div class="avatar-premium" [style.background]="getAvatarColor(0)">
+                    {{getProfileInitials()}}
+                    <span class="avatar-ring"></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="dept-content">
+
+        <!-- ══ STAT CARDS ════════════════════════════════════════════════════════ -->
+        <div class="stats-grid">
+
+            <div class="stat-card stat-blue">
+                <div class="stat-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                </div>
+                <div class="stat-body">
+                    <span class="stat-num">{{ dashboard?.enCours || 0 }}</span>
+                    <span class="stat-label">En cours dept.</span>
+                </div>
+                <div class="stat-trend trend-up">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Actif
+                </div>
+            </div>
+
+            <div class="stat-card stat-green">
+                <div class="stat-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-body">
+                    <span class="stat-num">{{ dashboard?.valides || 0 }}</span>
+                    <span class="stat-label">Validés cette année</span>
+                </div>
+                <div class="stat-trend trend-up">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    +12%
+                </div>
+            </div>
+
+            <div class="stat-card stat-red">
+                <div class="stat-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-body">
+                    <span class="stat-num">{{ dashboard?.rejetes || 0 }}</span>
+                    <span class="stat-label">Rejetés dept.</span>
+                </div>
+                <div class="stat-trend trend-neutral">— stable</div>
+            </div>
+
+            <div class="stat-card stat-amber">
+                <div class="stat-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-body">
+                    <span class="stat-num">{{ dashboard?.listeAttente || 0 }}</span>
+                    <span class="stat-label">Liste d'attente</span>
+                </div>
+                <div class="stat-trend" [class.trend-warn]="(dashboard?.listeAttente || 0) > 0"
+                    [class.trend-neutral]="(dashboard?.listeAttente || 0) === 0">
+                    <ng-container *ngIf="(dashboard?.listeAttente || 0) > 0">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        Action req.
+                    </ng-container>
+                    <ng-container *ngIf="(dashboard?.listeAttente || 0) === 0">— Aucun</ng-container>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ CAPACITÉ ═══════════════════════════════════════════════════════════ -->
+        <div class="section-card" *ngIf="dashboard?.capacites?.length">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Capacité par Niveau
+                </h2>
+                <span class="section-badge">Temps réel</span>
+            </div>
+
+            <div class="niveau-grid">
+                <div class="niveau-card animate-fadeIn" *ngFor="let cap of dashboard?.capacites; let i = index"
+                    [style.animation-delay]="i * 0.1 + 's'">
+                    <div class="niveau-header">
+                        <div class="flex flex-col">
+                            <span class="niveau-label">Niveau {{ cap.niveau }}</span>
+                            <span class="text-[10px] text-[#2563eb] font-bold uppercase">{{ cap.nomDiplome }} ({{
+                                cap.langue }})</span>
+                        </div>
+                        <span class="niveau-status" [class.status-green]="cap.pourcentageRemplissage < 70"
+                            [class.status-orange]="cap.pourcentageRemplissage >= 70 && cap.pourcentageRemplissage < 90"
+                            [class.status-red]="cap.pourcentageRemplissage >= 90">
+                            {{ cap.pourcentageRemplissage >= 100 ? '🔴 Complet' :
+                            cap.pourcentageRemplissage >= 90 ? '🟠 Quasi-complet' :
+                            cap.pourcentageRemplissage >= 70 ? '🟡 Quasi-plein' :
+                            '🟢 Disponible' }}
+                        </span>
+                    </div>
+
+                    <div class="niveau-bar-wrap">
+                        <div class="niveau-bar">
+                            <div class="niveau-fill" [class.bar-green]="cap.pourcentageRemplissage < 70"
+                                [class.bar-orange]="cap.pourcentageRemplissage >= 70 && cap.pourcentageRemplissage < 90"
+                                [class.bar-red]="cap.pourcentageRemplissage >= 90"
+                                [style.width.%]="cap.pourcentageRemplissage">
+                            </div>
+                        </div>
+                        <span class="niveau-pct">{{ cap.pourcentageRemplissage | number:'1.0-0' }}%</span>
+                    </div>
+
+                    <div class="niveau-details">
+                        <div class="detail-item">
+                            <span class="detail-dot dot-green"></span>
+                            <span>Inscrits confirmés</span>
+                            <strong>{{ cap.inscritsConfirmes }}</strong>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-dot dot-blue"></span>
+                            <span>En traitement</span>
+                            <strong>{{ cap.enCoursTraitement }}</strong>
+                        </div>
+                        <div class="detail-item detail-restant">
+                            <span>Places restantes</span>
+                            <strong [class.text-red]="cap.placesRestantes === 0"
+                                [class.text-green]="cap.placesRestantes > 5">
+                                {{ cap.placesRestantes }} / {{ cap.capaciteMax }}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <!-- Prérequis dans la carte -->
+                    <div class="niveau-prereq mt-4 pt-3 border-t border-dashed border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Prérequis requis
+                        </p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <span *ngFor="let p of cap.prerequisType"
+                                class="px-2 py-0.5 bg-blue-50 text-[#2563eb] text-[9px] font-bold rounded-sm border border-blue-100">
+                                {{ p }}
+                            </span>
+                            <span *ngFor="let p of cap.prerequisNiveau"
+                                class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[9px] font-bold rounded-sm border border-purple-100">
+                                {{ p }}
+                            </span>
+                            <span *ngIf="!cap.prerequisType.length && !cap.prerequisNiveau.length"
+                                class="text-[10px] italic text-gray-400">Aucun prérequis spécifique</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ LISTE ATTENTE ══════════════════════════════════════════════════════ -->
+        <div class="section-card attente-card" *ngIf="(dashboard?.listeAttente || 0) > 0">
+            <div class="section-header">
+                <h2 class="section-title text-amber">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Liste d'attente
+                    <span class="attente-count">{{ dashboard?.listeAttente }}</span>
+                </h2>
+                <span class="attente-info">💡 Une place libérée → Promouvoir le 1er automatiquement</span>
+            </div>
+            <div class="attente-list">
+                <div class="attente-item animate-fadeIn" *ngFor="let d of getDemandesListeAttente(); let i = index"
+                    [style.animation-delay]="i * 0.07 + 's'">
+                    <div class="attente-rank">#{{ i + 1 }}</div>
+                    <div class="attente-avatar" [style.background]="getAvatarColor(i + 3)">{{ getInitialesEtudiant(d) }}
+                    </div>
+                    <div class="attente-info-block">
+                        <span class="attente-name">{{ d.prenomEtudiant }} {{ d.nomEtudiant }}</span>
+                        <span class="attente-date">Soumis le {{ d.dateCreation | date:'dd/MM/yyyy' }}</span>
+                    </div>
+                    <span class="prereq-badge" [class.prereq-ok]="d.prerequisSatisfaits"
+                        [class.prereq-ko]="!d.prerequisSatisfaits">
+                        {{ d.prerequisSatisfaits ? '✓ Prérequis OK' : '⚠ À vérifier' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ TABLEAU PRINCIPAL ══════════════════════════════════════════════════ -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Demandes — EN_COURS_DEPARTEMENT
+                </h2>
+
+                <div class="filter-bar">
+                    <button class="filter-btn" [class.active]="currentFilter === 'tous'"
+                        (click)="setFilter('tous')">Tous</button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'prerequis_ok'"
+                        (click)="setFilter('prerequis_ok')">
+                        <span class="dot dot-green"></span> Prérequis OK
+                    </button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'prerequis_ko'"
+                        (click)="setFilter('prerequis_ko')">
+                        <span class="dot dot-red"></span> Prérequis ✗
+                    </button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'liste_attente'"
+                        (click)="setFilter('liste_attente')">
+                        <span class="dot dot-amber"></span> Liste d'attente
+                    </button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'valides'"
+                        (click)="setFilter('valides')">
+                        <span class="dot dot-green2"></span> Validés
+                    </button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'rejetes'"
+                        (click)="setFilter('rejetes')">
+                        <span class="dot dot-rose"></span> Rejetés
+                    </button>
+                </div>
+            </div>
+
+            <div class="search-row">
+                <div class="search-box">
+                    <div class="search-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input type="text" class="search-input" [(ngModel)]="searchTerm" (input)="onSearch()"
+                        placeholder="Rechercher un candidat...">
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="dept-table">
+                    <thead>
+                        <tr>
+                            <th>Candidat</th>
+                            <th>Diplôme demandé</th>
+                            <th>Niveau</th>
+                            <th>Date soumission</th>
+                            <th>Prérequis</th>
+                            <th>Capacité</th>
+                            <th>Statut</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let demande of filteredDemandes; let i = index" class="table-row animate-fadeIn"
+                            [style.animation-delay]="i * 0.04 + 's'" (click)="openDetail(demande)">
+
+                            <td>
+                                <div class="candidate-cell">
+                                    <div class="mini-avatar" [style.background]="getAvatarColor(i)">{{
+                                        getInitialesEtudiant(demande) }}</div>
+                                    <div>
+                                        <p class="candidate-name">{{ demande.prenomEtudiant }} {{ demande.nomEtudiant }}
+                                        </p>
+                                        <p class="candidate-email">{{ demande.emailEtudiant }}</p>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="diplome-cell">
+                                    <span class="diplome-name">{{ demande.nomDiplome }}</span>
+                                    <span class="diplome-langue">{{ demande.langue }}</span>
+                                </div>
+                            </td>
+
+                            <td>
+                                <span class="px-2 py-0.5 bg-gray-100 text-[#0f1117] text-[10px] font-bold rounded-full">
+                                    Niveau {{ demande.niveauChoisi || '—' }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="date-text">{{ demande.dateCreation | date:'dd/MM/yyyy' }}</span><br>
+                                <span class="date-ago">{{ getTempsEcoule(demande.dateCreation) }}</span>
+                            </td>
+
+                            <td>
+                                <span class="prereq-icon-badge" [class.prereq-ok]="demande.prerequisSatisfaits"
+                                    [class.prereq-ko]="!demande.prerequisSatisfaits">
+                                    {{ demande.prerequisSatisfaits ? '✅ OK' : '⚠️ À vérifier' }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="capacite-badge" [class.cap-ok]="!isCapaciteAtteinte(demande.niveauChoisi)"
+                                    [class.cap-warn]="isCapaciteAtteinte(demande.niveauChoisi)">
+                                    {{ getCapaciteText(demande.niveauChoisi) }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="statut-chip" [ngClass]="getStatutClass(demande.statut)">
+                                    {{ getStatutLabel(demande.statut) }}
+                                </span>
+                            </td>
+
+                            <td class="text-right">
+                                <div class="actions-cell" (click)="$event.stopPropagation()">
+                                    <button class="action-btn btn-view" (click)="openDetail(demande)"
+                                        title="Voir détails">
+                                        <svg viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                            <path fill-rule="evenodd"
+                                                d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <button class="action-btn btn-accept" [disabled]="!isActionnable(demande)"
+                                        (click)="openDecision(demande, 'ACCEPTE')"
+                                        [title]="isCapaciteAtteinte(demande.niveauChoisi) ? 'Attention: Capacité atteinte' : 'Valider'">
+                                        <svg viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        <div *ngIf="isCapaciteAtteinte(demande.niveauChoisi)" class="alert-indicator">!
+                                        </div>
+                                    </button>
+                                    <button class="action-btn btn-attente" [disabled]="!isActionnable(demande)"
+                                        (click)="openDecision(demande, 'LISTE_ATTENTE')" title="Liste d'attente">
+                                        <svg viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <button class="action-btn btn-reject" [disabled]="!isActionnable(demande)"
+                                        (click)="openDecision(demande, 'REJETE')" title="Rejeter">
+                                        <svg viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr *ngIf="filteredDemandes.length === 0">
+                            <td colspan="7" class="empty-state">
+                                <div class="empty-content">
+                                    <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                    <p>Aucune demande trouvée</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ══ ANALYTICS ═══════════════════════════════════════════════════════════ -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Tableau de bord analytique
+                </h2>
+            </div>
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <p class="analytics-title">Répartition par série de bac</p>
+                    <div *ngFor="let item of bacDistribution" class="bac-row">
+                        <span class="bac-label">{{ item.label }}</span>
+                        <div class="bac-bar-track">
+                            <div class="bac-bar-fill" [style.width.%]="item.pct" [style.background]="item.color"></div>
+                        </div>
+                        <span class="bac-pct">{{ item.pct }}%</span>
+                    </div>
+                </div>
+                <div class="analytics-card">
+                    <p class="analytics-title">Taux d'acceptation</p>
+                    <div class="taux-circle">
+                        <span class="taux-num">{{ getTauxAcceptation() }}%</span>
+                        <span class="taux-label">Taux de validation département</span>
+                        <span class="taux-detail">{{ dashboard?.valides || 0 }} validés / {{ (dashboard?.valides || 0) +
+                            (dashboard?.rejetes || 0) }} traités</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /dept-content -->
+</main>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL DÉTAIL
+══════════════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showModal && selectedDemande" class="modal-backdrop" (click)="closeModal()">
+    <div class="modal-shell" (click)="$event.stopPropagation()">
+
+        <!-- SIDEBAR -->
+        <aside class="modal-sidebar">
+            <div class="sidebar-identity">
+                <div class="identity-avatar" [style.background]="getAvatarColor(0)">
+                    {{ getInitialesEtudiant(selectedDemande) }}
+                </div>
+                <div class="identity-meta">
+                    <span class="dossier-tag">#{{ selectedDemande.id }}</span>
+                    <span class="langue-tag">{{ selectedDemande.langue }}</span>
+                </div>
+                <h2 class="identity-name">{{ selectedDemande.prenomEtudiant }}<br>{{ selectedDemande.nomEtudiant }}</h2>
+                <p class="identity-sub">{{ selectedDemande.emailEtudiant }}</p>
+            </div>
+
+            <!-- Résumé prérequis -->
+            <div class="sidebar-prereq-summary" [class.prereq-global-ok]="selectedDemande.prerequisSatisfaits"
+                [class.prereq-global-ko]="!selectedDemande.prerequisSatisfaits">
+                <div class="prereq-global-icon">
+                    <svg *ngIf="selectedDemande.prerequisSatisfaits" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <svg *ngIf="!selectedDemande.prerequisSatisfaits" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="prereq-global-title">{{ selectedDemande.prerequisSatisfaits ? 'Prérequis satisfaits' :
+                        'Prérequis insuffisants' }}</p>
+                    <p class="prereq-global-sub">{{ getCountPrerequisOk(selectedDemande) }}/{{
+                        selectedDemande.prerequisDetails.length || 0 }} conformes</p>
+                </div>
+            </div>
+
+            <div class="sidebar-contact">
+                <div class="contact-row">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                    <span>{{ selectedDemande.emailEtudiant }}</span>
+                </div>
+                <div class="contact-row">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                            d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" />
+                    </svg>
+                    <span>{{ selectedDemande.nomDiplome }}</span>
+                </div>
+                <div class="contact-row" *ngIf="selectedDemande.diplomeObtenu">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                            d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                    </svg>
+                    <span>{{ selectedDemande.diplomeObtenu }}</span>
+                </div>
+            </div>
+
+            <button class="sidebar-close" (click)="closeModal()">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="modal-main">
+            <nav class="modal-tabs">
+                <button class="modal-tab" [class.tab-active]="activeTab === 'prerequis'"
+                    (click)="activeTab = 'prerequis'">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Prérequis
+                    <span class="tab-badge" [class.badge-green]="selectedDemande.prerequisSatisfaits"
+                        [class.badge-red]="!selectedDemande.prerequisSatisfaits">
+                        {{ getCountPrerequisOk(selectedDemande) }}/{{ selectedDemande.prerequisDetails.length || 0 }}
+                    </span>
+                </button>
+                <button class="modal-tab" [class.tab-active]="activeTab === 'capacite'"
+                    (click)="activeTab = 'capacite'">
+                    <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px">
+                        <path
+                            d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                    </svg>
+                    Capacité
+                </button>
+                <button class="modal-tab" [class.tab-active]="activeTab === 'decision'"
+                    (click)="activeTab = 'decision'">
+                    <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px">
+                        <path fill-rule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Décision
+                </button>
+            </nav>
+
+            <div class="modal-body">
+
+                <!-- TAB PRÉREQUIS -->
+                <ng-container *ngIf="activeTab === 'prerequis'">
+                    <div class="prereq-header-info">
+                        <p class="prereq-intro">Vérification automatique des prérequis pour <strong>{{
+                                selectedDemande.nomDiplome }}</strong></p>
+                    </div>
+
+                    <table class="prereq-table">
+                        <thead>
+                            <tr>
+                                <th>Prérequis requis</th>
+                                <th>Valeur candidat</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let p of selectedDemande.prerequisDetails" [class.row-ok]="p.conforme"
+                                [class.row-ko]="!p.conforme">
+                                <td class="prereq-nom">{{ p.prerequisRequis }}</td>
+                                <td class="prereq-valeur">{{ p.valeurCandidat || '—' }}</td>
+                                <td>
+                                    <span class="prereq-status-badge" [class.status-ok]="p.conforme"
+                                        [class.status-ko]="!p.conforme">
+                                        <svg *ngIf="p.conforme" viewBox="0 0 16 16" fill="currentColor"
+                                            style="width:12px;height:12px">
+                                            <path fill-rule="evenodd"
+                                                d="M12.354 4.354a.5.5 0 010 .707L5.707 11.707a.5.5 0 01-.707 0l-2.5-2.5a.5.5 0 01.707-.707L5 10.793l6.293-6.646a.5.5 0 01.707.707z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        <svg *ngIf="!p.conforme" viewBox="0 0 16 16" fill="currentColor"
+                                            style="width:12px;height:12px">
+                                            <path fill-rule="evenodd"
+                                                d="M4.646 4.646a.5.5 0 01.708 0L8 7.293l2.646-2.647a.5.5 0 01.708.708L8.707 8l2.647 2.646a.5.5 0 01-.708.708L8 8.707l-2.646 2.647a.5.5 0 01-.708-.708L7.293 8 4.646 5.354a.5.5 0 010-.708z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        {{ p.conforme ? 'Conforme' : 'Non conforme' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr *ngIf="!selectedDemande.prerequisDetails.length">
+                                <td colspan="3" style="text-align:center;padding:24px;color:#8b92a9;font-size:13px">
+                                    Aucun prérequis défini</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="prereq-result" [class.result-ok]="selectedDemande.prerequisSatisfaits"
+                        [class.result-ko]="!selectedDemande.prerequisSatisfaits">
+                        <svg *ngIf="selectedDemande.prerequisSatisfaits" viewBox="0 0 20 20" fill="currentColor"
+                            style="width:18px;height:18px">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <svg *ngIf="!selectedDemande.prerequisSatisfaits" viewBox="0 0 20 20" fill="currentColor"
+                            style="width:18px;height:18px">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <span>Résultat global :
+                            <strong>{{ selectedDemande.prerequisSatisfaits ? 'Prérequis satisfaits' :
+                                getCountPrerequisKo(selectedDemande) + ' prérequis non satisfaits' }}</strong>
+                        </span>
+                    </div>
+                </ng-container>
+
+                <!-- TAB CAPACITÉ -->
+                <ng-container *ngIf="activeTab === 'capacite'">
+                    <div class="capacite-detail" *ngFor="let cap of dashboard?.capacites">
+                        <div class="capacite-header">
+                            <span class="cap-niveau-label">Niveau {{ cap.niveau }} — {{ dashboard?.nomDiplome }}</span>
+                            <span class="cap-max-badge">Max : {{ cap.capaciteMax }}</span>
+                        </div>
+                        <div class="cap-bar-large">
+                            <div class="cap-fill-large" [class.bar-green]="cap.pourcentageRemplissage < 70"
+                                [class.bar-orange]="cap.pourcentageRemplissage >= 70 && cap.pourcentageRemplissage < 90"
+                                [class.bar-red]="cap.pourcentageRemplissage >= 90"
+                                [style.width.%]="cap.pourcentageRemplissage">
+                            </div>
+                        </div>
+                        <div class="cap-bar-labels">
+                            <span>0</span>
+                            <span class="cap-bar-current">{{ cap.inscritsConfirmes + cap.enCoursTraitement }}/{{
+                                cap.capaciteMax }}</span>
+                            <span>{{ cap.capaciteMax }}</span>
+                        </div>
+                        <div class="cap-breakdown">
+                            <div class="cap-block cap-block-green"><strong>{{ cap.inscritsConfirmes
+                                    }}</strong><span>Inscrits confirmés</span></div>
+                            <div class="cap-block cap-block-blue"><strong>{{ cap.enCoursTraitement }}</strong><span>En
+                                    traitement</span></div>
+                            <div class="cap-block cap-block-amber"><strong>{{ cap.listeAttente }}</strong><span>Liste
+                                    d'attente</span></div>
+                            <div class="cap-block cap-block-gray"><strong>{{ cap.placesRestantes }}</strong><span>Places
+                                    restantes</span></div>
+                        </div>
+                        <div class="cap-action-info" *ngIf="cap.placesRestantes === 0">
+                            <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px">
+                                <path fill-rule="evenodd"
+                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            Capacité atteinte — proposer la liste d'attente
+                        </div>
+                    </div>
+                </ng-container>
+
+                <!-- TAB DÉCISION -->
+                <ng-container *ngIf="activeTab === 'decision'">
+
+                    <!-- Dossier non actionnable -->
+                    <div *ngIf="!isActionnable(selectedDemande)" class="decision-readonly">
+                        <div class="readonly-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3>Dossier {{ getStatutLabel(selectedDemande.statut) }}</h3>
+                        <p>Ce dossier a déjà été traité.</p>
+                    </div>
+
+                    <!-- Cartes action -->
+                    <div *ngIf="isActionnable(selectedDemande) && !showDecisionForm" class="decision-actions">
+                        <div class="action-cards">
+
+                            <div class="action-card-dept action-card-green" [class.card-disabled]="isCapaciteAtteinte()"
+                                (click)="!isCapaciteAtteinte() && prepareDecision('ACCEPTE')">
+                                <div class="acard-icon">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div class="acard-body">
+                                    <h3>Valider</h3>
+                                    <p *ngIf="!isCapaciteAtteinte()">Approuver → statut DEPARTEMENT_VALIDE</p>
+                                    <p *ngIf="isCapaciteAtteinte()" style="color:#dc2626;font-weight:600">Capacité
+                                        atteinte — utiliser liste d'attente</p>
+                                </div>
+                                <svg class="acard-arrow" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+
+                            <div class="action-card-dept action-card-amber"
+                                [class.card-disabled]="!isCapaciteAtteinte()"
+                                (click)="isCapaciteAtteinte() && prepareDecision('LISTE_ATTENTE')">
+                                <div class="acard-icon">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div class="acard-body">
+                                    <h3>Liste d'attente</h3>
+                                    <p>{{ isCapaciteAtteinte() ? 'Capacité atteinte → inscrire en liste' : 'Disponible
+                                        seulement si capacité atteinte' }}</p>
+                                </div>
+                                <svg class="acard-arrow" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+
+                            <div class="action-card-dept action-card-red" (click)="prepareDecision('REJETE')">
+                                <div class="acard-icon">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div class="acard-body">
+                                    <h3>Rejeter</h3>
+                                    <p>Notifier l'étudiant avec un motif</p>
+                                </div>
+                                <svg class="acard-arrow" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulaire décision -->
+                    <!-- Formulaire décision -->
+                    <div *ngIf="isActionnable(selectedDemande) && showDecisionForm" class="decision-form">
+                        <div class="form-header-dept" [class.fh-green]="pendingDecision === 'ACCEPTE'"
+                            [class.fh-amber]="pendingDecision === 'LISTE_ATTENTE'"
+                            [class.fh-red]="pendingDecision === 'REJETE'">
+                            <h3>
+                                {{ pendingDecision === 'ACCEPTE' ? '✅ Confirmer la validation' :
+                                pendingDecision === 'LISTE_ATTENTE' ? '🕐 Mettre en liste d\'attente' :
+                                '❌ Confirmer le rejet' }}
+                            </h3>
+                            <p>Dossier #{{ selectedDemande.id }} · {{ selectedDemande.prenomEtudiant }} {{
+                                selectedDemande.nomEtudiant }}</p>
+                        </div>
+
+                        <!-- Banner info selon décision -->
+                        <div *ngIf="pendingDecision === 'ACCEPTE'"
+                            style="background:#f0fdf4;border-left:4px solid #16a34a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#166534;">
+                            <strong>ℹ️</strong> Le lien vers le formulaire de paiement sera généré automatiquement après
+                            validation.
+                        </div>
+                        <div *ngIf="pendingDecision === 'LISTE_ATTENTE'"
+                            style="background:#fffbeb;border-left:4px solid #d97706;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400e;">
+                            <strong>ℹ️</strong> L'étudiant sera notifié automatiquement dès qu'une place se libère.
+                        </div>
+                        <div *ngIf="pendingDecision === 'REJETE'"
+                            style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#991b1b;">
+                            <strong>ℹ️</strong> Précisez le motif dans l'email ci-dessous à la ligne <strong>[À
+                                préciser]</strong>.
+                        </div>
+
+                        <label class="form-label-dept">Aperçu Email (modifiable)</label>
+
+                        <textarea [(ngModel)]="commentaire" class="form-textarea-dept" rows="10"
+                            style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+  </textarea>
+
+                        <div class="form-actions-dept">
+                            <button class="btn-back-dept" (click)="showDecisionForm = false">← Retour</button>
+                            <button class="btn-confirm-dept" [class.btn-green]="pendingDecision === 'ACCEPTE'"
+                                [class.btn-amber]="pendingDecision === 'LISTE_ATTENTE'"
+                                [class.btn-red]="pendingDecision === 'REJETE'"
+                                [disabled]="actionLoading || !commentaire.trim()" (click)="confirmerDecision()">
+                                <span *ngIf="actionLoading" class="btn-spinner"></span>
+                                {{ actionLoading ? 'Traitement...' :
+                                pendingDecision === 'ACCEPTE' ? 'Confirmer la validation' :
+                                pendingDecision === 'LISTE_ATTENTE' ? 'Confirmer liste d\'attente' :
+                                'Confirmer le rejet' }}
+                            </button>
+                        </div>
+                    </div>
+                </ng-container>
+
+            </div><!-- /modal-body -->
+        </main>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="modal-toast" [class.toast-show]="toastVisible" [class.toast-success]="toastType === 'success'"
+    [class.toast-error]="toastType === 'error'">
+    {{ toastMessage }}
+</div>

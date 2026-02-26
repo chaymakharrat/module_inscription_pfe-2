@@ -1,4 +1,4 @@
-<nav [class]="'sticky top-0 z-50 transition-all duration-300 ' + 
+<nav *ngIf="!isRouteHidden" [class]="'sticky top-0 z-50 transition-all duration-300 ' + 
            (isNavbarTransparent ? 'navbar-transparent' : 'navbar-solid shadow-md') + 
            (isNavbarHidden ? ' -translate-y-full' : ' translate-y-0')">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,7 +31,7 @@
           </a>
         </li>
         <li *ngIf="hasRole('ENSEIGNANT_RESPONSABLE')">
-          <a routerLink="/dashboard-enseignant-responsable" routerLinkActive="text-blue-600"
+          <a routerLink="/dashboard-departement" routerLinkActive="text-blue-600"
             class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-blue-50">
             Enseignant
           </a>

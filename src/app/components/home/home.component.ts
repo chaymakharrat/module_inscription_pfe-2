@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, AfterViewInit, HostListener, OnInit } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Router } from '@angular/router';
@@ -11,9 +11,9 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule, PreInscriptionComponent],
   template: `
-    <div class="w-full -mt-16 md:-mt-20">
+    <div class="w-full">
       <!-- Landing Page Section -->
-      <div class="relative h-screen overflow-hidden font-sans" #landingSection>
+      <div class="relative h-[100vh] w-full overflow-hidden font-sans" #landingSection>
         <!-- Vidéo en arrière-plan -->
         <video 
           #backgroundVideo
@@ -21,9 +21,8 @@ import { Subscription } from 'rxjs';
           loop 
           muted 
           playsinline
-          class="absolute inset-0 min-w-full min-h-full object-cover"
+          class="absolute inset-0 w-full h-full object-cover scale-105"
           [style.transform]="videoTransform"
-          style="width: 100%; height: 100%;"
         >
           <source src="assets/video_robot.mp4" type="video/mp4" />
         </video>
@@ -38,71 +37,74 @@ import { Subscription } from 'rxjs';
 
         <!-- Contenu -->
         <div class="relative z-10 flex flex-col items-center justify-center h-full text-white px-4">
-          <div [@fadeInUp] class="text-center max-w-4xl">
-            <div class="mb-8">
-            <p class="text-sm tracking-[0.3em] uppercase font-semibold text-blue-300 mb-2">
-              ITECH UNIVERSITY
-            </p>
-            <div class="h-1 w-20 bg-gradient-to-r from-blue-400 to-transparent mx-auto"></div>
-          </div>
-            <!-- Titre principal -->
-            <h1 class="text-5xl md:text-7xl font-bold mb-6 tracking-tight">
-              Rejoignez l'Excellence
-            </h1>
-            
-            <p class="text-xl md:text-2xl mb-8 text-gray-200">
-              Commencez votre parcours universitaire à ITECH University
-            </p>
+          <div [@fadeInUp] class="text-center max-w-5xl">
+            <div class="mb-12 hero-reveal">
+              <span class="px-4 py-2 rounded-full glass-morphism text-xs tracking-[0.4em] uppercase font-bold text-blue-300 mt-24 mb-6 inline-block">
+                ITECH UNIVERSITY • EXCELLENCE
+              </span>
+              <h1 class="text-4xl md:text-6xl font-black mb-6 tracking-tight hero-text-shadow text-white leading-tight">
+                Rejoignez <span class="inline-block">{{typedText}}<span class="cursor">|</span></span>
+              </h1>
+              <p class="text-xl md:text-3xl mb-12 text-gray-300 font-light max-w-3xl mx-auto leading-relaxed">
+                Façonnez votre avenir dans une université à la pointe de l'innovation technologique.
+              </p>
+            </div>
 
             <!-- Statistiques -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 max-w-2xl mx-auto">
-              <div class="stat-card backdrop-blur-md bg-white/10 rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                <div class="text-4xl font-bold">{{studentsCount}}+</div>
-                <div class="text-sm font-medium text-blue-200">Étudiants</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 max-w-4xl mx-auto">
+              <div class="stat-card glass-morphism rounded-2xl p-8 border border-white/10">
+                <div class="text-5xl font-black mb-2 text-white">{{studentsCount}}+</div>
+                <div class="text-sm font-bold tracking-widest uppercase text-blue-200">Étudiants</div>
               </div>
-              <div class="stat-card backdrop-blur-md bg-white/10 rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                <div class="text-4xl font-bold">{{employabilityRate}}%</div>
-                <div class="text-sm font-medium text-blue-200">Employabilité</div>
+              <div class="stat-card glass-morphism rounded-2xl p-8 border border-white/10">
+                <div class="text-5xl font-black mb-2 text-white">{{employabilityRate}}%</div>
+                <div class="text-sm font-bold tracking-widest uppercase text-blue-200">Employabilité</div>
               </div>
-              <div class="stat-card backdrop-blur-md bg-white/10 rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                <div class="text-4xl font-bold">{{programsCount}}+</div>
-                <div class="text-sm font-medium text-blue-200">Programmes</div>
+              <div class="stat-card glass-morphism rounded-2xl p-8 border border-white/10">
+                <div class="text-5xl font-black mb-2 text-white">{{programsCount}}+</div>
+                <div class="text-sm font-bold tracking-widest uppercase text-blue-200">Programmes</div>
               </div>
             </div>
 
-            <!-- CTA -->
-            <button
-              (click)="scrollToForm()"
-              class="cta-button bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xl px-12 py-4 rounded-full font-semibold shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-3 mx-auto relative overflow-hidden"
-            >
-              <span class="relative z-10">Commencer ma pré-inscription</span>
-            </button>
+            <!-- Dynamic Scroll Arrows Instead of Button -->
+            <div class="flex flex-col items-center justify-center mt-8">
+              <button
+                (click)="scrollToForm()"
+                class="scroll-arrows-container flex flex-col items-center gap-1 group cursor-pointer bg-transparent border-none p-4"
+              >
+                <span class="text-blue-300 text-xs tracking-[0.3em] uppercase mb-4 group-hover:text-white transition-colors">Défiler pour s'inscrire</span>
+                <div class="arrows-wrapper flex flex-col items-center">
+                  <div class="arrow-down"></div>
+                  <div class="arrow-down delay-1"></div>
+                  <div class="arrow-down delay-2"></div>
+                </div>
+              </button>
+            </div>
 
-            <p class="mt-6 text-sm text-gray-300 flex items-center justify-center gap-2">
-              <span class="flex h-2 w-2 relative">
+            <p class="mt-8 text-sm text-gray-400 flex items-center justify-center gap-3">
+              <span class="flex h-3 w-3 relative">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
               </span>
-              ⏱️ Seulement 5 minutes pour compléter
+              Session d'inscription ouverte pour 2024-2025
             </p>
           </div>
 
           <!-- Scroll indicator Arrow -->
-          <button
-            (click)="scrollToForm()"
-            [@bounce]
-            class="absolute bottom-8 cursor-pointer hover:text-white transition-colors bg-transparent border-none p-2 text-white/50"
-            type="button"
-          >
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
-          </button>
+          <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-gray-400">
+            <span class="text-[10px] uppercase tracking-[0.3em]">Découvrir</span>
+            <div class="w-px h-12 bg-gradient-to-b from-blue-500 to-transparent animate-bounce"></div>
+          </div>
         </div>
       </div>
 
       <!-- Formulaire Section -->
-      <div #formSection class="w-full">
+      <div #formSection class="w-full bg-gray-50">
+        <div class="hero-wave">
+          <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#f9fafb" d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z"/>
+          </svg>
+        </div>  
         <app-pre-inscription></app-pre-inscription>
       </div>
     </div>
@@ -110,26 +112,29 @@ import { Subscription } from 'rxjs';
   animations: [
     trigger('fadeInUp', [
       transition(':enter', [
-        style({ opacity: 0, transform: 'translateY(30px)' }),
-        animate('800ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
-      ])
-    ]),
-    trigger('bounce', [
-      transition('* => *', [
-        animate('1.5s ease-in-out', style({ transform: 'translateY(10px)' })),
-        animate('1.5s ease-in-out', style({ transform: 'translateY(0)' }))
+        style({ opacity: 0, transform: 'translateY(40px)' }),
+        animate('1000ms cubic-bezier(0.4, 0, 0.2, 1)', style({ opacity: 1, transform: 'translateY(0)' }))
       ])
     ])
   ],
   styleUrl: './home.component.css'
 })
-export class HomeComponent implements AfterViewInit, OnInit {
+export class HomeComponent implements AfterViewInit, OnInit, OnDestroy {
   @ViewChild('formSection') formSection!: ElementRef;
   @ViewChild('backgroundVideo') backgroundVideo!: ElementRef<HTMLVideoElement>;
   @ViewChild('landingSection') landingSection!: ElementRef;
+  @ViewChild('featuresSection') featuresSection!: ElementRef;
 
   // Parallax effect
-  videoTransform = 'translateY(0px)';
+  videoTransform = 'scale(1.05)';
+
+  // Typing effect
+  typedText = '';
+  private fullTextArray = ["l'Excellence", "l'Innovation", "votre Futur", "la Réussite"];
+  private textIndex = 0;
+  private charIndex = 0;
+  private isDeleting = false;
+  private typingSpeed = 150;
 
   // Animated counters
   studentsCount = 0;
@@ -137,6 +142,7 @@ export class HomeComponent implements AfterViewInit, OnInit {
   programsCount = 0;
   private countersAnimated = false;
   private scrollSubscription?: Subscription;
+  private observer?: IntersectionObserver;
 
   constructor(
     private router: Router,
@@ -147,15 +153,46 @@ export class HomeComponent implements AfterViewInit, OnInit {
     // Start counter animations after a short delay
     setTimeout(() => this.animateCounters(), 500);
 
+    // Start typing effect
+    this.startTypingEffect();
+
     // Écouter le service de scroll
     this.scrollSubscription = this.scrollService.scroll$.subscribe(scrollTop => {
       this.handleScrollUpdate(scrollTop);
     });
   }
 
+  private startTypingEffect() {
+    const currentFullText = this.fullTextArray[this.textIndex];
+
+    if (this.isDeleting) {
+      this.typedText = currentFullText.substring(0, this.charIndex - 1);
+      this.charIndex--;
+      this.typingSpeed = 50;
+    } else {
+      this.typedText = currentFullText.substring(0, this.charIndex + 1);
+      this.charIndex++;
+      this.typingSpeed = 150;
+    }
+
+    if (!this.isDeleting && this.charIndex === currentFullText.length) {
+      this.isDeleting = true;
+      this.typingSpeed = 2000; // Pause at the end
+    } else if (this.isDeleting && this.charIndex === 0) {
+      this.isDeleting = false;
+      this.textIndex = (this.textIndex + 1) % this.fullTextArray.length;
+      this.typingSpeed = 500;
+    }
+
+    setTimeout(() => this.startTypingEffect(), this.typingSpeed);
+  }
+
   ngOnDestroy() {
     if (this.scrollSubscription) {
       this.scrollSubscription.unsubscribe();
+    }
+    if (this.observer) {
+      this.observer.disconnect();
     }
   }
 
@@ -174,6 +211,30 @@ export class HomeComponent implements AfterViewInit, OnInit {
         document.addEventListener('click', tryPlay);
       });
     }
+
+    // Initialiser l'Intersection Observer pour les animations scroll
+    this.initScrollReveal();
+  }
+
+  private initScrollReveal() {
+    const options = {
+      threshold: 0.15,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    this.observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+          // Optionnel: arrêter d'observer une fois révélé
+          // this.observer?.unobserve(entry.target);
+        }
+      });
+    }, options);
+
+    // Observer tous les éléments avec la classe .reveal
+    const revealElements = document.querySelectorAll('.reveal');
+    revealElements.forEach(el => this.observer?.observe(el));
   }
 
   private handleScrollUpdate(scrolled: number) {

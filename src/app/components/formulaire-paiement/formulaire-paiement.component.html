@@ -1,0 +1,529 @@
+<!-- formulaire-paiement.component.html -->
+<div class="fp-root" *ngIf="!loading && !linkInvalid && !submitted">
+
+    <!-- ══ HEADER ══ -->
+    <header class="fp-header">
+        <div class="fp-header-inner">
+            <div class="fp-logo">
+                <div class="fp-logo-icon">I</div>
+                <span class="fp-logo-text">ITECH <span>University</span></span>
+            </div>
+            <div class="fp-header-badge">
+                <div class="fp-badge-dot"></div>
+                Formulaire sécurisé
+            </div>
+        </div>
+    </header>
+
+    <!-- ══ HERO BANNER ══ -->
+    <section class="fp-hero">
+        <div class="fp-hero-inner">
+            <div class="fp-hero-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                </svg>
+            </div>
+            <div class="fp-hero-text">
+                <h1>Préférences de Paiement</h1>
+                <p>Formulaire de préférences financières — ITECH University</p>
+            </div>
+            <div class="fp-hero-timer" *ngIf="heuresRestantes !== null">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                        clip-rule="evenodd" />
+                </svg>
+                <span [class.timer-urgent]="heuresRestantes < 24">
+                    Expire dans {{ formatHeures(heuresRestantes) }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Progress Steps — 4 étapes -->
+        <div class="fp-steps">
+            <div class="fp-step" [class.step-active]="currentStep >= 1" [class.step-done]="currentStep > 1">
+                <div class="step-circle">
+                    <svg *ngIf="currentStep > 1" viewBox="0 0 16 16" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M12.354 4.354a.5.5 0 010 .707l-7 7a.5.5 0 01-.708 0l-3.5-3.5a.5.5 0 01.708-.708L5 10.793l6.646-6.647a.5.5 0 01.708 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span *ngIf="currentStep <= 1">1</span>
+                </div>
+                <span class="step-label">Mode de paiement</span>
+            </div>
+            <div class="step-line" [class.line-done]="currentStep > 1"></div>
+            <div class="fp-step" [class.step-active]="currentStep >= 2" [class.step-done]="currentStep > 2">
+                <div class="step-circle">
+                    <svg *ngIf="currentStep > 2" viewBox="0 0 16 16" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M12.354 4.354a.5.5 0 010 .707l-7 7a.5.5 0 01-.708 0l-3.5-3.5a.5.5 0 01.708-.708L5 10.793l6.646-6.647a.5.5 0 01.708 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span *ngIf="currentStep <= 2">2</span>
+                </div>
+                <span class="step-label">Type de paiement</span>
+            </div>
+            <div class="step-line" [class.line-done]="currentStep > 2"></div>
+            <div class="fp-step" [class.step-active]="currentStep >= 3" [class.step-done]="currentStep > 3">
+                <div class="step-circle">
+                    <svg *ngIf="currentStep > 3" viewBox="0 0 16 16" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M12.354 4.354a.5.5 0 010 .707l-7 7a.5.5 0 01-.708 0l-3.5-3.5a.5.5 0 01.708-.708L5 10.793l6.646-6.647a.5.5 0 01.708 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span *ngIf="currentStep <= 3">3</span>
+                </div>
+                <span class="step-label">Remises</span>
+            </div>
+            <div class="step-line" [class.line-done]="currentStep > 3"></div>
+            <div class="fp-step" [class.step-active]="currentStep >= 4">
+                <div class="step-circle"><span>4</span></div>
+                <span class="step-label">Confirmation</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ CONTENT ══ -->
+    <main class="fp-content">
+
+        <!-- ─── STEP 1 : MODE DE PAIEMENT ─── -->
+        <section class="fp-section" *ngIf="currentStep === 1" [@stepAnim]>
+            <div class="section-head">
+                <h2>Choisissez votre mode de paiement</h2>
+                <p>Sélectionnez comment vous souhaitez régler vos frais d'inscription.</p>
+            </div>
+
+            <div class="mode-grid">
+                <!-- En ligne -->
+                <!-- ✅ CORRIGÉ : paiementEnLigne = true -->
+                <div class="mode-card" [class.mode-selected]="preferences.paiementEnLigne === true"
+                    (click)="selectMode(true)">
+                    <div class="mode-radio">
+                        <div class="radio-dot" *ngIf="preferences.paiementEnLigne === true"></div>
+                    </div>
+                    <div class="mode-icon mode-icon-blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253M12 10.5a14.94 14.94 0 01-5.25.975" />
+                        </svg>
+                    </div>
+                    <div class="mode-body">
+                        <h3>Paiement en ligne</h3>
+                        <p>Carte bancaire, virement, ou paiement mobile sécurisé via notre portail.</p>
+                        <div class="mode-badges">
+                            <span class="mode-badge badge-green">Rapide</span>
+                            <span class="mode-badge badge-blue">Sécurisé</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- En présentiel -->
+                <!-- ✅ CORRIGÉ : paiementEnLigne = false -->
+                <div class="mode-card" [class.mode-selected]="preferences.paiementEnLigne === false"
+                    (click)="selectMode(false)">
+                    <div class="mode-radio">
+                        <div class="radio-dot" *ngIf="preferences.paiementEnLigne === false"></div>
+                    </div>
+                    <div class="mode-icon mode-icon-purple">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+                        </svg>
+                    </div>
+                    <div class="mode-body">
+                        <h3>Paiement en présentiel</h3>
+                        <p>Rendez-vous au service financier de l'université muni de votre convocation.</p>
+                        <div class="mode-badges">
+                            <span class="mode-badge badge-purple">Espèces / Chèque</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fp-nav">
+                <div></div>
+                <!-- ✅ CORRIGÉ : disabled si paiementEnLigne est undefined/null -->
+                <button class="btn-next"
+                    [disabled]="preferences.paiementEnLigne === undefined || preferences.paiementEnLigne === null"
+                    (click)="nextStep()">
+                    Suivant
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- ─── STEP 2 : TYPE DE PAIEMENT ─── -->
+        <section class="fp-section" *ngIf="currentStep === 2" [@stepAnim]>
+            <div class="section-head">
+                <h2>Type de paiement</h2>
+                <p>Souhaitez-vous régler en totalité ou en plusieurs versements mensuels ?</p>
+            </div>
+
+            <div class="type-grid">
+                <!-- Total -->
+                <div class="type-card" [class.type-selected]="preferences.typePaiement === 'TOTAL'"
+                    (click)="selectType('TOTAL')">
+                    <div class="type-radio">
+                        <div class="radio-dot" *ngIf="preferences.typePaiement === 'TOTAL'"></div>
+                    </div>
+                    <div class="type-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="type-body">
+                        <h3>Paiement total</h3>
+                        <p>Réglez l'intégralité des frais en une seule transaction.</p>
+                        <div class="type-avantage">
+                            <svg viewBox="0 0 16 16" fill="currentColor">
+                                <path
+                                    d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.354 4.646a.5.5 0 010 .708L7 9.707 5.146 7.854a.5.5 0 01.708-.708L7 8.293l3.646-3.647a.5.5 0 01.708 0z" />
+                            </svg>
+                            Délai de paiement : 7 jours après validation
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Partiel -->
+                <!-- ✅ CORRIGÉ : sélecteur de fréquence supprimé, message fixe à la place -->
+                <div class="type-card" [class.type-selected]="preferences.typePaiement === 'PARTIEL'"
+                    (click)="selectType('PARTIEL')">
+                    <div class="type-radio">
+                        <div class="radio-dot" *ngIf="preferences.typePaiement === 'PARTIEL'"></div>
+                    </div>
+                    <div class="type-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                        </svg>
+                    </div>
+                    <div class="type-body">
+                        <h3>Paiement en mensualités</h3>
+                        <p>Fractionnez vos frais en 3 versements mensuels égaux.</p>
+                        <!-- ✅ Message informatif fixe — fréquence définie par l'administration -->
+                        <div class="type-avantage" *ngIf="preferences.typePaiement === 'PARTIEL'">
+                            <svg viewBox="0 0 16 16" fill="currentColor">
+                                <path
+                                    d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.354 4.646a.5.5 0 010 .708L7 9.707 5.146 7.854a.5.5 0 01.708-.708L7 8.293l3.646-3.647a.5.5 0 01.708 0z" />
+                            </svg>
+                            3 échéances · 1 versement par mois
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fp-nav">
+                <button class="btn-back" (click)="prevStep()">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Retour
+                </button>
+                <!-- ✅ CORRIGÉ : disabled uniquement si pas de type sélectionné -->
+                <button class="btn-next" [disabled]="!preferences.typePaiement" (click)="nextStep()">
+                    Suivant
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- ─── STEP 3 : REMISES ─── -->
+        <section class="fp-section" *ngIf="currentStep === 3" [@stepAnim]>
+            <div class="section-head">
+                <h2>Remises disponibles</h2>
+                <p>Cochez toutes les remises auxquelles vous êtes éligible(e). Elles seront vérifiées par le service
+                    financier.</p>
+            </div>
+
+            <div class="remises-list" *ngIf="remisesDisponibles.length > 0; else noRemises">
+                <div class="remise-item" *ngFor="let remise of remisesDisponibles"
+                    [class.remise-selected]="isRemiseSelected(remise.id)" (click)="toggleRemise(remise.id)">
+                    <div class="remise-check">
+                        <svg *ngIf="isRemiseSelected(remise.id)" viewBox="0 0 16 16" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M12.354 4.354a.5.5 0 010 .707l-7 7a.5.5 0 01-.708 0l-3.5-3.5a.5.5 0 01.708-.708L5 10.793l6.646-6.647a.5.5 0 01.708 0z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="remise-body">
+                        <div class="remise-header-row">
+                            <span class="remise-motif">{{ remise.motif }}</span>
+                            <span class="remise-pct">-{{ remise.pourcentage }}%</span>
+                        </div>
+                        <p class="remise-desc" *ngIf="remise.description">{{ remise.description }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <ng-template #noRemises>
+                <div class="no-remises">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+                    </svg>
+                    <p>Aucune remise disponible actuellement.</p>
+                    <span>Vous pouvez passer à l'étape suivante.</span>
+                </div>
+            </ng-template>
+
+            <!-- Récapitulatif remises sélectionnées -->
+            <div class="remises-recap" *ngIf="getRemisesSelectionnees().length > 0">
+                <p class="recap-title">Remises sélectionnées :</p>
+                <div class="recap-chips">
+                    <span class="recap-chip" *ngFor="let r of getRemisesSelectionnees()">
+                        {{ r.motif }} — {{ r.pourcentage }}%
+                        <button (click)="$event.stopPropagation(); toggleRemise(r.id)">×</button>
+                    </span>
+                </div>
+                <p class="recap-total">Réduction totale estimée : <strong>{{ getTotalRemise() }}%</strong></p>
+            </div>
+
+            <div class="fp-nav">
+                <button class="btn-back" (click)="prevStep()">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Retour
+                </button>
+                <button class="btn-next" (click)="nextStep()">
+                    Suivant
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- ─── STEP 4 : CONFIRMATION ─── -->
+        <section class="fp-section" *ngIf="currentStep === 4" [@stepAnim]>
+            <div class="section-head">
+                <h2>Récapitulatif de votre choix</h2>
+                <p>Vérifiez bien vos préférences avant de valider. Cette décision ne peut être modifiée.</p>
+            </div>
+
+            <div class="recap-card">
+
+                <!-- Mode de paiement -->
+                <div class="recap-row">
+                    <div class="recap-icon recap-icon-blue">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                            <path fill-rule="evenodd"
+                                d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="recap-info">
+                        <span class="recap-label">Mode de paiement</span>
+                        <!-- ✅ CORRIGÉ : paiementEnLigne boolean -->
+                        <span class="recap-value">
+                            {{ preferences.paiementEnLigne ? '🌐 En ligne' : '🏢 En présentiel' }}
+                        </span>
+                    </div>
+                    <button class="recap-edit" (click)="goToStep(1)">Modifier</button>
+                </div>
+
+                <div class="recap-divider"></div>
+
+                <!-- Type de paiement -->
+                <div class="recap-row">
+                    <div class="recap-icon recap-icon-green">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                                d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="recap-info">
+                        <span class="recap-label">Type de paiement</span>
+                        <!-- ✅ CORRIGÉ : pas de frequenceMois affiché, message fixe -->
+                        <span class="recap-value">
+                            {{ preferences.typePaiement === 'TOTAL'
+                            ? '✅ Paiement total'
+                            : '📅 Paiement en mensualités (1 versement / mois)' }}
+                        </span>
+                    </div>
+                    <button class="recap-edit" (click)="goToStep(2)">Modifier</button>
+                </div>
+
+                <div class="recap-divider" *ngIf="getRemisesSelectionnees().length > 0"></div>
+
+                <!-- Remises -->
+                <div class="recap-row" *ngIf="getRemisesSelectionnees().length > 0">
+                    <div class="recap-icon recap-icon-amber">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                    </div>
+                    <div class="recap-info">
+                        <span class="recap-label">Remises demandées</span>
+                        <div class="recap-remises-list">
+                            <span *ngFor="let r of getRemisesSelectionnees()" class="recap-remise-chip">
+                                {{ r.motif }} ({{ r.pourcentage }}%)
+                            </span>
+                        </div>
+                    </div>
+                    <button class="recap-edit" (click)="goToStep(3)">Modifier</button>
+                </div>
+            </div>
+
+            <!-- Note légale -->
+            <div class="legal-note">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        clip-rule="evenodd" />
+                </svg>
+                <p>En validant, vous confirmez que les informations fournies sont exactes. Les remises seront vérifiées
+                    et confirmées par le service financier. Votre inscription sera finalisée après validation du
+                    paiement.</p>
+            </div>
+
+            <div class="fp-nav">
+                <button class="btn-back" (click)="prevStep()">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Retour
+                </button>
+                <button class="btn-submit" (click)="submitFormulaire()" [disabled]="submitting">
+                    <span *ngIf="submitting" class="btn-spinner"></span>
+                    <svg *ngIf="!submitting" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    {{ submitting ? 'Envoi en cours...' : 'Confirmer mes préférences' }}
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ══ FOOTER ══ -->
+    <footer class="fp-footer">
+        <p>ITECH University · Service Financier · <a href="mailto:finance@itech.tn">finance&#64;itech.tn</a></p>
+        <p>Formulaire sécurisé · Lien à usage unique</p>
+    </footer>
+</div>
+
+<!-- ══ LOADING ══ -->
+<div class="fp-loading" *ngIf="loading">
+    <div class="loading-spinner"></div>
+    <p>Chargement de votre formulaire...</p>
+</div>
+
+<!-- ══ SUCCESS ══ -->
+<div class="fp-success" *ngIf="submitted">
+    <div class="success-card">
+        <div class="success-icon-wrap">
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="success-ring"></div>
+        </div>
+        <h2>Préférences enregistrées !</h2>
+        <p>Vos préférences de paiement ont bien été transmises au service financier.</p>
+        <div class="success-details">
+            <div class="success-detail-row">
+                <span>Mode</span>
+                <!-- ✅ CORRIGÉ : paiementEnLigne boolean -->
+                <strong>{{ preferences.paiementEnLigne ? 'En ligne' : 'En présentiel' }}</strong>
+            </div>
+            <div class="success-detail-row">
+                <span>Type</span>
+                <!-- ✅ CORRIGÉ : message fixe sans frequenceMois -->
+                <strong>{{ preferences.typePaiement === 'TOTAL' ? 'Paiement total' : 'Mensualités (1/mois)' }}</strong>
+            </div>
+        </div>
+        <p class="success-note">Un email de confirmation vous a été envoyé. Le service financier vous contactera
+            prochainement pour finaliser votre inscription.</p>
+        <div class="success-logo">
+            <div class="fp-logo-icon">I</div>
+            <span>ITECH University</span>
+        </div>
+    </div>
+</div>
+
+<!-- ══ LIEN INVALIDE — style identique à student-dossier ══ -->
+<div *ngIf="linkInvalid" class="error-shell">
+    <!-- Fond ambiant -->
+    <div class="ambient-bg">
+        <div class="ambient-orb orb-error-1"></div>
+        <div class="ambient-orb orb-error-2"></div>
+    </div>
+
+    <!-- Logo 3D — zone supérieure -->
+    <div class="error-logo-zone">
+        <canvas #logoCanvas class="logo-canvas"></canvas>
+    </div>
+
+    <!-- Carte info — zone inférieure -->
+    <div class="error-bottom-card">
+        <div class="error-bottom-inner">
+
+            <!-- Gauche : badge + texte -->
+            <div class="error-bottom-text">
+                <div class="error-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    Lien Expiré
+                </div>
+                <h1 class="error-title">Formulaire inaccessible</h1>
+                <p class="error-sub">
+                    Votre lien de formulaire sécurisé a expiré (validité : 3 jours) ou a déjà été utilisé.<br>
+                    Pour protéger vos données, l'accès a été verrouillé.
+                </p>
+            </div>
+
+            <!-- Droite : séparateur + boutons -->
+            <div class="error-divider"></div>
+            <div class="error-actions">
+                <a href="/" class="error-btn-primary">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                            d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 9.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V9.414l1.293 1.293a1 1 0 001.414-1.414l-7-7z" />
+                    </svg>
+                    Aller à l'accueil
+                </a>
+                <a href="mailto:finance@itech.tn" class="error-btn-secondary">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                    Contacter le service financier
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>

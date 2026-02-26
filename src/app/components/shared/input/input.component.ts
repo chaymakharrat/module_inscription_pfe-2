@@ -16,14 +16,14 @@ import { trigger, transition, style, animate } from '@angular/animations';
   ],
   template: `
     <div class="mb-6">
-      <label class="block text-sm font-medium text-gray-700 mb-2">
+      <label class="block text-sm font-bold text-slate-700 mb-3 ml-1">
         {{label}}
-        <span *ngIf="required" class="text-red-500 ml-1">*</span>
+        <span *ngIf="required" class="text-blue-500 ml-1">*</span>
       </label>
 
       <div class="relative group">
         <!-- Icon -->
-        <div *ngIf="icon" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
+        <div *ngIf="icon" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors">
           <ng-container *ngTemplateOutlet="icon"></ng-container>
         </div>
 
@@ -35,10 +35,10 @@ import { trigger, transition, style, animate } from '@angular/animations';
           (input)="onInput($event)"
           (blur)="onBlur()"
           (focus)="onFocus()"
-          [class]="'w-full py-3.5 rounded-xl border-2 transition-all duration-200 outline-none ' + 
-                   (icon ? 'pl-12 pr-12' : 'px-4 pr-12') + ' ' +
-                   (isFocused ? 'border-blue-500 ring-4 ring-blue-50 shadow-sm' : 'border-gray-200 hover:border-blue-300') + ' ' +
-                   (error ? 'border-red-500 ring-red-50' : '') + ' ' +
+          [class]="'w-full py-4 rounded-2xl border-2 transition-all duration-300 outline-none font-medium ' + 
+                   (icon ? 'pl-12 pr-12' : 'px-5 pr-12') + ' ' +
+                   (isFocused ? 'border-blue-500 bg-white ring-8 ring-blue-50 shadow-xl -translate-y-0.5' : 'border-slate-200 bg-white/50 hover:border-blue-300 hover:bg-white') + ' ' +
+                   (error ? 'border-red-500 ring-red-50 bg-red-50/10' : '') + ' ' +
                    (isValid ? 'border-green-500 ring-green-50' : '')"
         >
 

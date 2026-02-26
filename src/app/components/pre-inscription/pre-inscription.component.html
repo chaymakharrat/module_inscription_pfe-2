@@ -1,28 +1,38 @@
-<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
-    <div class="max-w-4xl mx-auto">
+<div class="min-h-screen py-20 px-4 sm:px-6 lg:px-8 font-sans relative">
+    <!-- background decorators -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="max-w-4xl mx-auto relative z-10 animate-slide-up">
         <!-- Header -->
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-extrabold text-blue-900 tracking-tight mb-4">Formulaire de Pré-inscription</h1>
-            <p class="text-lg text-gray-600">Remplissez le formulaire ci-dessous pour rejoindre l'excellence à ITECH
-                University</p>
+        <div class="text-center mb-16">
+            <span class="text-blue-600 font-bold tracking-[0.2em] uppercase text-xs mb-4 inline-block">Admission
+                2024-2025</span>
+            <h1 class="text-5xl font-black text-slate-900 tracking-tight mb-4">Pré-inscription</h1>
+            <p class="text-lg text-slate-600 max-w-2xl mx-auto">Rejoignez une communauté d'excellence et donnez une
+                impulsion décisive à votre carrière technologique.</p>
         </div>
 
         <!-- Stepper -->
-        <app-stepper [currentStep]="currentStep"></app-stepper>
+        <app-stepper [currentStep]="currentStep" class="mb-12"></app-stepper>
 
         <!-- Form Card -->
         <form [formGroup]="inscriptionForm" (ngSubmit)="onSubmit()"
-            class="bg-white shadow-2xl rounded-3xl p-8 md:p-12 mb-8 border border-gray-100">
+            class="form-card rounded-[2.5rem] p-10 md:p-14 mb-12">
 
             <!-- Step 1: Informations personnelles -->
             <div *ngIf="currentStep === 1" formGroupName="personalInfo" [@fadeIn]>
-                <h2 class="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3">
-                    <span
-                        class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-base">1</span>
-                    Informations personnelles
-                </h2>
+                <div class="step-header flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="step-badge">1</div>
+                        <h2 class="text-2xl font-black text-slate-900">Informations Personnelles</h2>
+                    </div>
+                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
                     <app-input label="Prénom" formControlName="prenom" placeholder="Ex: Jean" [required]="true"
                         [isValid]="isFieldValid('personalInfo', 'prenom')"
                         [error]="getFieldError('personalInfo', 'prenom')">
@@ -31,41 +41,43 @@
                     <app-input label="Nom" formControlName="nom" placeholder="Ex: Dupont" [required]="true"
                         [isValid]="isFieldValid('personalInfo', 'nom')" [error]="getFieldError('personalInfo', 'nom')">
                     </app-input>
+
                     <div class="col-span-1 md:col-span-2 mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Pays *</label>
-                        <select formControlName="pays" [class.border-green-500]="isFieldValid('personalInfo', 'pays')"
-                            class="w-full py-3.5 px-4 rounded-xl border-2 border-gray-200 outline-none focus:border-blue-500 transition-all font-medium text-gray-700 bg-white">
-                            <option value="" disabled selected>Sélectionner votre pays</option>
+                        <label class="block text-sm font-bold text-slate-700 mb-3">Pays de résidence *</label>
+                        <select formControlName="pays" [class.field-valid]="isFieldValid('personalInfo', 'pays')"
+                            class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-semibold text-slate-700 bg-white/50">
+                            <option value="" disabled selected>Pays de résidence</option>
                             <option *ngFor="let c of countries" [value]="c.id">{{c.nom}}</option>
                         </select>
                     </div>
+
                     <!-- ID Type Toggle + CIN/Passport on same line -->
                     <div class="col-span-1 md:col-span-2 mb-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 items-start">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 items-start">
                             <!-- Type d'identification -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-3">Type d'identification
+                                <label class="block text-sm font-bold text-slate-700 mb-3">Type Pièce d'Identité
                                     *</label>
-                                <div class="flex p-1 bg-gray-100 rounded-xl">
+                                <div class="flex p-1 bg-slate-100 rounded-2xl border border-slate-200">
                                     <button type="button" (click)="setIdType('cin')"
-                                        [class]="'flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ' + (idType === 'cin' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700')">
+                                        [class]="'flex-1 py-3 px-4 rounded-xl text-xs font-black tracking-widest transition-all ' + (idType === 'cin' ? 'bg-white text-blue-600 shadow-lg' : 'text-slate-500 hover:text-slate-800')">
                                         CIN
                                     </button>
                                     <button type="button" (click)="setIdType('passport')"
-                                        [class]="'flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ' + (idType === 'passport' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700')">
-                                        Passeport
+                                        [class]="'flex-1 py-3 px-4 rounded-xl text-xs font-black tracking-widest transition-all ' + (idType === 'passport' ? 'bg-white text-blue-600 shadow-lg' : 'text-slate-500 hover:text-slate-800')">
+                                        PASSPORT
                                     </button>
                                 </div>
                             </div>
                             <!-- N° CIN ou Passeport -->
-                            <div>
-                                <app-input *ngIf="idType === 'cin'" label="N° CIN (8 chiffres)" formControlName="cin"
-                                    placeholder="Ex: 01234567" [required]="true"
+                            <div class="pt-1">
+                                <app-input *ngIf="idType === 'cin'" label="Numéro CIN" formControlName="cin"
+                                    placeholder="8 chiffres" [required]="true"
                                     [isValid]="isFieldValid('personalInfo', 'cin')"
                                     [error]="getFieldError('personalInfo', 'cin')">
                                 </app-input>
 
-                                <app-input *ngIf="idType === 'passport'" label="N° Passeport"
+                                <app-input *ngIf="idType === 'passport'" label="Numéro Passeport"
                                     formControlName="numPassport" placeholder="Votre numéro de passeport"
                                     [required]="true" [isValid]="isFieldValid('personalInfo', 'numPassport')"
                                     [error]="getFieldError('personalInfo', 'numPassport')">
@@ -76,47 +88,46 @@
 
                     <!-- Gender Selection -->
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-3">Gendre *</label>
-                        <div class="flex p-1 bg-gray-100 rounded-xl max-w-sm">
+                        <label class="block text-sm font-bold text-slate-700 mb-3">Genre *</label>
+                        <div class="flex p-1 bg-slate-100 rounded-2xl border border-slate-200 max-w-sm">
                             <button type="button" (click)="setGender('HOMME')"
-                                [class]="'flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ' + (personalInfo.get('gendre')?.value === 'HOMME' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700')">
+                                [class]="'flex-1 py-3 px-4 rounded-xl text-xs font-black tracking-widest transition-all ' + (personalInfo.get('gendre')?.value === 'HOMME' ? 'bg-white text-blue-600 shadow-lg' : 'text-slate-500 hover:text-slate-800')">
                                 HOMME
                             </button>
                             <button type="button" (click)="setGender('FEMME')"
-                                [class]="'flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ' + (personalInfo.get('gendre')?.value === 'FEMME' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700')">
+                                [class]="'flex-1 py-3 px-4 rounded-xl text-xs font-black tracking-widest transition-all ' + (personalInfo.get('gendre')?.value === 'FEMME' ? 'bg-white text-blue-600 shadow-lg' : 'text-slate-500 hover:text-slate-800')">
                                 FEMME
                             </button>
                         </div>
                     </div>
 
                     <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Numéro de téléphone *</label>
-                        <div class="flex gap-2">
+                        <label class="block text-sm font-bold text-slate-700 mb-3">Numéro Mobile *</label>
+                        <div class="flex gap-3">
                             <select formControlName="indicatif"
-                                [class.border-green-500]="isFieldValid('personalInfo', 'indicatif')"
-                                class="w-32 py-3.5 px-4 rounded-xl border-2 border-gray-200 outline-none focus:border-blue-500 transition-all font-medium text-gray-700 bg-white">
+                                class="w-32 py-4 px-4 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-bold text-slate-700 bg-white/50">
                                 <option *ngFor="let c of countries" [value]="c.indicatif">{{c.indicatif}}</option>
                             </select>
                             <input type="text" formControlName="phone" placeholder="Votre numéro"
-                                [class]="'flex-1 py-3.5 px-4 rounded-xl border-2 transition-all outline-none ' + (isFieldValid('personalInfo', 'phone') ? 'border-green-500' : 'border-gray-200 focus:border-blue-500')">
+                                [class]="'flex-1 py-4 px-5 rounded-2xl border-2 transition-all outline-none font-medium ' + (isFieldValid('personalInfo', 'phone') ? 'field-valid' : 'border-slate-200 focus:border-blue-500')">
                         </div>
-                        <p *ngIf="getFieldError('personalInfo', 'phone')" class="mt-2 text-sm text-red-600 font-medium">
+                        <p *ngIf="getFieldError('personalInfo', 'phone')" class="mt-2 text-xs text-red-500 font-bold">
                             {{getFieldError('personalInfo', 'phone')}}</p>
                     </div>
 
-                    <app-input label="Date de naissance (Min. 18 ans)" type="date" formControlName="dateNaissance"
-                        [required]="true" [isValid]="isFieldValid('personalInfo', 'dateNaissance')"
+                    <app-input label="Date de naissance" type="date" formControlName="dateNaissance" [required]="true"
+                        [isValid]="isFieldValid('personalInfo', 'dateNaissance')"
                         [error]="getFieldError('personalInfo', 'dateNaissance')">
                     </app-input>
 
-                    <app-input class="col-span-1 md:col-span-2" label="Email" type="email" formControlName="email"
-                        placeholder="exemple@email.com" [required]="true"
+                    <app-input class="col-span-1 md:col-span-2" label="Email Professionnel ou Personnel" type="email"
+                        formControlName="email" placeholder="exemple@email.com" [required]="true"
                         [isValid]="isFieldValid('personalInfo', 'email')"
                         [error]="getFieldError('personalInfo', 'email')">
                     </app-input>
 
-                    <app-input class="col-span-1 md:col-span-2" label="Adresse" formControlName="adresse"
-                        placeholder="Votre adresse complète" [required]="true"
+                    <app-input class="col-span-1 md:col-span-2" label="Adresse Résidence" formControlName="adresse"
+                        placeholder="Quartier, Rue, Ville" [required]="true"
                         [isValid]="isFieldValid('personalInfo', 'adresse')"
                         [error]="getFieldError('personalInfo', 'adresse')">
                     </app-input>
@@ -125,18 +136,23 @@
 
             <!-- Step 2: Informations académiques -->
             <div *ngIf="currentStep === 2" formGroupName="academicInfo" [@fadeIn]>
-                <h2 class="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3">
-                    <span
-                        class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-base">2</span>
-                    Informations académiques
-                </h2>
+                <div class="step-header flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="step-badge">2</div>
+                        <h2 class="text-2xl font-black text-slate-900">Parcours Académique</h2>
+                    </div>
+                </div>
 
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Dernier diplôme obtenu *</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                    <div class="col-span-1 md:col-span-2 text-sm text-slate-500 font-medium mb-4 italic">
+                        Veuillez renseigner votre dernier diplôme et le cursus visé au sein d'ITECH.
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-bold text-slate-700 mb-3">Dernier Diplôme Obtenu *</label>
                         <select formControlName="dernierDiplome"
-                            [class.border-green-500]="isFieldValid('academicInfo', 'dernierDiplome')"
-                            class="w-full py-3.5 px-4 rounded-xl border-2 border-gray-200 outline-none focus:border-blue-500 transition-all font-medium text-gray-700 bg-white">
+                            [class.field-valid]="isFieldValid('academicInfo', 'dernierDiplome')"
+                            class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-bold text-slate-700 bg-white/50">
                             <option value="" disabled selected>Sélectionner le diplôme</option>
                             <option *ngFor="let d of lastDiplomas" [value]="d">{{d}}</option>
                         </select>
@@ -148,21 +164,75 @@
                     </app-input>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Diplôme visé *</label>
-                        <select formControlName="diplomeVise"
-                            [class.border-green-500]="isFieldValid('academicInfo', 'diplomeVise')"
-                            class="w-full py-3.5 px-4 rounded-xl border-2 border-gray-200 outline-none focus:border-blue-500 transition-all font-medium text-gray-700 bg-white">
-                            <option value="" disabled selected>Sélectionner le diplôme cible</option>
-                            <option *ngFor="let d of diplomas" [value]="d.id">{{ d.type }} - {{d.nom}}</option>
+                        <label class="block text-sm font-bold text-slate-700 mb-3">Type de Diplôme Visé *</label>
+                        <select formControlName="typeVise"
+                            [class.field-valid]="isFieldValid('academicInfo', 'typeVise')"
+                            class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-bold text-slate-700 bg-white/50">
+                            <option value="" disabled selected>Sélectionner le type</option>
+                            <option *ngFor="let t of typesDiplome" [value]="t.nom">{{ t.nom }}</option>
                         </select>
+                        <p *ngIf="getFieldError('academicInfo', 'typeVise')"
+                            class="mt-2 text-xs text-red-500 font-bold">
+                            {{ getFieldError('academicInfo', 'typeVise') }}
+                        </p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Niveau visé *</label>
+                        <label class="block text-sm font-bold text-slate-700 mb-3">Diplôme Visé *</label>
+                        <select formControlName="diplomeVise"
+                            (change)="onDiplomeResponsableChange(inscriptionForm.get('academicInfo.diplomeVise')?.value)"
+                            [class.field-valid]="isFieldValid('academicInfo', 'diplomeVise')"
+                            [disabled]="!inscriptionForm.get('academicInfo.typeVise')?.value"
+                            class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-bold text-slate-700 bg-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <option value="" disabled selected>
+                                {{ inscriptionForm.get('academicInfo.typeVise')?.value ? 'Diplôme cible' : 'Choisir
+                                d\'abord un type' }}
+                            </option>
+                            <option *ngFor="let d of filteredDiplomesResponsables" [value]="d.nomDiplome">{{
+                                d.nomDiplome }}
+                            </option>
+                        </select>
+                        <p *ngIf="getFieldError('academicInfo', 'diplomeVise')"
+                            class="mt-2 text-xs text-red-500 font-bold">
+                            {{ getFieldError('academicInfo', 'diplomeVise') }}
+                        </p>
+                    </div>
+
+
+                    <!-- Langue d'enseignement -->
+                    <div *ngIf="availableLangues.length > 0" [class.col-span-1]="true"
+                        [class.md:col-span-2]="availableLangues.length === 1">
+                        <label class="block text-sm font-bold text-slate-700 mb-3">Langue d'Enseignement *</label>
+
+                        <!-- Si une seule langue : affichage simple du nom -->
+                        <div *ngIf="availableLangues.length === 1"
+                            class="flex items-center gap-3 py-4 px-5 rounded-2xl border-2 border-blue-200 bg-blue-50 font-bold text-blue-700">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                            </svg>
+                            {{ langueLabels[availableLangues[0]] }}
+                        </div>
+
+                        <!-- Si plusieurs langues : sélecteur -->
+                        <select *ngIf="availableLangues.length > 1" formControlName="langueVise"
+                            [class.field-valid]="isFieldValid('academicInfo', 'langueVise')"
+                            class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-bold text-slate-700 bg-white/50">
+                            <option value="" disabled selected>Choisir la langue d'enseignement</option>
+                            <option *ngFor="let l of availableLangues" [value]="l">{{ langueLabels[l] }}</option>
+                        </select>
+                        <p *ngIf="getFieldError('academicInfo', 'langueVise')"
+                            class="mt-2 text-xs text-red-500 font-bold">
+                            {{ getFieldError('academicInfo', 'langueVise') }}
+                        </p>
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-bold text-slate-700 mb-3">Niveau d'Entrée Visé *</label>
                         <select formControlName="niveauVise"
-                            [class.border-green-500]="isFieldValid('academicInfo', 'niveauVise')"
-                            class="w-full py-3.5 px-4 rounded-xl border-2 border-gray-200 outline-none focus:border-blue-500 transition-all font-medium text-gray-700 bg-white">
-                            <option value="" disabled selected>Sélectionner le niveau</option>
+                            [class.field-valid]="isFieldValid('academicInfo', 'niveauVise')"
+                            class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-bold text-slate-700 bg-white/50">
+                            <option value="" disabled selected>Séniorité du cursus</option>
                             <option *ngFor="let l of levels" [value]="l.id">{{l.niveau}}</option>
                         </select>
                     </div>
@@ -171,54 +241,68 @@
 
             <!-- Step 3: Documents requis -->
             <div *ngIf="currentStep === 3" [@fadeIn]>
-                <h2 class="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3">
-                    <span
-                        class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-base">3</span>
-                    Documents requis
-                </h2>
+                <div class="step-header flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="step-badge">3</div>
+                        <h2 class="text-2xl font-black text-slate-900">Dossier Numérique</h2>
+                    </div>
+                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                     <app-file-upload *ngFor="let doc of requiredDocuments" [label]="doc.label" [required]="doc.required"
-                        (fileSelect)="onFileChange($event, doc.type)">
+                        class="upload-zone rounded-3xl p-2" (fileSelect)="onFileChange($event, doc.type)">
                     </app-file-upload>
 
                     <app-file-upload *ngFor="let doc of extraDocuments" [label]="doc.label" [required]="doc.required"
-                        (fileSelect)="onFileChange($event, doc.type)">
+                        class="upload-zone rounded-3xl p-2" (fileSelect)="onFileChange($event, doc.type)">
                     </app-file-upload>
                 </div>
 
-                <div class="bg-blue-50 p-4 rounded-2xl flex items-start gap-4 border border-blue-100 shadow-inner">
-                    <div class="p-2 bg-blue-600 rounded-lg text-white">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-slate-50 p-6 rounded-3xl flex items-start gap-5 border border-slate-200 shadow-sm">
+                    <div class="p-3 bg-blue-600 rounded-xl text-white shadow-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <p class="text-sm text-blue-800 font-medium">
-                        <span class="font-bold underline block mb-1">Formats acceptés :</span>
-                        PDF, PNG, JPG (Max 5 Mo par fichier). Veuillez vous assurer que les documents sont lisibles.
-                    </p>
+                    <div>
+                        <h4 class="font-black text-slate-900 mb-1 tracking-tight">Instructions d'Upload</h4>
+                        <p class="text-xs text-slate-500 leading-relaxed font-medium">
+                            Formats acceptés : <span class="text-blue-600 font-bold">PDF, PNG, JPG</span>. Taille limite
+                            : <span class="text-blue-600 font-bold">5 Mo</span>. Nos serveurs analysent la lisibilité
+                            des documents.
+                        </p>
+                    </div>
                 </div>
             </div>
 
             <!-- Action Buttons -->
-            <app-action-buttons [isFirstStep]="currentStep === 1" [isLastStep]="currentStep === 3"
-                [isValid]="isCurrentStepValid" (previous)="prevStep()"
-                (next)="currentStep === 3 ? onSubmit() : nextStep()">
-            </app-action-buttons>
+            <div class="mt-14">
+                <app-action-buttons [isFirstStep]="currentStep === 1" [isLastStep]="currentStep === 3"
+                    [isValid]="isCurrentStepValid" (previous)="prevStep()"
+                    (next)="currentStep === 3 ? onSubmit() : nextStep()">
+                </app-action-buttons>
+            </div>
 
         </form>
 
-        <!-- Trust badge / Footer info -->
-        <div class="text-center opacity-60">
-            <p class="text-sm text-gray-500 flex items-center justify-center gap-2">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd"
-                        d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clip-rule="evenodd" />
-                </svg>
-                Vos données sont chiffrées et sécurisées
-            </p>
+        <!-- Safety Badge -->
+        <div
+            class="flex items-center justify-center gap-10 opacity-40 grayscale hover:grayscale-0 transition-all duration-700">
+            <div class="text-center px-6">
+                <div class="flex items-center gap-2 text-slate-900 font-black text-[10px] tracking-widest uppercase">
+                    <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Données Sécurisées
+                </div>
+            </div>
+            <div class="h-4 w-px bg-slate-300"></div>
+            <div class="text-center px-6">
+                <div class="text-slate-900 font-black text-[10px] tracking-widest uppercase">Chiffrement AES-256</div>
+            </div>
         </div>
     </div>
 

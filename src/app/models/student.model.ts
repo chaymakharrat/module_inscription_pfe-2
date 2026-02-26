@@ -6,7 +6,6 @@ export enum TypeDocument {
     DIPLOME_LICENCE = 'DIPLOME_LICENCE',
     DIPLOME_MASTER = 'DIPLOME_MASTER',
     RELEVE_NOTES = 'RELEVE_NOTES',
-    CERTIFICAT_NAISSANCE = 'CERTIFICAT_NAISSANCE',
     AUTRE = 'AUTRE'
 }
 
@@ -39,5 +38,9 @@ export interface DemandeInscription {
     id?: number;
     etudiantId: number;
     nomDiplome: string;
+    typeDeDiplome?: string;
+    langueDiplome?: string;
+    niveauChoisi?: string;
     dateCreation?: string;
 }
+

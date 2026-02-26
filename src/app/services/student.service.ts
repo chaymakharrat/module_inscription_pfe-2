@@ -36,6 +36,13 @@ export class StudentService {
         formData.append('etudiantId', studentId.toString());
         return this.http.post(`${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/upload`, formData);
     }
+    uploadDocumentRelance(studentId: number, type: string, file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+        formData.append('etudiantId', studentId.toString());
+        return this.http.post(`${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/upload-relance`, formData);
+    }
 
     getDocumentsByEtudiant(etudiantId: number): Observable<any[]> {
         return this.http.get<any[]>(`${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}`);
@@ -62,6 +69,25 @@ export class StudentService {
         }).pipe(
             map(() => true),
             catchError(() => of(false))
+        );
+    }
+    rejectDocument(documentId: number, commentaire: string): Observable<any> {
+        return this.http.put(
+            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/${documentId}/reject`,
+            null,
+            { params: { commentaire } }
+        );
+    }
+
+    acceptDocument(documentId: number): Observable<any> {
+        return this.http.put(
+            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/${documentId}/accept`,
+            null
+        );
+    }
+    getDocumentsStatus(etudiantId: number): Observable<any[]> {
+        return this.http.get<any[]>(
+            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}/status`
         );
     }
 }

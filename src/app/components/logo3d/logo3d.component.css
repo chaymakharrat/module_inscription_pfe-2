@@ -1,0 +1,235 @@
+:host {
+    display: contents;
+}
+
+/* ══════════════════════════════════════════════
+   PAGE ERREUR — LIEN EXPIRÉ
+══════════════════════════════════════════════ */
+.error-shell {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    background:
+        radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.92) 0%, transparent 65%),
+        linear-gradient(135deg, #ffffff 0%, #a5c2e1 100%);
+    overflow: hidden;
+}
+
+/* Rayons solaires — identique page login */
+.error-shell::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: repeating-conic-gradient(from 0deg,
+            transparent 0deg 15deg,
+            rgba(255, 255, 255, 0.18) 20deg 25deg);
+    animation: rotateSunRays 120s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Grille perspective — identique page login */
+.error-shell::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.45) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.45) 1px, transparent 1px);
+    background-size: 60px 60px;
+    transform: rotateX(60deg);
+    transform-origin: top;
+    animation: meshScrollError 20s linear infinite;
+    mask-image: radial-gradient(ellipse at center, black, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black, transparent 80%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Orbes */
+.orb-error-1 {
+    width: 600px;
+    height: 600px;
+    top: -150px;
+    right: -80px;
+    background: radial-gradient(circle, rgba(165, 194, 225, 0.5), rgba(37, 99, 235, 0.1), transparent 70%);
+    filter: blur(90px);
+    animation: orbFloat 25s ease-in-out infinite;
+    z-index: 2;
+}
+
+.orb-error-2 {
+    width: 500px;
+    height: 500px;
+    bottom: -100px;
+    left: -100px;
+    background: radial-gradient(circle, rgba(191, 219, 254, 0.45), rgba(147, 197, 253, 0.08), transparent 70%);
+    filter: blur(80px);
+    animation: orbFloat 30s ease-in-out infinite reverse;
+    z-index: 2;
+}
+
+/* ── Zone logo 3D (prend tout l'espace restant) ── */
+.error-logo-zone {
+    flex: 1;
+    position: relative;
+    z-index: 5;
+    min-height: 0;
+}
+
+.logo-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: none;
+    mix-blend-mode: normal;
+}
+
+/* ── Bande info en bas ── */
+.error-bottom-card {
+    position: relative;
+    z-index: 20;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-top: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow:
+        0 -6px 24px rgba(37, 99, 235, 0.08),
+        0 -1px 0 rgba(37, 99, 235, 0.06);
+    padding: 2rem 3rem;
+    animation: slideUpCard 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: 0.4s;
+    opacity: 0;
+}
+
+/* Layout interne horizontal */
+.error-bottom-inner {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* Texte gauche */
+.error-bottom-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Badge "Lien Expiré" */
+.error-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 100px;
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    color: #dc2626;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    width: fit-content;
+    margin-bottom: 0.25rem;
+}
+
+.error-badge svg {
+    width: 13px;
+    height: 13px;
+}
+
+/* Titre */
+.error-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #0f1117;
+    margin: 0;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+}
+
+/* Sous-titre */
+.error-sub {
+    font-size: 0.82rem;
+    color: #4a5068;
+    margin: 0;
+    line-height: 1.65;
+}
+
+/* Séparateur vertical */
+.error-divider {
+    width: 1px;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, #dbe6ff, transparent);
+    flex-shrink: 0;
+}
+
+/* Boutons */
+.error-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    flex-shrink: 0;
+    min-width: 220px;
+}
+
+.error-btn-primary,
+.error-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.error-btn-primary {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+}
+
+.error-btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.38);
+}
+
+.error-btn-secondary {
+    background: rgba(37, 99, 235, 0.06);
+    color: #2563eb;
+    border: 1.5px solid rgba(37, 99, 235, 0.18);
+}
+
+.error-btn-secondary:hover {
+    background: rgba(37, 99, 235, 0.11);
+    border-color: rgba(37, 99, 235, 0.32);
+    transform: translateY(-2px);
+}
+
+.error-btn-primary svg,
+.error-btn-secondary svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}

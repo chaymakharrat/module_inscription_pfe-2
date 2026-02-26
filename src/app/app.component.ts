@@ -54,14 +54,15 @@ export class AppComponent implements OnInit {
 
   private updateLayout(url: string) {
     const isHome = url === '/' || url === '/home';
+    const isDossier = url.includes('/mon-dossier');
 
     // On n'affiche la sidebar QUE si on n'est pas sur Home ET qu'on est connecté ET qu'on n'est pas ETUDIANT
     // (L'étudiant n'a pas besoin de la sidebar interne)
-    this.showSidebar = !isHome && this.isLoggedIn && !this.keycloak.isUserInRole('ETUDIANT');
+    this.showSidebar = !isHome && !isDossier && this.isLoggedIn && !this.keycloak.isUserInRole('ETUDIANT');
 
     // Le navbar est affiché sur Home, ou si non connecté, ou pour les étudiants
-    // Pour les rôles internes (Admin, Scolarité), il est caché au profit de la sidebar
-    this.showNavbar = isHome || !this.isLoggedIn || this.keycloak.isUserInRole('ETUDIANT');
+    // SAUF pour la page dossier (mon-dossier) qui a sa propre topnav
+    this.showNavbar = (isHome || !this.isLoggedIn || this.keycloak.isUserInRole('ETUDIANT')) && !isDossier;
   }
 
   private redirectByRole() {
@@ -72,7 +73,7 @@ export class AppComponent implements OnInit {
     } else if (this.keycloak.isUserInRole('AGENT_FINANCE')) {
       this.router.navigate(['/dashboard-finance']);
     } else if (this.keycloak.isUserInRole('ENSEIGNANT_RESPONSABLE')) {
-      this.router.navigate(['/dashboard-enseignant-responsable']);
+      this.router.navigate(['/dashboard-departement']);
     }
     // Pour l'ETUDIANT, on peut le laisser sur Home pour qu'il voie le bouton Pré-inscription
   }

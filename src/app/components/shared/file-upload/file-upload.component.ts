@@ -8,9 +8,9 @@ import { trigger, transition, style, animate } from '@angular/animations';
   imports: [CommonModule],
   template: `
     <div class="mb-6">
-      <label class="block text-sm font-medium text-gray-700 mb-2">
+      <label class="block text-sm font-bold text-slate-700 mb-3 ml-1">
         {{label}}
-        <span *ngIf="required" class="text-red-500 ml-1">*</span>
+        <span *ngIf="required" class="text-blue-500 ml-1">*</span>
       </label>
 
       <div *ngIf="!file; else previewTpl"
@@ -18,15 +18,17 @@ import { trigger, transition, style, animate } from '@angular/animations';
            (dragleave)="onDragLeave($event)"
            (drop)="onDrop($event)"
            (click)="fileInput.click()"
-           [class]="'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ' + 
-                    (isDragActive ? 'border-blue-500 bg-blue-50 scale-[1.02]' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50')"
+           [class]="'border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all duration-300 ' + 
+                    (isDragActive ? 'border-blue-500 bg-blue-50/50 scale-[1.02] shadow-xl' : 'border-slate-200 bg-slate-50/30 hover:border-blue-400 hover:bg-white hover:shadow-lg hover:-translate-y-1')"
       >
         <input #fileInput type="file" [accept]="accept" (change)="onFileSelected($event)" class="hidden">
         
-        <div class="transition-transform duration-200" [style.transform]="isDragActive ? 'translateY(-5px)' : 'none'">
-          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
+        <div class="transition-transform duration-300" [style.transform]="isDragActive ? 'translateY(-8px)' : 'none'">
+          <div class="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+            <svg class="h-10 w-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
 
           <p class="mt-4 text-base font-medium text-gray-700">
             <ng-container *ngIf="isDragActive; else defaultText">
@@ -162,5 +164,6 @@ export class FileUploadComponent {
     this.file = null;
     this.preview = null;
     this.uploading = false;
+    this.fileSelect.emit(null as any);
   }
 }

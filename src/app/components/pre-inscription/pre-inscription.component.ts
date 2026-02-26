@@ -8,7 +8,7 @@ import { EnrollmentService } from '../../services/enrollment.service';
 import { PhoneValidationService } from '../../services/phone-validation.service';
 import { AlertService } from '../../services/alert.service';
 import { Country } from '../../models/country.model';
-import { DiplomeEtudier, NiveauDiplomeSpecifique } from '../../models/diploma.model';
+import { DiplomeEtudier, DiplomeResponsable, Langue, NiveauDiplomeSpecifique, TypeDiplome } from '../../models/diploma.model';
 import { TypeDocument, Student, DemandeInscription } from '../../models/student.model';
 import { StudentService } from '../../services/student.service';
 import { forkJoin, switchMap, map, of, catchError, Observable, debounceTime } from 'rxjs';
@@ -55,6 +55,62 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   selectedFiles: Map<string, File> = new Map();
   idType: 'cin' | 'passport' = 'cin';
 
+  /** Langues disponibles pour le diplôme sélectionné */
+  availableLangues: Langue[] = [];
+  readonly langueLabels: Record<Langue, string> = {
+    ARABE: 'Arabe عربي',
+    FRANCAIS: 'Français',
+    ANGLAIS: 'Anglais'
+  };
+  diplomesResponsables: DiplomeResponsable[] = [];
+  /** Tous les types de diplôme récupérés depuis le backend */
+  typesDiplome: TypeDiplome[] = [];
+  /** Diplômes responsables filtrés selon le type sélectionné */
+  filteredDiplomesResponsables: DiplomeResponsable[] = [];
+
+
+  // loadInitialData(): void {
+  //     this.countryService.getCountriesWithIndicatifs().subscribe(data => {
+  //         this.countries = data;
+  //     });
+
+  //     // ✅ Charger les diplômes responsables au lieu des diplômes directs
+  //     this.diplomaService.getDiplomesResponsables().subscribe(data => {
+  //         this.diplomesResponsables = data;
+  //     });
+  // }
+
+  // ✅ Quand l'utilisateur sélectionne un diplôme responsable
+  onDiplomeResponsableChange(nomDiplome: string): void {
+    const selected = this.diplomesResponsables.find(d => d.nomDiplome === nomDiplome);
+    if (selected) {
+      this.availableLangues = selected.langues;
+
+      // Pré-sélectionner si une seule langue
+      if (this.availableLangues.length === 1) {
+        this.inscriptionForm.get('academicInfo.langueVise')
+          ?.setValue(this.availableLangues[0]);
+      } else {
+        this.inscriptionForm.get('academicInfo.langueVise')?.setValue('');
+      }
+    }
+
+    // Charger les niveaux pour ce diplôme
+    this.diplomaService.getNiveauxByDiplomeName(nomDiplome).subscribe(data => {
+      this.levels = data;
+    });
+  }
+
+  /** Diplômes uniques par nom (pour le sélecteur) : on déduplique par nom † */
+  get uniqueDiplomas(): DiplomeEtudier[] {
+    const seen = new Set<string>();
+    return this.diplomas.filter(d => {
+      if (seen.has(d.nom)) return false;
+      seen.add(d.nom);
+      return true;
+    });
+  }
+
   private readonly DRAFT_KEY = 'pre_inscription_draft';
   private readonly DRAFT_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
   private draftExpiryTimer: any = null;
@@ -64,8 +120,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   requiredDocuments = [
     { type: TypeDocument.CARTE_IDENTITE, label: "Carte d'identité ou Passeport", required: true },
     { type: TypeDocument.DIPLOME_BAC, label: "Diplôme du Baccalauréat", required: true },
-    { type: TypeDocument.RELEVE_NOTES, label: "Relevé de notes", required: true },
-    { type: TypeDocument.CERTIFICAT_NAISSANCE, label: "Certificat de naissance", required: true }
+    { type: TypeDocument.RELEVE_NOTES, label: "Relevé de notes", required: true }
   ];
 
   extraDocuments: any[] = [];
@@ -114,7 +169,9 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       academicInfo: this.fb.group({
         dernierDiplome: ['', Validators.required],
         anneeDernierDiplome: [new Date().getFullYear(), [Validators.required, Validators.min(1900)]],
+        typeVise: ['', Validators.required],
         diplomeVise: ['', Validators.required],
+        langueVise: ['', Validators.required],
         niveauVise: ['', Validators.required],
         session: ['2024-2025', Validators.required]
       }),
@@ -124,6 +181,11 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     // Watch for changes in dernierDiplome to update extra documents
     this.inscriptionForm.get('academicInfo.dernierDiplome')?.valueChanges.subscribe(val => {
       this.updateExtraDocuments(val);
+    });
+
+    // Quand le type change → filtrer les diplômes et réinitialiser diplômeVise
+    this.inscriptionForm.get('academicInfo.typeVise')?.valueChanges.subscribe(typeName => {
+      this.onTypeChange(typeName);
     });
 
     // Watch for changes in indicatif to re-validate phone
@@ -147,13 +209,6 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Watch for changes in diplomeVise to load levels
-    this.inscriptionForm.get('academicInfo.diplomeVise')?.valueChanges.subscribe(val => {
-      if (val) {
-        this.loadLevels(val);
-      }
-    });
-
     // Auto-save logic
     this.inscriptionForm.valueChanges.pipe(
       debounceTime(2000)
@@ -172,7 +227,11 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     } else if (this.currentStep === 2) {
       return this.academicInfo.valid;
     } else if (this.currentStep === 3) {
-      return true;
+      // Vérifier si tous les documents obligatoires sont sélectionnés
+      const allRequired = [...this.requiredDocuments, ...this.extraDocuments]
+        .filter(doc => doc.required);
+
+      return allRequired.every(doc => this.selectedFiles.has(doc.type));
     }
     return false;
   }
@@ -208,7 +267,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
       // Manually trigger updates for dependent fields if needed
       if (data.academicInfo?.diplomeVise) {
-        this.loadLevels(data.academicInfo.diplomeVise);
+        this.onDiplomeResponsableChange(data.academicInfo.diplomeVise);
       }
       if (data.personalInfo?.pays) {
         const country = this.countries.find(c => c.id == data.personalInfo.pays);
@@ -317,10 +376,46 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     this.diplomaService.getDiplomas().subscribe(data => {
       this.diplomas = data;
     });
+
+    // Charger les types ET tous les diplômes responsables
+    this.diplomaService.getTypes().subscribe(types => {
+      this.typesDiplome = types;
+    });
+    this.diplomaService.getDiplomesResponsables().subscribe(data => {
+      this.diplomesResponsables = data;
+    });
   }
 
-  loadLevels(diplomaId: number): void {
-    this.diplomaService.getNiveauxByDiploma(diplomaId).subscribe(data => {
+  /** Quand le candidat sélectionne un type → filtrer les diplômes disponibles */
+  onTypeChange(typeName: string): void {
+    // Réinitialiser la sélection diplôme & langue
+    this.inscriptionForm.get('academicInfo.diplomeVise')?.setValue('');
+    this.inscriptionForm.get('academicInfo.langueVise')?.setValue('');
+    this.availableLangues = [];
+    this.levels = [];
+
+    if (!typeName) {
+      this.filteredDiplomesResponsables = [];
+      return;
+    }
+
+    // Filtrer les diplômes responsables par type via l'API (endpoint dédié)
+    // Pour simplifier, on filtre côté client sur le champ `type` de DiplomeEtudier
+    // On utilise l'API /api/diplomes?type=... si disponible, sinon on filtre via getDiplomas()
+    this.diplomaService.getDiplomas().subscribe(diplomes => {
+      const nomsDuType = new Set(
+        diplomes
+          .filter(d => d.type === typeName && d.actif !== false)
+          .map(d => d.nom)
+      );
+      this.filteredDiplomesResponsables = this.diplomesResponsables.filter(
+        dr => nomsDuType.has(dr.nomDiplome)
+      );
+    });
+  }
+
+  loadLevels(nomDiplome: string): void {
+    this.diplomaService.getNiveauxByDiplomeName(nomDiplome).subscribe(data => {
       this.levels = data;
     });
   }
@@ -380,10 +475,13 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     }
   }
 
-  onFileChange(file: File, type: string): void {
+  onFileChange(file: File | null, type: string): void {
     if (file) {
       this.selectedFiles.set(type, file);
       console.log(`File buffered for ${type}`, file.name);
+    } else {
+      this.selectedFiles.delete(type);
+      console.log(`File removed for ${type}`);
     }
   }
 
@@ -469,13 +567,16 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
           if (!student) return of(null);
 
           // 4. Create Enrollment Request
-          // Retrieve the name of the diploma from the list using the ID
-          const selectedDiploma = this.diplomas.find(d => d.id == formValue.academicInfo.diplomeVise);
-          const diplomeName = selectedDiploma ? selectedDiploma.nom : formValue.academicInfo.diplomeVise.toString();
+          const diplomeName = formValue.academicInfo.diplomeVise;
+          const langueVise = formValue.academicInfo.langueVise;
+          const typeVise = formValue.academicInfo.typeVise;
 
           const demande: DemandeInscription = {
             etudiantId: student.id!,
-            nomDiplome: diplomeName, // Send the name, not the ID
+            nomDiplome: diplomeName,
+            typeDeDiplome: typeVise,
+            langueDiplome: langueVise,
+            niveauChoisi: formValue.academicInfo.niveauVise,
             dateCreation: new Date().toISOString(),
           };
 
@@ -523,6 +624,9 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   }
 
   private resetForm(): void {
+    this.filteredDiplomesResponsables = [];
+    this.availableLangues = [];
+    this.levels = [];
     this.inscriptionForm.reset({
       personalInfo: { gendre: 'HOMME', indicatif: '+216' },
       academicInfo: { anneeDernierDiplome: new Date().getFullYear(), session: '2024-2025' }

@@ -80,7 +80,7 @@ export interface Step {
       position: absolute;
       inset: -2px;
       border-radius: calc(1.25rem + 2px);
-      background: linear-gradient(135deg, #ffffff 0%, #d6e5f5 50%, #81F0EA 100%);
+      background: linear-gradient(135deg, #ffffff 0%, #d6e5f5 50%, #3b82f6 100%);
       z-index: -1;
     }
 
@@ -125,7 +125,7 @@ export interface Step {
       background: #ffffff;
       box-shadow:
         0 0 0 2.5px transparent,
-        0 4px 16px rgba(129, 240, 234, 0.35);
+        0 10px 20px rgba(59, 130, 246, 0.2);
       /* Gradient border via outline trick */
       border: 3px solid transparent;
       background-clip: padding-box;
@@ -135,21 +135,21 @@ export interface Step {
       position: absolute;
       inset: -3px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #d6e5f5 0%, #81F0EA 100%);
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       z-index: -1;
     }
 
     /* Completed: filled gradient */
     .step-circle.completed {
-      background: linear-gradient(135deg, #d6e5f5 0%, #81F0EA 100%);
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       border: none;
-      box-shadow: 0 4px 14px rgba(129, 225, 240, 0.4);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
       transform: scale(1.05);
     }
 
     /* Inactive */
     .step-circle.inactive {
-      background: #f1f5f9;
+      background: #f8fafc;
       border: 2px solid #e2e8f0;
     }
 
@@ -167,23 +167,24 @@ export interface Step {
     .checkmark {
       width: 26px;
       height: 26px;
-      color: #1a7a75;
+      color: #ffffff;
     }
 
     /* ---- Labels ---- */
     .step-label {
-      margin-top: 0.6rem;
-      font-size: 0.75rem;
-      font-weight: 500;
+      margin-top: 0.8rem;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
       text-align: center;
-      max-width: 90px;
+      max-width: 100px;
       line-height: 1.3;
       transition: color 0.3s ease;
     }
 
     .label-active {
-      color: #0ea5e9;
-      font-weight: 600;
+      color: #1e293b;
     }
 
     .label-default {
@@ -195,7 +196,7 @@ export interface Step {
       flex: 1;
       height: 2px;
       margin: 0 0.75rem;
-      margin-bottom: 1.6rem; /* vertically align with circle center */
+      margin-bottom: 2.2rem; /* vertically align with circle center */
       background: #e2e8f0;
       border-radius: 9999px;
       overflow: hidden;
@@ -204,17 +205,17 @@ export interface Step {
 
     .connector-fill {
       height: 100%;
-      background: linear-gradient(90deg, #d6e5f5 0%, #81F0EA 100%);
+      background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
       border-radius: 9999px;
       transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     /* ---- Progress bar ---- */
     .progress-section {
-      margin-top: 1.75rem;
+      margin-top: 2rem;
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 1rem;
       max-width: 640px;
       margin-left: auto;
       margin-right: auto;
@@ -222,24 +223,24 @@ export interface Step {
 
     .progress-track {
       flex: 1;
-      height: 6px;
-      background: #e2e8f0;
+      height: 8px;
+      background: #f1f5f9;
       border-radius: 9999px;
       overflow: hidden;
     }
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #d6e5f5 0%, #81d8f0ff 100%);
+      background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
       border-radius: 9999px;
       transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .progress-label {
       font-size: 0.8rem;
-      font-weight: 700;
-      color: #0ea5e9;
-      min-width: 36px;
+      font-weight: 900;
+      color: #2563eb;
+      min-width: 40px;
       text-align: right;
     }
   `]

@@ -1,13 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Observable } from 'rxjs';
 import { CamundaTask, DemandeDetailDTO, PageResponse, ScolariteService } from '../../services/scolarite.service';
 import { SafePipe } from '../../pipes/safe.pipe';
 import { HostListener } from '@angular/core';
 import { Router } from '@angular/router';
 import { KeycloakService } from 'keycloak-angular';
 import { KeycloakProfile } from 'keycloak-js';
+import { trigger, style, animate, transition, query, stagger } from '@angular/animations';
+import { StudentService } from '../../services/student.service';
+
 
 
 @Component({
@@ -15,7 +18,35 @@ import { KeycloakProfile } from 'keycloak-js';
   standalone: true,
   imports: [CommonModule, FormsModule, SafePipe],
   templateUrl: './dashboard-scolarite.component.html',
-  styleUrl: './dashboard-scolarite.component.css'
+  styleUrl: './dashboard-scolarite.component.css',
+  animations: [
+    trigger('modalAnim', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'scale(0.95) translateY(10px)' }),
+        animate('300ms cubic-bezier(0.16, 1, 0.3, 1)',
+          style({ opacity: 1, transform: 'scale(1) translateY(0)' }))
+      ]),
+      transition(':leave', [
+        animate('200ms cubic-bezier(0.7, 0, 0.84, 0)',
+          style({ opacity: 0, transform: 'scale(0.95) translateY(10px)' }))
+      ])
+    ]),
+    trigger('formAnim', [
+      transition(':enter', [
+        style({ opacity: 0, height: 0, overflow: 'hidden' }),
+        animate('300ms ease-out', style({ opacity: 1, height: '*' }))
+      ]),
+      transition(':leave', [
+        animate('200ms ease-in', style({ opacity: 0, height: 0, overflow: 'hidden' }))
+      ])
+    ]),
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(10px)' }),
+        animate('400ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+      ])
+    ])
+  ]
 })
 export class ScolariteDashboardComponent implements OnInit {
 
@@ -46,6 +77,7 @@ export class ScolariteDashboardComponent implements OnInit {
     urgents: 0,
     validees: 0,
     rejetees: 0,
+    relances: 0,
     dossiersIncomplets: 0,
     delaiMoyenTraitement: '0h'
   };
@@ -69,13 +101,14 @@ export class ScolariteDashboardComponent implements OnInit {
   private currentDocumentBlobUrl: string | null = null;
 
   // Filtres
-  currentFilter: 'tous' | 'nouveaux' | 'urgents' | 'incomplets' | 'complets' | 'valides' = 'tous';
+  currentFilter: 'tous' | 'nouveaux' | 'urgents' | 'valides' | 'rejetes' | 'enAttente' | 'relances' = 'tous';
   searchTerm = '';
 
   // Dossier sélectionné pour le modal
   selectedDemande: DemandeDetailDTO | null = null;
   showModal = false;
   taskId: string = '';
+  taskAssignee?: string;
 
   // Commentaire pour validation/rejet
   commentaire = '';
@@ -83,8 +116,55 @@ export class ScolariteDashboardComponent implements OnInit {
   showRejetDialog = false;
   showDemanderPiecesDialog = false;
 
+  // Rejet spécifique de document
+  showRejectDocDialog = false;
+  selectedDocToReject: any = null;
+  rejectionDocComment = '';
 
-  constructor(private scolariteService: ScolariteService, private router: Router, private keycloak: KeycloakService) { }
+  // Cache de session : survive la fermeture du modal (vidé seulement après décision finale ou discard explicite)
+  // clé = dossierId, valeur = Map<documentId, {statut, commentaire?}>
+  private sessionDocCache: Map<number, Map<number, { statut: 'VALIDE' | 'REJETE'; commentaire?: string }>> = new Map();
+  pendingDossierId: number | null = null;
+
+  // Raccourci vers le cache du dossier courant
+  get pendingDocChanges(): Map<number, { statut: 'VALIDE' | 'REJETE'; commentaire?: string }> {
+    if (!this.pendingDossierId) return new Map();
+    if (!this.sessionDocCache.has(this.pendingDossierId)) {
+      this.sessionDocCache.set(this.pendingDossierId, new Map());
+    }
+    return this.sessionDocCache.get(this.pendingDossierId)!;
+  }
+
+  showUnsavedChangesDialog = false;
+
+  get isCurrentDemandeReadOnly(): boolean {
+    if (!this.selectedDemande) return true;
+    const s = this.selectedDemande.statutActuel;
+    return s === 'SCOLARITE_VALIDEE' ||
+      s === 'EN_COURS_DEPARTEMENT' ||
+      s === 'DEPARTEMENT_VALIDE' ||
+      s === 'EN_ATTENTE_PAIEMENT' ||
+      s === 'PAIEMENT_VALIDE' ||
+      s === 'INSCRIT' ||
+      s === 'REJETE_SCOLARITE' ||
+      s === 'REJETE_DEPARTEMENT' ||
+      s === 'REJETE_FINANCE' ||
+      s === 'ARCHIVE' ||
+      s === 'EN_ATTENTE_DOCUMENT';
+  }
+
+  // Toast notifications
+  toastVisible = false;
+  toastMessage = '';
+  toastType: 'success' | 'error' = 'success';
+
+
+  constructor(
+    private scolariteService: ScolariteService,
+    private studentService: StudentService,
+    private router: Router,
+    private keycloak: KeycloakService
+  ) { }
 
   async ngOnInit() {
     this.isLoggedIn = await this.keycloak.isLoggedIn();
@@ -101,7 +181,8 @@ export class ScolariteDashboardComponent implements OnInit {
 
 
   loadStatistiques() {
-    this.scolariteService.getStatistiques().subscribe({
+    const login = this.userProfile?.username || this.userProfile?.email || '';
+    this.scolariteService.getStatistiques(login).subscribe({
       next: (stats) => {
         this.stats = stats;
       },
@@ -113,23 +194,28 @@ export class ScolariteDashboardComponent implements OnInit {
 
   loadDemandes() {
     this.loading = true;
-    let observable;
+    let observable: Observable<PageResponse<DemandeDetailDTO>>;
+    const login = this.userProfile?.username || this.userProfile?.email || '';
+    console.log('🔍 login utilisé pour le filtre:', login); // ← AJOUTE ÇA
 
     switch (this.currentFilter) {
       case 'nouveaux':
-        observable = this.scolariteService.getDemandesEnAttente(this.currentPage, this.pageSize);
-        break;
-      case 'valides':
-        observable = this.scolariteService.getDemandesValidees(this.currentPage, this.pageSize);
-        break;
-      case 'incomplets':
-        observable = this.scolariteService.getDemandesIncompletes(this.currentPage, this.pageSize);
-        break;
-      case 'complets':
-        observable = this.scolariteService.getDemandesCompletes(this.currentPage, this.pageSize);
+        observable = this.scolariteService.getDemandesNouvelles(this.currentPage, this.pageSize);
         break;
       case 'urgents':
         observable = this.scolariteService.getDemandesUrgentes(this.currentPage, this.pageSize);
+        break;
+      case 'valides':
+        observable = this.scolariteService.getDemandesValidees(this.currentPage, this.pageSize, login);
+        break;
+      case 'rejetes':
+        observable = this.scolariteService.getDemandesRejetees(this.currentPage, this.pageSize, login);
+        break;
+      case 'enAttente':
+        observable = this.scolariteService.getDemandesEnAttenteDocument(this.currentPage, this.pageSize, login);
+        break;
+      case 'relances':
+        observable = this.scolariteService.getDemandesRelancees(this.currentPage, this.pageSize, login);
         break;
       default:
         observable = this.scolariteService.getAllDemandes(this.currentPage, this.pageSize);
@@ -195,10 +281,30 @@ export class ScolariteDashboardComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  setFilter(filter: 'tous' | 'nouveaux' | 'urgents' | 'incomplets' | 'complets' | 'valides') {
+  // Dans setFilter()
+  setFilter(filter: 'tous' | 'nouveaux' | 'urgents' | 'valides' | 'rejetes' | 'enAttente' | 'relances') {
     this.currentFilter = filter;
     this.currentPage = 0;
     this.loadDemandes();
+  }
+  getStatutBadge(demande: DemandeDetailDTO): { label: string; css: string } {
+    const s = demande.statutActuel;
+
+    // Dossiers en cours de traitement scolarité
+    if (s === 'SOUMIS' || s === 'EN_COURS_SCOLARITE') {
+      const isUrgent = demande.enAttenteDepuis >= 24; // enAttenteDepuis est en heures
+      return isUrgent
+        ? { label: 'Urgent', css: 'badge-urgent' }
+        : { label: 'Nouveau', css: 'badge-nouveau' };
+    }
+
+    if (s === 'RELANCE') return { label: '🔄 Relancé', css: 'badge-nouveau' }; // ← NOUVEAU
+    if (s === 'REJETE_SCOLARITE') return { label: 'Rejeté', css: 'badge-rejete' };
+    if (s === 'SCOLARITE_VALIDEE') return { label: 'Validé', css: 'badge-valide' };
+    if (s === 'EN_ATTENTE_DOCUMENT') return { label: 'En attente doc.', css: 'badge-attente' };
+
+    // fallback
+    return { label: s, css: 'badge-default' };
   }
 
   onSearch() {
@@ -224,59 +330,169 @@ export class ScolariteDashboardComponent implements OnInit {
     }
   }
 
-  // openDemandeDetail(demande: DemandeDetailDTO) {
-  //   this.selectedDemande = demande;
-  //   this.showModal = true;
-
-  //   // Récupérer le taskId de Camunda
-  //   this.scolariteService.getTasksForEnrollment(demande.id).subscribe({
-  //     next: (tasks: CamundaTask[]) => {
-  //       if (tasks && tasks.length > 0) {
-  //         this.taskId = tasks[0].id;
-  //       }
-  //     },
-  //     error: (error) => console.error('Erreur récupération task:', error)
-  //   });
-  // }
   activeTab: 'documents' | 'action' = 'documents'; // Onglet actif du modal
+
   openDemandeDetail(demande: DemandeDetailDTO, initialTab: 'documents' | 'action' = 'documents', actionType?: 'validation' | 'rejet' | 'pieces') {
-    this.selectedDemande = demande;
+    this.pendingDossierId = demande.id;
+
+    // Cloner la demande pour ne pas muter l'objet de la liste
+    this.selectedDemande = { ...demande, documents: demande.documents.map(d => ({ ...d })) };
     this.showModal = true;
     this.activeTab = initialTab;
     this.commentaire = '';
+
+    // Appliquer les changements locaux en attente (depuis le cache de session)
+    if (this.pendingDocChanges.size > 0) {
+      this.pendingDocChanges.forEach((change, docId) => {
+        const doc = this.selectedDemande!.documents.find(d => d.documentId === docId);
+        if (doc) {
+          doc.statut = change.statut;
+          if (change.commentaire) doc.commentaireValidation = change.commentaire;
+        }
+      });
+    }
 
     // Configurer l'état initial selon l'action demandée
     this.showValidationDialog = actionType === 'validation';
     this.showRejetDialog = actionType === 'rejet';
     this.showDemanderPiecesDialog = actionType === 'pieces';
 
-    // Récupérer le taskId de Camunda
+    // Récupérer le taskId de Camunda et l'assigné
     this.scolariteService.getTasksForEnrollment(demande.id).subscribe({
       next: (tasks: CamundaTask[]) => {
         if (tasks && tasks.length > 0) {
           this.taskId = tasks[0].id;
+          this.taskAssignee = tasks[0].assignee;
         }
       },
       error: (error) => console.error('Erreur récupération task:', error)
     });
+
+    if (actionType === 'pieces') {
+      this.preparePieceRequestComment();
+    }
   }
 
-  // closeModal() {
-  //   this.showModal = false;
-  //   this.selectedDemande = null;
-  //   this.commentaire = '';
-  //   this.showValidationDialog = false;
-  //   this.showRejetDialog = false;
-  //   this.showDemanderPiecesDialog = false;
-  // }
+  preparePieceRequestComment() {
+    if (!this.selectedDemande) return;
+
+    // ✅ Récupérer/Générer le token avant d'afficher le lien
+    this.scolariteService.generateToken(this.selectedDemande.id).subscribe({
+      next: (token) => {
+        if (this.selectedDemande) this.selectedDemande.tokenAcces = token;
+        this.updateEmailItemsPreview(token);
+      },
+      error: (err) => {
+        console.error('Erreur génération token:', err);
+        this.updateEmailItemsPreview(); // Fallback sans token
+      }
+    });
+  }
+
+  updateEmailItemsPreview(token?: string) {
+    if (!this.selectedDemande) return;
+
+
+    let docsToRequest: any[];
+
+    const isRelanceMode = this.selectedDemande.statutActuel === 'RELANCE' ||
+      this.selectedDemande.statutActuel === 'EN_ATTENTE_DOCUMENT';
+
+    if (isRelanceMode) {
+      // Pour les dossiers déjà relancés, on ne liste que :
+      // 1. Les documents manquants
+      // 2. Les documents rejetés DANS CETTE SESSION (via pendingDocChanges)
+      docsToRequest = this.selectedDemande.documents.filter(d => {
+        if (d.statut === 'MANQUANTE') return true;
+        const change = this.pendingDocChanges.get(d.documentId);
+        return change && change.statut === 'REJETE';
+      });
+    } else {
+      // Logique standard pour les nouveaux dossiers
+      docsToRequest = this.selectedDemande.documents.filter(d =>
+        d.statut === 'REJETE' || d.statut === 'MANQUANTE'
+      );
+    }
+
+    const docsNames = docsToRequest.map(d => d.type === 'CARTE_IDENTITE' ? "Pièce d'identité" : d.nomFichier || d.type);
+
+    const dossierNum = this.selectedDemande.numeroDossier;
+    let itemsList = docsNames.length > 0
+      ? docsNames.map(d => `- ${d}`).join('\n')
+      : "- (Préciser les documents ici)";
+
+    const baseUrl = window.location.origin;
+    const tokenPart = token ? `?token=${token}` : '';
+    const resubmissionLink = `${baseUrl}/mon-dossier${tokenPart}`;
+
+    this.commentaire = `Aperçu de l'email
+-----------------------------------------
+À : ${this.selectedDemande.etudiant.email}
+Objet : Documents manquants - Dossier #${dossierNum}
+
+Bonjour ${this.selectedDemande.etudiant.prenom},
+
+Veuillez soumettre à nouveau les documents suivants car ils sont invalides ou manquants :
+${itemsList}
+
+Vous pouvez les déposer directement via ce lien sécurisé (valable 72h) :
+${resubmissionLink}
+
+Cordialement,
+Le Service de Scolarité — ITECH University`;
+  }
+
+  prepareRejetComment() {
+    if (!this.selectedDemande) return;
+    const studentName = `${this.selectedDemande.etudiant.prenom} ${this.selectedDemande.etudiant.nom}`;
+    const dossierNum = this.selectedDemande.numeroDossier;
+
+    this.commentaire = `Aperçu de l'email
+-----------------------------------------
+À : ${this.selectedDemande.etudiant.email}
+Objet : Décision concernant votre dossier #${dossierNum}
+
+Bonjour ${this.selectedDemande.etudiant.prenom},
+
+Après étude de votre dossier d'inscription, nous avons le regret de vous informer que votre candidature n'a pas été retenue.
+
+Motif : (Préciser le motif de rejet ici)
+
+Si vous souhaitez obtenir plus d'informations, veuillez contacter notre service de scolarité.
+
+Cordialement,
+Le Service de Scolarité — ITECH University`;
+  }
+
   closeModal() {
+    if (this.pendingDocChanges.size > 0) {
+      // Avertir l'agent qu'il y a des changements non sauvegardés
+      this.showUnsavedChangesDialog = true;
+      return;
+    }
+    this.forceCloseModal();
+  }
+
+  forceCloseModal() {
+    // NE PAS effacer le cache de session ici : les changements sont conservés
+    // pour être restitués à la prochaine ouverture du même dossier
     this.showModal = false;
     this.selectedDemande = null;
     this.commentaire = '';
     this.showValidationDialog = false;
     this.showRejetDialog = false;
     this.showDemanderPiecesDialog = false;
-    this.activeTab = 'documents';         // ← Reset onglet
+    this.showUnsavedChangesDialog = false;
+    this.activeTab = 'documents';
+  }
+
+  /** Discard explicite : efface le cache de session ET ferme */
+  discardAndClose() {
+    if (this.pendingDossierId) {
+      this.sessionDocCache.delete(this.pendingDossierId);
+    }
+    this.pendingDossierId = null;
+    this.forceCloseModal();
   }
 
   openValidationDialog() {
@@ -287,66 +503,55 @@ export class ScolariteDashboardComponent implements OnInit {
   openRejetDialog() {
     this.showRejetDialog = true;
     this.showValidationDialog = false;
+    this.prepareRejetComment();
   }
 
   openDemanderPiecesDialog() {
     this.showDemanderPiecesDialog = true;
+    this.preparePieceRequestComment();
   }
-
-  // validerDossier() {
-  //   if (!this.selectedDemande || !this.taskId) return;
-
-  //   this.actionLoading = true;
-  //   this.scolariteService.completeTask(
-  //     this.taskId,
-  //     'ACCEPTE',
-  //     this.commentaire || 'Dossier validé',
-  //     'scolarite_admin'
-  //   ).subscribe({
-  //     next: () => {
-  //       this.actionLoading = false;
-  //       this.closeModal();
-  //       this.loadDemandes();
-  //       this.loadStatistiques();
-  //       alert('✅ Dossier validé avec succès');
-  //     },
-  //     error: (error) => {
-  //       this.actionLoading = false;
-  //       console.error('Erreur validation:', error);
-  //       alert('❌ Erreur lors de la validation');
-  //     }
-  //   });
-  // }
   validerDossier() {
     if (!this.selectedDemande || !this.taskId) return;
 
     this.actionLoading = true;
-    this.scolariteService.completeTask(
-      this.taskId,
-      'ACCEPTE',
-      this.commentaire || 'Dossier validé par scolarité',
-      'scolarite_admin'
-    ).subscribe({
+    // 1. Committer tous les changements de documents en attente
+    this.commitPendingChanges().subscribe({
       next: () => {
-        this.actionLoading = false;
-        this.closeModal();
-        this.loadDemandes();
-        this.loadStatistiques();
-        // ✅ Toast au lieu de alert()
-        this.showNotification('Dossier validé avec succès', 'success');
+        // 2. Valider le dossier
+        this.scolariteService.completeTask(
+          this.taskId!,
+          'ACCEPTE',
+          this.commentaire,
+          this.userProfile?.email || this.userProfile?.username || 'scolarite_admin'
+        ).subscribe({
+          next: () => {
+            this.actionLoading = false;
+            // Effacer le cache du dossier après décision réussie
+            if (this.pendingDossierId) this.sessionDocCache.delete(this.pendingDossierId);
+            this.forceCloseModal();
+            this.loadDemandes();
+            this.loadStatistiques();
+            this.showNotification('Dossier validé avec succès', 'success');
+          },
+          error: (error) => {
+            this.actionLoading = false;
+            console.error('Erreur validation:', error);
+            this.showNotification('Erreur lors de la validation', 'error');
+          }
+        });
       },
       error: (error) => {
         this.actionLoading = false;
-        console.error('Erreur validation:', error);
-        this.showNotification('Erreur lors de la validation', 'error');
+        console.error('Erreur commit documents:', error);
+        this.showNotification('Erreur lors de la sauvegarde des documents', 'error');
       }
     });
   }
   // ── NOTIFICATION TOAST (remplace alert) ─────────────────────
 
-  toastVisible = false;
-  toastMessage = '';
-  toastType: 'success' | 'error' = 'success';
+  // toastVisible = false;
+  // toastMessage = '';
+  // toastType: 'success' | 'error' = 'success';
 
   showNotification(message: string, type: 'success' | 'error'): void {
     this.toastMessage = message;
@@ -354,60 +559,45 @@ export class ScolariteDashboardComponent implements OnInit {
     this.toastVisible = true;
     setTimeout(() => this.toastVisible = false, 3500);
   }
-
-  // rejeterDossier() {
-  //   if (!this.selectedDemande || !this.taskId || !this.commentaire.trim()) {
-  //     alert('⚠️ Veuillez saisir un motif de rejet');
-  //     return;
-  //   }
-
-  //   this.actionLoading = true;
-  //   this.scolariteService.completeTask(
-  //     this.taskId,
-  //     'REJETE',
-  //     this.commentaire,
-  //     'scolarite_admin'
-  //   ).subscribe({
-  //     next: () => {
-  //       this.actionLoading = false;
-  //       this.closeModal();
-  //       this.loadDemandes();
-  //       this.loadStatistiques();
-  //       alert('✅ Dossier rejeté');
-  //     },
-  //     error: (error) => {
-  //       this.actionLoading = false;
-  //       console.error('Erreur rejet:', error);
-  //       alert('❌ Erreur lors du rejet');
-  //     }
-  //   });
-  // }
   // ── MODIFIER rejeterDossier() — plus de alert() ──────────────
 
   rejeterDossier() {
     if (!this.selectedDemande || !this.taskId || !this.commentaire.trim()) return;
 
     this.actionLoading = true;
-    this.scolariteService.completeTask(
-      this.taskId,
-      'REJETE',
-      this.commentaire,
-      'scolarite_admin'
-    ).subscribe({
+    // 1. Committer tous les changements de documents en attente
+    this.commitPendingChanges().subscribe({
       next: () => {
-        this.actionLoading = false;
-        this.closeModal();
-        this.loadDemandes();
-        this.loadStatistiques();
-        this.showNotification('Dossier rejeté', 'success');
+        // 2. Rejeter le dossier
+        this.scolariteService.completeTask(
+          this.taskId!,
+          'REJETE',
+          this.commentaire,
+          'scolarite_admin'
+        ).subscribe({
+          next: () => {
+            this.actionLoading = false;
+            if (this.pendingDossierId) this.sessionDocCache.delete(this.pendingDossierId);
+            this.forceCloseModal();
+            this.loadDemandes();
+            this.loadStatistiques();
+            this.showNotification('Dossier rejeté', 'success');
+          },
+          error: (error) => {
+            this.actionLoading = false;
+            console.error('Erreur rejet:', error);
+            this.showNotification('Erreur lors du rejet', 'error');
+          }
+        });
       },
       error: (error) => {
         this.actionLoading = false;
-        console.error('Erreur rejet:', error);
-        this.showNotification('Erreur lors du rejet', 'error');
+        console.error('Erreur commit documents:', error);
+        this.showNotification('Erreur lors de la sauvegarde des documents', 'error');
       }
     });
   }
+
   // Ajouter cette méthode pour fermer le menu en cliquant ailleurs
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
@@ -417,22 +607,168 @@ export class ScolariteDashboardComponent implements OnInit {
     }
   }
 
+
   demanderPieces() {
-    if (!this.commentaire.trim()) {
-      alert('⚠️ Veuillez préciser les pièces demandées');
-      return;
+    if (!this.selectedDemande || !this.taskId || !this.commentaire.trim()) return;
+
+    this.actionLoading = true;
+    // 1. Committer tous les changements de documents en attente
+    this.commitPendingChanges().subscribe({
+      next: () => {
+        // 2. Envoyer la demande de pièces
+        this.scolariteService.completeTask(
+          this.taskId!,
+          'DOCUMENT_ILLISIBLE',
+          this.commentaire,
+          this.userProfile?.email || 'scolarite_admin'
+        ).subscribe({
+          next: () => {
+            this.actionLoading = false;
+            if (this.pendingDossierId) this.sessionDocCache.delete(this.pendingDossierId);
+            this.forceCloseModal();
+            this.loadDemandes();
+            this.showNotification('Demande de pièces envoyée', 'success');
+          },
+          error: (error) => {
+            this.actionLoading = false;
+            console.error('Erreur demande pièces:', error);
+            this.showNotification('Erreur lors de la demande', 'error');
+          }
+        });
+      },
+      error: (error) => {
+        this.actionLoading = false;
+        console.error('Erreur commit documents:', error);
+        this.showNotification('Erreur lors de la sauvegarde des documents', 'error');
+      }
+    });
+  }
+
+  // ── REJET SPÉCIFIQUE DE DOCUMENT ─────────────────────
+
+  openRejectDocDialog(doc: any) {
+    this.selectedDocToReject = doc;
+    this.rejectionDocComment = 'Document illisible ou non conforme';
+    this.showRejectDocDialog = true;
+  }
+
+  closeRejectDocDialog() {
+    this.showRejectDocDialog = false;
+    this.selectedDocToReject = null;
+    this.rejectionDocComment = '';
+  }
+
+  confirmRejectDocument() {
+    if (!this.selectedDocToReject || !this.rejectionDocComment.trim() || this.isAssignedToOther) return;
+
+    // Enregistrement LOCAL uniquement (pas d'API). L'API sera appelée à la décision finale.
+    if (this.selectedDemande) {
+      const docIndex = this.selectedDemande.documents.findIndex(d => d.documentId === this.selectedDocToReject.documentId);
+      if (docIndex > -1) {
+        this.selectedDemande.documents[docIndex].statut = 'REJETE';
+        // Stocker aussi le commentaire de rejet pour le commit
+        this.selectedDemande.documents[docIndex].commentaireValidation = this.rejectionDocComment;
+      }
+    }
+    this.pendingDocChanges.set(this.selectedDocToReject.documentId, { statut: 'REJETE', commentaire: this.rejectionDocComment });
+
+
+    this.showNotification('Document marqué comme rejeté (en attente de décision finale)', 'success');
+    this.closeRejectDocDialog();
+  }
+
+  /** Committe tous les changements locaux en parallèle via forkJoin */
+  commitPendingChanges(): Observable<any> {
+    if (this.pendingDocChanges.size === 0) {
+      return new Observable(obs => { obs.next(null); obs.complete(); });
     }
 
-    // TODO: Implémenter l'envoi d'email ou notification à l'étudiant
-    alert('📧 Demande de pièces envoyée à l\'étudiant');
-    this.closeModal();
+    const apiCalls: Observable<any>[] = [];
+
+    this.pendingDocChanges.forEach((change, docId) => {
+      if (change.statut === 'VALIDE') {
+        apiCalls.push(this.studentService.acceptDocument(docId));
+      } else if (change.statut === 'REJETE') {
+        const comment = change.commentaire || 'Rejeté';
+        apiCalls.push(this.studentService.rejectDocument(docId, comment));
+      }
+    });
+
+    return forkJoin(apiCalls);
+  }
+
+  get hasPendingChanges(): boolean {
+    return this.pendingDocChanges.size > 0;
+  }
+
+
+  confirmAcceptDocument(doc: any) {
+    if (!doc || this.isAssignedToOther) return;
+
+    // Enregistrement LOCAL uniquement (pas d'API). L'API sera appelée à la décision finale.
+    if (this.selectedDemande) {
+      const docIndex = this.selectedDemande.documents.findIndex(d => d.documentId === doc.documentId);
+      if (docIndex > -1) {
+        this.selectedDemande.documents[docIndex].statut = 'VALIDE';
+      }
+    }
+    this.pendingDocChanges.set(doc.documentId, { statut: 'VALIDE' });
+    this.showNotification('Document marqué comme valide (en attente de décision finale)', 'success');
+  }
+
+  get areAllDocumentsValidated(): boolean {
+    if (!this.selectedDemande || !this.selectedDemande.documents) return false;
+    if (this.selectedDemande.documents.length === 0) return false;
+
+    const isRelanceMode = this.selectedDemande.statutActuel === 'RELANCE' ||
+      this.selectedDemande.statutActuel === 'EN_ATTENTE_DOCUMENT';
+
+    if (isRelanceMode) {
+      // Pour les dossiers relancés, on ignore les documents déjà REJETE
+      // Il faut juste que tout ce qui n'est pas REJETE soit VALIDE
+      // (Et rien ne doit rester en SOUMIS ou RELANCE)
+      return this.selectedDemande.documents.every(doc =>
+        doc.statut === 'VALIDE' || doc.statut === 'REJETE'
+      );
+    }
+
+    return this.selectedDemande.documents.every(doc => doc.statut === 'VALIDE');
+  }
+
+  get isAssignedToOther(): boolean {
+    if (!this.taskId || !this.taskAssignee) return false;
+    const currentUser = this.userProfile?.email || this.userProfile?.username;
+    return !!(this.taskAssignee && currentUser && this.taskAssignee !== currentUser);
+  }
+
+  get isAssignedToMe(): boolean {
+    if (!this.taskId || !this.taskAssignee) return true; // Personne n'est encore assigné
+    const currentUser = this.userProfile?.email || this.userProfile?.username;
+    return this.taskAssignee === currentUser;
+  }
+
+  isDemandeReadOnly(demande: DemandeDetailDTO): boolean {
+    if (!demande) return false;
+    const s = demande.statutActuel;
+    // Un dossier est en lecture seule s'il n'est plus dans un état "actif" pour la scolarité
+    // Les états actifs sont : SOUMIS, EN_COURS_SCOLARITE, EN_ATTENTE_DOCUMENT
+    const activeStatuses = ['SOUMIS', 'EN_COURS_SCOLARITE', 'EN_ATTENTE_DOCUMENT', 'RELANCE'];
+    return !activeStatuses.includes(s);
+  }
+
+  isOldRejectedDocument(doc: any): boolean {
+    if (!this.selectedDemande || !doc) return false;
+    // Un document est considéré comme "ancien rejeté" si le dossier est en RELANCE
+    // et que le document est actuellement à l'état REJETE.
+    return this.selectedDemande.statutActuel === 'RELANCE' && doc.statut === 'REJETE';
   }
 
   getDocumentStatusClass(statut: string): string {
     switch (statut) {
-      case 'SOUMIS': return 'bg-green-100 text-green-700';
+      case 'SOUMIS': return 'bg-blue-100 text-blue-700';
+      case 'VALIDE': return 'bg-green-100 text-green-700';
       case 'MANQUANTE': return 'bg-red-100 text-red-700';
-      case 'REJETE': return 'bg-red-100 text-red-700';
+      case 'REJETE': return 'bg-rose-100 text-rose-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   }
@@ -543,19 +879,43 @@ export class ScolariteDashboardComponent implements OnInit {
   }
 
   // Helper methods for template
+  /** Compte les documents soumis (SOUMIS ou VALIDE = envoyés par l’étudiant) */
   getDocumentsSoumisCount(documents: any[]): number {
     if (!documents) return 0;
-    return documents.filter(d => d.statut === 'SOUMIS').length;
+    return documents.filter(d => d.statut === 'SOUMIS' || d.statut === 'VALIDE').length;
+  }
+
+  /** Compte les documents avec statut REJETE */
+  getDocumentsRejeteCount(documents: any[]): number {
+    if (!documents) return 0;
+    return documents.filter(d => d.statut === 'REJETE').length;
+  }
+
+  /** Compte les documents déjà traités (VALIDE + REJETE) */
+  getDocumentsTraitesCount(documents: any[]): number {
+    if (!documents) return 0;
+    return documents.filter(d => d.statut === 'VALIDE' || d.statut === 'REJETE').length;
   }
 
   hasMissingDocuments(documents: any[]): boolean {
     if (!documents) return false;
-    return documents.some(d => d.statut === 'MANQUANTE');
+    return documents.some(d => d.statut === 'MANQUANTE' || d.statut === 'REJETE');
   }
 
+  /** Retourne vrai uniquement si TOUS les documents sont VALIDE (ou REJETE en mode RELANCE) */
   areAllDocumentsSubmitted(documents: any[]): boolean {
     if (!documents || documents.length === 0) return false;
-    return documents.every(d => d.statut === 'SOUMIS');
+
+    const isRelanceMode = this.selectedDemande && (
+      this.selectedDemande.statutActuel === 'RELANCE' ||
+      this.selectedDemande.statutActuel === 'EN_ATTENTE_DOCUMENT'
+    );
+
+    if (isRelanceMode) {
+      return documents.every(d => d.statut === 'VALIDE' || d.statut === 'REJETE');
+    }
+
+    return documents.every(d => d.statut === 'VALIDE');
   }
 
   getCompletionPercentage(documents: any[]): number {
@@ -834,43 +1194,110 @@ export class ScolariteDashboardComponent implements OnInit {
 
     const order = [
       'SOUMIS',
-      'SCOLARITE_VALIDEE',    // correspond à 'SCOLARITE'
-      'DEPARTEMENT_VALIDE',   // correspond à 'DEPARTEMENT'
-      'PAYMENT_VALID',
+      'EN_COURS_SCOLARITE',
+      'EN_ATTENTE_DOCUMENT',
+      'SCOLARITE_VALIDEE',
+      'EN_COURS_DEPARTEMENT',
+      'DEPARTEMENT_VALIDE',
+      'EN_ATTENTE_PAIEMENT',
+      'PAIEMENT_VALIDE',
       'INSCRIT'
     ];
 
     const stepMap: Record<string, string> = {
       'SCOLARITE': 'SCOLARITE_VALIDEE',
       'DEPARTEMENT': 'DEPARTEMENT_VALIDE',
-      'PAIEMENT': 'PAYMENT_VALID',
+      'PAIEMENT': 'PAIEMENT_VALIDE',
       'INSCRIT': 'INSCRIT'
     };
 
     const targetStatus = stepMap[step];
     if (!targetStatus) return false;
 
+    // Si le dossier est rejeté à une étape ultérieure, il est quand même "done" pour les étapes précédentes
+    // Mais ici on veut juste savoir si le jalon a été passé.
     const currentIndex = order.indexOf(statut);
     const targetIndex = order.indexOf(targetStatus);
 
+    // Si le statut actuel n'est pas dans la liste (ex: REJETE_...), on vérifie le dernier jalon atteint.
+    // Pour simplifier, on gère les rejets séparément.
     return currentIndex >= targetIndex && currentIndex !== -1;
   }
 
-  /**
-   * Détermine si une étape est l'étape courante (active)
-   */
   isStepActive(step: string): boolean {
     if (!this.selectedDemande) return false;
     const statut = this.selectedDemande.statutActuel || '';
 
     const stepMap: Record<string, string[]> = {
-      'SCOLARITE': ['SOUMIS', 'EN_COURS_SCOLARITE'],
-      'DEPARTEMENT': ['SCOLARITE_VALIDEE'],
-      'PAIEMENT': ['DEPARTEMENT_VALIDE'],
-      'INSCRIT': ['PAYMENT_VALID'],
+      'SCOLARITE': ['SOUMIS', 'EN_COURS_SCOLARITE', 'EN_ATTENTE_DOCUMENT'],
+      'DEPARTEMENT': ['EN_COURS_DEPARTEMENT', 'SCOLARITE_VALIDEE'],
+      'PAIEMENT': ['EN_ATTENTE_PAIEMENT', 'DEPARTEMENT_VALIDE'],
+      'INSCRIT': ['PAIEMENT_VALIDE'],
     };
 
     return stepMap[step]?.includes(statut) ?? false;
+  }
+
+  isStepFailed(step: string): boolean {
+    if (!this.selectedDemande) return false;
+    const statut = this.selectedDemande.statutActuel || '';
+
+    const failureMap: Record<string, string[]> = {
+      'SCOLARITE': ['REJETE_SCOLARITE'],
+      'DEPARTEMENT': ['REJETE_DEPARTEMENT'],
+      'PAIEMENT': ['REJETE_FINANCE'],
+    };
+
+    return failureMap[step]?.includes(statut) ?? false;
+  }
+  // Dans la classe, ajoute cette propriété
+  quickRejectReasons = [
+    'Document illisible',
+    'Document expiré',
+    'Mauvais document',
+    'Document incomplet'
+  ];
+
+  // Ajoute cette méthode
+  selectQuickReason(reason: string) {
+    this.rejectionDocComment = reason;
+  }
+  onBtnDemanderPiecesClick() {
+    this.activeTab = 'action';
+    // Laisser Angular finir le rendu du tab avant d'ouvrir le dialog
+    setTimeout(() => {
+      this.openDemanderPiecesDialog();
+    }, 50);
+  }
+
+  commencerTraitement() {
+    if (!this.selectedDemande || this.selectedDemande.statutActuel !== 'SOUMIS') return;
+
+    this.actionLoading = true;
+    const login = this.userProfile?.username || this.userProfile?.email || 'scolarite_admin';
+
+    this.scolariteService.updateStatus(
+      this.selectedDemande.id,
+      'EN_COURS_SCOLARITE',
+      'Prise en charge du dossier par l\'agent scolarité.',
+      login
+    ).subscribe({
+      next: () => {
+        this.actionLoading = false;
+        this.showNotification('Dossier pris en charge avec succès', 'success');
+        // Recharger le détail pour mettre à jour l'UI locale
+        this.scolariteService.getDemandeDetail(this.selectedDemande!.id).subscribe(detail => {
+          this.selectedDemande = detail;
+          this.loadDemandes(); // Rafraîchir la liste principale aussi
+          this.loadStatistiques();
+        });
+      },
+      error: (error) => {
+        this.actionLoading = false;
+        console.error('Erreur prise en charge:', error);
+        this.showNotification('Erreur lors de la prise en charge', 'error');
+      }
+    });
   }
 
 }

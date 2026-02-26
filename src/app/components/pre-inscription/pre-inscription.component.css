@@ -1,248 +1,175 @@
-.pre-inscription-container {
-    max-width: 900px;
-    margin: 40px auto;
-    padding: 0 20px;
-}
-
-.form-header {
-    text-align: center;
-    margin-bottom: 40px;
-}
-
-.form-header h1 {
-    font-size: 2rem;
-    color: var(--primary-color);
-    margin-bottom: 10px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-}
-
-.form-header p {
-    color: #666;
-    font-size: 1.1rem;
-}
-
-.form-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
-    padding: 40px;
-    border: 1px solid #e8eef4;
-    border-top: 4px solid var(--primary-color);
-}
-
-.step-title {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 30px;
-    border-bottom: 2px solid #f0f4f8;
-    padding-bottom: 15px;
-}
-
-.step-number {
-    background-color: var(--accent-color);
-    color: #fff;
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 1.1rem;
-}
-
-.step-title h2 {
-    font-size: 1.4rem;
-    color: #333;
-    margin: 0;
-}
-
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-.form-field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.form-field.full-width {
-    grid-column: span 2;
-}
-
-.form-field label {
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: #444;
-}
-
-.form-field label span {
-    color: #e53935;
-}
-
-.form-field input,
-.form-field select {
-    padding: 12px 15px;
-    border: 1px solid #e0e6ed;
-    border-radius: 8px;
-    font-size: 1rem;
-    background-color: #f9fbff;
-    transition: all 0.3s;
-}
-
-.form-field input:focus,
-.form-field select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    background-color: #fff;
-    box-shadow: 0 0 0 4px rgba(13, 71, 161, 0.1);
-}
-
-.phone-input {
-    display: flex;
-    gap: 10px;
-}
-
-.phone-input select {
-    width: 100px;
-}
-
-.phone-input input {
-    flex: 1;
-}
-
-.error {
-    color: #e53935;
-    font-size: 0.85rem;
-    margin-top: 2px;
-}
-
-.docs-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-}
-
-.doc-item {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.file-upload {
+/* Modern Pre-Inscription Styles */
+:host {
+    display: block;
     position: relative;
+    overflow: hidden;
 }
 
-.file-upload input {
+/* Background Decorators */
+.bg-blobs {
     position: absolute;
-    width: 0.1px;
-    height: 0.1px;
-    opacity: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    background: radial-gradient(circle at 0% 0%, #f8fafc 0%, #f1f5f9 100%);
 }
 
-.file-upload label {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    background: #f8fafc;
-    border: 2px dashed #cbd5e1;
+/* Subtle Grid Pattern */
+.bg-blobs::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(#3b82f6 0.5px, transparent 0.5px);
+    background-size: 40px 40px;
+    opacity: 0.1;
+    mask-image: radial-gradient(circle at center, black, transparent 85%);
+}
+
+.blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.2;
+    animation: float-blob 25s infinite alternate cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+.blob-1 {
+    width: 600px;
+    height: 600px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(96, 165, 250, 0.4) 100%);
+    top: -10%;
+    right: -10%;
+    animation-duration: 30s;
+}
+
+.blob-2 {
+    width: 500px;
+    height: 500px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(167, 139, 250, 0.3) 100%);
+    bottom: -10%;
+    left: -10%;
+    animation-duration: 35s;
+    animation-delay: -5s;
+}
+
+.blob-3 {
+    width: 450px;
+    height: 450px;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(56, 189, 248, 0.2) 100%);
+    top: 30%;
+    left: 20%;
+    animation-duration: 28s;
+    animation-delay: -12s;
+}
+
+@keyframes float-blob {
+    0% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+
+    33% {
+        transform: translate(5%, 15%) scale(1.1) rotate(5deg);
+    }
+
+    66% {
+        transform: translate(-10%, 10%) scale(0.9) rotate(-10deg);
+    }
+
+    100% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+}
+
+/* Glassmorphism Card */
+.form-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.form-card:hover {
+    box-shadow: 0 30px 60px -12px rgba(59, 130, 246, 0.15);
+}
+
+/* Refined Titles */
+.step-header {
+    border-bottom: 2px solid rgba(59, 130, 246, 0.1);
+    padding-bottom: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.step-badge {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    color: var(--primary-color);
-    font-weight: 600;
-}
-
-.file-upload label:hover {
-    background: #f1f5f9;
-    border-color: var(--primary-color);
-}
-
-.upload-icon {
-    font-size: 1.5rem;
-    margin-bottom: 5px;
-}
-
-.formats-info {
-    margin-top: 20px;
-    font-size: 0.9rem;
-    color: #777;
-    text-align: center;
-}
-
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
-    margin-top: 40px;
-    padding-top: 25px;
-    border-top: 1px solid #eee;
-}
-
-.btn {
-    padding: 12px 25px;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.3s;
-    border: none;
-}
-
-.btn-prev {
-    background-color: #f1f5f9;
-    color: #475569;
-}
-
-.btn-prev:hover {
-    background-color: #e2e8f0;
-}
-
-.btn-next,
-.btn-submit {
-    background-color: #2563eb;
-    color: #fff;
-    min-width: 150px;
-}
-
-.btn-next:hover,
-.btn-submit:hover {
-    background-color: #1d4ed8;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-}
-
-@media (max-width: 768px) {
-
-    .form-grid,
-    .docs-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .form-field.full-width {
-        grid-column: span 1;
-    }
-
-    .form-card {
-        padding: 20px;
-    }
-}
-
-.btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.loader-text {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    font-weight: 800;
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+}
+
+/* Custom Select Styling */
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.5em;
+}
+
+/* Modern Input States */
+input:focus,
+select:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.1);
+}
+
+/* Validation Visual Cues */
+.field-valid {
+    border-color: #10b981 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2310b981'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'%3E%3C/path%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 1rem center !important;
+    background-size: 1.25em !important;
+    padding-right: 3rem !important;
+}
+
+/* Document Upload Grid */
+.upload-zone {
+    background: rgba(248, 250, 252, 0.5);
+    border: 2px dashed #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.upload-zone:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+    transform: scale(1.02);
+}
+
+/* Animations */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-up {
+    animation: slideUp 0.6s ease-out forwards;
 }

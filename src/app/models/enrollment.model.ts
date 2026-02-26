@@ -2,16 +2,21 @@ import { Student } from "./student.model";
 
 export interface Enrollment {
     id: number;
+    numeroDossier?: string;
     studentId: number;
-    student?: Student; // Populated later
+    etudiantId?: number; // Backend field name
+    student?: Student;
+    nomDiplome?: string; // Backend field name
     diplomeDemande: string;
     dateCreation: string;
     dateSoumission: string;
     statut?: string;
+    statutActuel?: string; // Backend field name
     priorite?: 'HAUTE' | 'MOYENNE' | 'BASSE' | 'NOUVEAU';
     documentsValides: number;
     totalDocuments: number;
     commentaireScolarite?: string;
+    tokenAcces?: string;
 }
 
 export interface EnrollmentAction {

@@ -8,6 +8,8 @@ export interface DemandeDetailDTO {
     numeroDossier: string;
     etudiantId: number;
     nomDiplome: string;
+    typeDiplome?: string;
+    langueDiplome?: string;
     statutActuel: string;
     dateCreation: string;
     processInstanceId: string;
@@ -17,6 +19,7 @@ export interface DemandeDetailDTO {
     enAttenteDepuis: number;
     priorite: string;
     taskId?: string; // ID de la tâche Camunda
+    tokenAcces?: string; // 🆕 UUID Token
 }
 
 export interface EtudiantInfoDTO {
@@ -36,7 +39,7 @@ export interface DocumentStatusDTO {
     documentId: number;
     type: string;
     nomFichier: string;
-    statut: string;
+    statut: 'SOUMIS' | 'MANQUANTE' | 'VALIDE' | 'REJETE' | string;
     isValidated: boolean;
     commentaireValidation: string;
 }
@@ -95,10 +98,14 @@ export class ScolariteService {
     /**
      * Récupérer les demandes validées
      */
-    getDemandesValidees(page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
-        const params = new HttpParams()
+    getDemandesValidees(page: number = 0, size: number = 10, login?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams()
             .set('page', page.toString())
             .set('size', size.toString());
+
+        if (login) {
+            params = params.set('login', login);
+        }
 
         return this.http.get<PageResponse<DemandeDetailDTO>>(
             `${this.enrollmentApiUrl}/demandes/validees`,
@@ -109,13 +116,35 @@ export class ScolariteService {
     /**
      * Récupérer les demandes rejetées
      */
-    getDemandesRejetees(page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
-        const params = new HttpParams()
+    getDemandesRejetees(page: number = 0, size: number = 10, login?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams()
             .set('page', page.toString())
             .set('size', size.toString());
 
+        if (login) {
+            params = params.set('login', login);
+        }
+
         return this.http.get<PageResponse<DemandeDetailDTO>>(
             `${this.enrollmentApiUrl}/demandes/rejetees`,
+            { params }
+        );
+    }
+
+    /**
+     * Récupérer les demandes en attente de document
+     */
+    getDemandesEnAttenteDocument(page: number = 0, size: number = 10, login?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('size', size.toString());
+
+        if (login) {
+            params = params.set('login', login);
+        }
+
+        return this.http.get<PageResponse<DemandeDetailDTO>>(
+            `${this.enrollmentApiUrl}/demandes/en-attente-document`,
             { params }
         );
     }
@@ -202,8 +231,12 @@ export class ScolariteService {
     /**
      * Récupérer les statistiques
      */
-    getStatistiques(): Observable<any> {
-        return this.http.get(`${this.enrollmentApiUrl}/statistiques`);
+    getStatistiques(login?: string): Observable<any> {
+        let params = new HttpParams();
+        if (login) {
+            params = params.set('login', login);
+        }
+        return this.http.get(`${this.enrollmentApiUrl}/statistiques`, { params });
     }
 
     /**
@@ -219,14 +252,25 @@ export class ScolariteService {
      * Compléter une tâche Camunda (VALIDER ou REJETER)
      * C'est appelé quand on clique sur ✓ ou ✗
      */
-    completeTask(taskId: string, decision: 'ACCEPTE' | 'REJETE', commentaire: string, loginUtilisateur: string): Observable<any> {
+    // completeTask(taskId: string, decision: 'ACCEPTE' | 'REJETE', commentaire: string, loginUtilisateur: string): Observable<any> {
+    //     return this.http.post(
+    //         `${this.workflowApiUrl}/tasks/${taskId}/complete`,
+    //         {
+    //             decision,
+    //             commentaire,
+    //             loginUtilisateur
+    //         }
+    //     );
+    // }
+    completeTask(
+        taskId: string,
+        decision: 'ACCEPTE' | 'REJETE' | 'DOCUMENT_ILLISIBLE' | 'LISTE_ATTENTE',
+        commentaire: string,
+        loginUtilisateur: string
+    ): Observable<any> {
         return this.http.post(
             `${this.workflowApiUrl}/tasks/${taskId}/complete`,
-            {
-                decision,
-                commentaire,
-                loginUtilisateur
-            }
+            { decision, commentaire, loginUtilisateur }
         );
     }
 
@@ -250,5 +294,50 @@ export class ScolariteService {
      */
     getFileBlob(url: string): Observable<Blob> {
         return this.http.get(url, { responseType: 'blob' });
+    }
+    getDemandesNouvelles(page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
+        const params = new HttpParams()
+            .set('page', page.toString())
+            .set('size', size.toString());
+
+        return this.http.get<PageResponse<DemandeDetailDTO>>(
+            `${this.enrollmentApiUrl}/demandes/nouveaux`,
+            { params }
+        );
+    }
+
+    /**
+     * Mettre à jour le statut d'une demande (ex: COMMENCER TRAITEMENT)
+     */
+    updateStatus(id: number, status: string, commentaire: string, loginUtilisateur: string): Observable<void> {
+        const body = {
+            status,
+            commentaire,
+            loginUtilisateur
+        };
+        return this.http.put<void>(`${this.enrollmentApiUrl}/api/enrollments/${id}/status`, body);
+    }
+
+    /**
+     * Récupérer les dossiers relancés (filtrés par l'agent qui a envoyé la demande EN_ATTENTE_DOCUMENT)
+     */
+    getDemandesRelancees(page: number = 0, size: number = 10, login?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('size', size.toString());
+        if (login) params = params.set('login', login);
+
+        return this.http.get<PageResponse<DemandeDetailDTO>>(
+            `${this.enrollmentApiUrl}/demandes/relancees`,
+            { params }
+        );
+    }
+
+    /**
+     * Générer un token pour un dossier
+     */
+    generateToken(id: number): Observable<string> {
+        const demandesUrl = `${environment.apiUrl}/INSCRIPTION-SERVICE/api/demandes`;
+        return this.http.post(`${demandesUrl}/${id}/token`, {}, { responseType: 'text' });
     }
 }

@@ -44,7 +44,7 @@ export class EnrollmentService {
     processEnrollment(action: EnrollmentAction): Observable<void> {
         // Corrected URL based on backend controller mapping: 
         // /api/demandes + /api/enrollments/{id}/status
-        const url = `${this.apiUrl}/api/enrollments/${action.enrollmentId}/status`;
+        const url = `${this.apiUrl}/${action.enrollmentId}/status`;
 
         const body = {
             status: action.decision === 'ACCEPTE' ? 'SCOLARITE_VALIDEE' : 'REJETE_SCOLARITE',
@@ -53,5 +53,22 @@ export class EnrollmentService {
         };
 
         return this.http.put<void>(url, body);
+    }
+
+    getDemandeByEtudiantId(etudiantId: number): Observable<Enrollment> {
+        return this.http.get<Enrollment>(`${this.apiUrl}/etudiant/${etudiantId}`);
+    }
+
+    resubmitDemande(demandeId: number): Observable<void> {
+        return this.http.post<void>(`${this.apiUrl}/${demandeId}/resubmit`, {});
+    }
+
+    // 🆕 ACCÈS PUBLIC via TOKEN
+    getDemandeByToken(token: string): Observable<Enrollment> {
+        return this.http.get<Enrollment>(`${this.apiUrl}/public/token/${token}`);
+    }
+
+    resubmitByToken(token: string): Observable<void> {
+        return this.http.post<void>(`${this.apiUrl}/public/token/${token}/resubmit`, {});
     }
 }

@@ -1,0 +1,558 @@
+<div class="page-shell" [@fadeIn]>
+
+    <!-- ══ AMBIENT BACKGROUND (same as dashboard) ══ -->
+    <div class="ambient-bg">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+        <div class="ambient-grid"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+       PAGE ERREUR : LIEN INVALIDE / EXPIRÉ (3D)
+  ══════════════════════════════════════════════ -->
+    <div *ngIf="linkInvalid" class="error-shell">
+        <!-- Fond ambiant -->
+        <div class="ambient-bg">
+            <div class="ambient-orb orb-error-1"></div>
+            <div class="ambient-orb orb-error-2"></div>
+        </div>
+
+        <!-- Logo 3D — zone supérieure -->
+        <div class="error-logo-zone">
+            <canvas #logoCanvas class="logo-canvas"></canvas>
+        </div>
+
+        <!-- Carte info — zone inférieure -->
+        <div class="error-bottom-card">
+            <div class="error-bottom-inner">
+
+                <!-- Gauche : badge + texte -->
+                <div class="error-bottom-text">
+                    <div class="error-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        Lien Expiré
+                    </div>
+                    <h1 class="error-title">Accès non autorisé</h1>
+                    <p class="error-sub">
+                        Votre lien d'accès sécurisé a expiré ou n'est plus valide.<br>
+                        Pour protéger vos données, l'accès à ce dossier a été verrouillé.
+                    </p>
+                </div>
+
+                <!-- Droite : séparateur + boutons -->
+                <div class="error-divider"></div>
+                <div class="error-actions">
+                    <a href="/" class="error-btn-primary">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                                d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 9.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V9.414l1.293 1.293a1 1 0 001.414-1.414l-7-7z" />
+                        </svg>
+                        Aller à l'accueil
+                    </a>
+                    <a href="mailto:scolarite@itech.edu" class="error-btn-secondary">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                        </svg>
+                        Contacter la scolarité
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ CONTENU NORMAL ══ -->
+    <ng-container *ngIf="!linkInvalid">
+
+        <!-- TOP NAV (style dashboard) -->
+        <header class="topnav">
+            <div class="topnav-brand">
+                <div class="brand-mark">I</div>
+                <span class="brand-name">ITECH <span class="brand-sub">University</span></span>
+            </div>
+
+            <div class="topnav-center">
+                <span class="nav-label">Dossier d'inscription</span>
+            </div>
+
+            <div class="topnav-right">
+                <div class="status-chip" [attr.data-status]="enrollment?.statutActuel || enrollment?.statut">
+                    <span class="status-dot-chip"></span>
+                    <span>{{ getStatusLabel(enrollment?.statutActuel || enrollment?.statut) }}</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ══ LOADING ══ -->
+        <div class="loading-shell" *ngIf="loading">
+            <div class="loading-ring">
+                <div class="loading-inner"></div>
+            </div>
+            <p class="loading-text">Chargement de votre dossier…</p>
+        </div>
+
+        <!-- ══ CONTENU PRINCIPAL ══ -->
+        <div class="content-grid" *ngIf="!loading">
+
+            <!-- ════ SIDEBAR GAUCHE (identique dashboard) ════ -->
+            <aside class="left-sidebar">
+
+                <!-- Carte identité -->
+                <div class="identity-card">
+                    <div class="identity-gradient"></div>
+                    <div class="identity-inner">
+                        <div class="identity-avatar">
+                            <span *ngIf="userProfile?.firstName || userProfile?.lastName">
+                                {{ userProfile?.firstName?.charAt(0) }}{{ userProfile?.lastName?.charAt(0) }}
+                            </span>
+                            <span *ngIf="!userProfile?.firstName && !userProfile?.lastName && student">
+                                {{ student.nom.charAt(0) }}{{ student.prenom.charAt(0) }}
+                            </span>
+                            <span *ngIf="!userProfile && !student">IT</span>
+                            <span class="avatar-ring"></span>
+                        </div>
+                        <div class="identity-meta-wrap">
+                            <div class="identity-name-row">
+                                <h2 class="identity-name">
+                                    {{ userProfile?.firstName || student?.prenom }}
+                                    {{ userProfile?.lastName || student?.nom }}
+                                </h2>
+                            </div>
+                            <p class="identity-email">{{ userProfile?.email || student?.email }}</p>
+                        </div>
+                        <div class="identity-tag" *ngIf="enrollment">
+                            <span class="tag-label">Dossier</span>
+                            <span class="tag-num">#{{ enrollment.numeroDossier || enrollment.id }}</span>
+                        </div>
+                        <div class="identity-formation" *ngIf="enrollment?.diplomeDemande">
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path
+                                    d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" />
+                            </svg>
+                            <span>{{ enrollment?.diplomeDemande }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progression documents -->
+                <div class="sidebar-card" *ngIf="documents.length > 0">
+                    <div class="sidebar-card-header">
+                        <span class="sidebar-card-title">Documents</span>
+                        <span class="progress-count" [class.count-ok]="getValidCount() === documents.length"
+                            [class.count-ko]="getValidCount() < documents.length">
+                            {{ getValidCount() }}/{{ documents.length }}
+                        </span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" [class.fill-complete]="getValidCount() === documents.length"
+                            [style.width.%]="(getValidCount() / documents.length) * 100">
+                        </div>
+                    </div>
+                    <p class="progress-status" [class.status-ok]="getValidCount() === documents.length"
+                        [class.status-ko]="getValidCount() < documents.length">
+                        {{ getValidCount() === documents.length ? '✓ Dossier complet' : '⚠ Pièces manquantes ou
+                        rejetées' }}
+                    </p>
+
+                    <!-- Mini stats grid -->
+                    <div class="mini-stats">
+                        <div class="mini-stat mini-stat-green">
+                            <span class="mini-stat-num">{{ getValidCount() }}</span>
+                            <span class="mini-stat-label">Validés</span>
+                        </div>
+                        <div class="mini-stat mini-stat-red">
+                            <span class="mini-stat-num">{{ getRejectedCount() }}</span>
+                            <span class="mini-stat-label">Rejetés</span>
+                        </div>
+                        <div class="mini-stat mini-stat-gray">
+                            <span class="mini-stat-num">{{ getMissingCount() }}</span>
+                            <span class="mini-stat-label">Manquants</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workflow stepper (même style dashboard) -->
+                <div class="sidebar-card stepper-card">
+                    <p class="stepper-title">Workflow</p>
+                    <div class="stepper-list">
+
+                        <!-- Soumis -->
+                        <div class="stepper-step done">
+                            <div class="step-dot">
+                                <svg viewBox="0 0 12 12" fill="none">
+                                    <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg>
+                            </div>
+                            <div class="step-content">
+                                <span class="step-name">Soumis</span>
+                                <span class="step-date">Reçu</span>
+                            </div>
+                        </div>
+
+                        <div class="stepper-connector" [class.done-line]="isStatusPast('SCOLARITE_VALIDEE')"></div>
+
+                        <!-- Scolarité -->
+                        <div class="stepper-step" [class.done]="isStatusPast('SCOLARITE_VALIDEE')"
+                            [class.active]="isStatusCurrent(['SOUMIS','EN_COURS_SCOLARITE','EN_ATTENTE_DOCUMENT','RELANCE'])"
+                            [class.failed]="currentStatut === 'REJETE_SCOLARITE'">
+                            <div class="step-dot">
+                                <svg *ngIf="isStatusPast('SCOLARITE_VALIDEE')" viewBox="0 0 12 12" fill="none">
+                                    <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg>
+                            </div>
+                            <div class="step-content">
+                                <span class="step-name">Scolarité</span>
+                                <span class="step-date">
+                                    {{ isStatusPast('SCOLARITE_VALIDEE') ? 'Validé' :
+                                    (currentStatut === 'REJETE_SCOLARITE' ? 'Rejeté' :
+                                    isStatusCurrent(['SOUMIS','EN_COURS_SCOLARITE','EN_ATTENTE_DOCUMENT','RELANCE']) ?
+                                    'En cours' : '—') }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="stepper-connector" [class.done-line]="isStatusPast('DEPARTEMENT_VALIDE')"></div>
+
+                        <!-- Département -->
+                        <div class="stepper-step" [class.done]="isStatusPast('DEPARTEMENT_VALIDE')"
+                            [class.active]="isStatusCurrent(['EN_COURS_DEPARTEMENT','SCOLARITE_VALIDEE'])"
+                            [class.failed]="currentStatut === 'REJETE_DEPARTEMENT'">
+                            <div class="step-dot">
+                                <svg *ngIf="isStatusPast('DEPARTEMENT_VALIDE')" viewBox="0 0 12 12" fill="none">
+                                    <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg>
+                            </div>
+                            <div class="step-content">
+                                <span class="step-name">Département</span>
+                                <span class="step-date">
+                                    {{ isStatusPast('DEPARTEMENT_VALIDE') ? 'Validé' :
+                                    (currentStatut === 'REJETE_DEPARTEMENT' ? 'Rejeté' :
+                                    isStatusCurrent(['EN_COURS_DEPARTEMENT','SCOLARITE_VALIDEE']) ? 'En cours' : '—') }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="stepper-connector" [class.done-line]="isStatusPast('PAIEMENT_VALIDE')"></div>
+
+                        <!-- Paiement -->
+                        <div class="stepper-step" [class.done]="isStatusPast('PAIEMENT_VALIDE')"
+                            [class.active]="isStatusCurrent(['EN_ATTENTE_PAIEMENT','DEPARTEMENT_VALIDE'])"
+                            [class.failed]="currentStatut === 'REJETE_FINANCE'">
+                            <div class="step-dot">
+                                <svg *ngIf="isStatusPast('PAIEMENT_VALIDE')" viewBox="0 0 12 12" fill="none">
+                                    <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg>
+                            </div>
+                            <div class="step-content">
+                                <span class="step-name">Paiement</span>
+                                <span class="step-date">
+                                    {{ isStatusPast('PAIEMENT_VALIDE') ? 'Payé' :
+                                    (currentStatut === 'REJETE_FINANCE' ? 'Refusé' :
+                                    isStatusCurrent(['EN_ATTENTE_PAIEMENT','DEPARTEMENT_VALIDE']) ? 'En cours' : '—') }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="stepper-connector" [class.done-line]="currentStatut === 'INSCRIT'"></div>
+
+                        <!-- Inscrit -->
+                        <div class="stepper-step" [class.done]="currentStatut === 'INSCRIT'"
+                            [class.active]="currentStatut === 'PAIEMENT_VALIDE'">
+                            <div class="step-dot">
+                                <svg *ngIf="currentStatut === 'INSCRIT'" viewBox="0 0 12 12" fill="none">
+                                    <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg>
+                            </div>
+                            <div class="step-content">
+                                <span class="step-name">Inscrit</span>
+                                <span class="step-date">{{ currentStatut === 'INSCRIT' ? 'Finalisé' : '—' }}</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Alerte action requise -->
+                <div class="alert-banner alert-orange" *ngIf="currentStatut === 'EN_ATTENTE_DOCUMENT'">
+                    <div class="alert-icon">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="alert-title">Action requise</p>
+                        <p class="alert-body">Veuillez resoumettre les documents rejetés ou manquants.</p>
+                    </div>
+                </div>
+
+                <!-- Succès soumission -->
+                <div class="alert-banner alert-green" *ngIf="currentStatut === 'RELANCE'">
+                    <div class="alert-icon">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="alert-title">Documents soumis</p>
+                        <p class="alert-body">En cours de vérification sous 48h ouvrées.</p>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- ════ ZONE PRINCIPALE ════ -->
+            <main class="main-area">
+
+                <!-- En-tête page -->
+                <div class="main-header">
+                    <div>
+                        <h1 class="main-title">Dossier d'Inscription</h1>
+                        <p class="main-sub">Consultez et mettez à jour vos pièces justificatives</p>
+                    </div>
+                    <div class="dossier-badge" *ngIf="enrollment">
+                        <span class="dossier-badge-label">Dossier</span>
+                        <span class="dossier-badge-num">#{{ enrollment.numeroDossier || enrollment.id }}</span>
+                    </div>
+                </div>
+
+                <!-- ════ NOUVEAU : DETAIL DU PROFIL ════ -->
+                <div class="details-panel" *ngIf="student">
+                    <div class="details-grid">
+                        <!-- Col 1: État Civil -->
+                        <div class="details-col">
+                            <h3 class="details-section-title">
+                                <svg viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                Informations Personnelles
+                            </h3>
+                            <div class="details-list">
+                                <div class="detail-item">
+                                    <span class="detail-label">Genre</span>
+                                    <span class="detail-value">{{ formatGender(student.gendre) }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Date de naissance</span>
+                                    <span class="detail-value">{{ student.dateNaissance | date:'dd MMMM yyyy' }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Téléphone</span>
+                                    <span class="detail-value">{{ student.phone || '—' }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">{{ student.numPassport ? 'Passeport' : 'CIN' }}</span>
+                                    <span class="detail-value font-mono">{{ student.numPassport ||
+                                        student.numCarteIdentite || '—' }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Col 2: Académique -->
+                        <div class="details-col">
+                            <h3 class="details-section-title">
+                                <svg viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" />
+                                    <path
+                                        d="M7.667 10.844l1.833.785a.997.997 0 01.127.065V18.01a1 1 0 102 0v-6.315a.997.997 0 01.127-.065l1.833-.785V14a1 1 0 102 0v-4.667l-7 3a1 1 0 01-1.168-1.489z" />
+                                </svg>
+                                Parcours Académique
+                            </h3>
+                            <div class="details-list">
+                                <div class="detail-item">
+                                    <span class="detail-label">Dernier Diplôme</span>
+                                    <span class="detail-value">{{ formatDiploma(student.dernierDiplome) }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Année d'obtention</span>
+                                    <span class="detail-value">{{ student.anneeDernierDiplome || '—' }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Formation demandée</span>
+                                    <span class="detail-value text-blue">{{ enrollment?.diplomeDemande || '—' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panneau documents -->
+                <div class="docs-panel">
+
+                    <!-- Header panneau -->
+                    <div class="docs-panel-header">
+                        <div class="docs-header-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="docs-panel-title">Pièces Justificatives</h2>
+                            <p class="docs-panel-sub">{{ documents.length }} document(s) requis pour votre candidature
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Etat vide -->
+                    <div class="empty-state" *ngIf="documents.length === 0">
+                        <div class="empty-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 13.5l3 3m0 0l3-3m-3 3v-6m1.06-4.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                            </svg>
+                        </div>
+                        <p>Aucun document trouvé pour votre dossier.</p>
+                    </div>
+
+                    <!-- Liste documents -->
+                    <div class="doc-list" *ngIf="documents.length > 0">
+
+                        <div class="doc-item" *ngFor="let doc of documents; let i = index"
+                            [class.doc-ok]="(doc.statut || doc.typeEnvoie) === 'VALIDE'"
+                            [class.doc-ko]="(doc.statut || doc.typeEnvoie) === 'REJETE'"
+                            [class.doc-missing]="(doc.statut || doc.typeEnvoie) === 'MANQUANTE'"
+                            [class.doc-submitted]="(doc.statut || doc.typeEnvoie) === 'SOUMIS'"
+                            [style.animation-delay]="i * 0.06 + 's'">
+
+                            <!-- Icône statut -->
+                            <div class="doc-icon-wrap" [class.icon-ok]="(doc.statut || doc.typeEnvoie) === 'VALIDE'"
+                                [class.icon-ko]="(doc.statut || doc.typeEnvoie) === 'REJETE'"
+                                [class.icon-missing]="(doc.statut || doc.typeEnvoie) === 'MANQUANTE'"
+                                [class.icon-submitted]="(doc.statut || doc.typeEnvoie) === 'SOUMIS'">
+                                <!-- VALIDE -->
+                                <svg *ngIf="(doc.statut || doc.typeEnvoie) === 'VALIDE'" viewBox="0 0 20 20"
+                                    fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <!-- REJETE -->
+                                <svg *ngIf="(doc.statut || doc.typeEnvoie) === 'REJETE'" viewBox="0 0 20 20"
+                                    fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <!-- MANQUANTE -->
+                                <svg *ngIf="(doc.statut || doc.typeEnvoie) === 'MANQUANTE'" viewBox="0 0 20 20"
+                                    fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <!-- SOUMIS / RELANCE -->
+                                <svg *ngIf="(doc.statut || doc.typeEnvoie) === 'SOUMIS' || (doc.statut || doc.typeEnvoie) === 'RELANCE'"
+                                    viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+
+                            <!-- Infos document -->
+                            <div class="doc-info">
+                                <p class="doc-type">{{ doc.type }}</p>
+                                <p class="doc-filename" *ngIf="doc.nomFichier">{{ doc.nomFichier }}</p>
+                                <p class="doc-filename missing-txt" *ngIf="!doc.nomFichier">Aucun fichier soumis</p>
+
+                                <!-- Note de rejet -->
+                                <div class="rejection-note"
+                                    *ngIf="doc.commentaireValidation && (doc.statut || doc.typeEnvoie) === 'REJETE'">
+                                    <svg viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    {{ doc.commentaireValidation }}
+                                </div>
+                            </div>
+
+                            <!-- Statut pill (même style dashboard) -->
+                            <span class="doc-status-pill" [class.pill-ok]="(doc.statut || doc.typeEnvoie) === 'VALIDE'"
+                                [class.pill-ko]="(doc.statut || doc.typeEnvoie) === 'REJETE' || (doc.statut || doc.typeEnvoie) === 'MANQUANTE'"
+                                [class.pill-blue]="(doc.statut || doc.typeEnvoie) === 'SOUMIS' || (doc.statut || doc.typeEnvoie) === 'RELANCE'">
+                                {{ getPillLabel(doc.statut || doc.typeEnvoie) }}
+                            </span>
+
+                            <!-- Zone d'upload -->
+                            <div class="doc-upload-zone" *ngIf="isDocActionRequired(doc)">
+                                <label [for]="'upload-' + doc.type" class="upload-label"
+                                    [class.file-chosen]="selectedFiles.has(doc.type)">
+                                    <svg viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    <span *ngIf="!selectedFiles.has(doc.type)">Choisir un fichier</span>
+                                    <span *ngIf="selectedFiles.has(doc.type)" class="chosen-name">
+                                        ✓ {{ selectedFiles.get(doc.type)?.name }}
+                                    </span>
+                                    <input type="file" [id]="'upload-' + doc.type"
+                                        (change)="onFileSelected($event, doc.type)" hidden
+                                        accept=".pdf,.jpg,.jpeg,.png">
+                                </label>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Footer soumission -->
+                    <div class="submit-footer" *ngIf="canSubmit">
+                        <div class="submit-info">
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <span>{{ selectedFiles.size }} fichier(s) prêt(s) à l'envoi</span>
+                        </div>
+                        <button class="submit-btn" (click)="submitChanges()" [disabled]="submitting">
+                            <span class="btn-spinner" *ngIf="submitting"></span>
+                            <svg *ngIf="!submitting" viewBox="0 0 20 20" fill="currentColor">
+                                <path
+                                    d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                            </svg>
+                            {{ submitting ? 'Envoi en cours…' : 'Renvoyer mon dossier' }}
+                        </button>
+                    </div>
+
+                    <!-- Message dossier soumis -->
+                    <div class="submitted-msg" *ngIf="currentStatut === 'RELANCE'">
+                        <div class="submitted-icon">
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="submitted-title">Dossier soumis avec succès</p>
+                            <p class="submitted-sub">Notre équipe examinera vos documents sous 48h ouvrées.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+
+    </ng-container>
+
+</div>

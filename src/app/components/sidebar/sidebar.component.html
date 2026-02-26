@@ -54,6 +54,22 @@
                 </nav>
             </div>
 
+            <!-- Département Section (Only for Enseignant Responsable) -->
+            <div *ngIf="hasRole('ENSEIGNANT_RESPONSABLE')">
+                <h2 class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">DÉPARTEMENT</h2>
+                <nav class="space-y-1">
+                    <a routerLink="/dashboard-departement" routerLinkActive="active-nav"
+                        class="flex items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl transition-all group">
+                        <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span class="font-bold text-sm">Dashboard</span>
+                    </a>
+                </nav>
+            </div>
+
             <!-- Admin specific section Example -->
             <div *ngIf="hasRole('ADMIN')">
                 <h2 class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">ADMINISTRATION</h2>

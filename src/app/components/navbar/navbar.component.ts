@@ -28,6 +28,7 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Détection de la page actuelle
   isHomePage = false;
+  isRouteHidden = false; // NOUVEAU : pour masquer la navbar sur certaines pages
 
   // Données utilisateur
   isLoggedIn = false;
@@ -97,6 +98,9 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   private checkCurrentRoute(): void {
     this.isHomePage = this.router.url === '/' || this.router.url === '/home';
+
+    // Masquer la navbar sur le formulaire de paiement
+    this.isRouteHidden = this.router.url.includes('paiement/formulaire');
 
     // Si on est sur la page d'accueil, vérifier le scroll
     if (this.isHomePage) {
