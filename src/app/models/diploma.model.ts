@@ -19,8 +19,8 @@ export interface DiplomeEtudier {
 export interface NiveauDiplomeSpecifique {
     id: number;
     niveau: number;
-    diplome?: String;
-
+    diplome?: string;
+    capaciteMax?: number;  // ← utile pour afficher
 }
 export interface NiveauDiplome {
     id: number;
@@ -31,4 +31,7 @@ export interface DiplomeResponsable {
     id: number;
     nomDiplome: string;
     langues: Langue[];
+    typeNom?: string;
 }
+
+

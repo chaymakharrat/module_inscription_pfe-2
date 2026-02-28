@@ -16,6 +16,17 @@ export interface Document {
     fileUrl?: string;
 }
 
+export enum TypeBac {
+    SCIENCES_EXPERIMENTALES = 'SCIENCES_EXPERIMENTALES',
+    MATHEMATIQUES = 'MATHEMATIQUES',
+    TECHNIQUE = 'TECHNIQUE',
+    ECONOMIE_GESTION = 'ECONOMIE_GESTION',
+    SCIENCES_INFORMATIQUE = 'SCIENCES_INFORMATIQUE',
+    LETTRES = 'LETTRES',
+    SPORT = 'SPORT',
+    AUTRE = 'AUTRE'
+}
+
 export interface Student {
     id?: number;
     nom: string;
@@ -28,6 +39,7 @@ export interface Student {
     dateNaissance: string;
     numCarteIdentite?: string;
     numPassport?: string;
+    typeBac?: TypeBac;
     paysId?: number;
     documents?: Document[];
     emailUniversitaire?: string;

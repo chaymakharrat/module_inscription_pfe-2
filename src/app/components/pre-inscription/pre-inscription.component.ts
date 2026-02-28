@@ -19,6 +19,8 @@ import { AutoSaveIndicatorComponent } from '../shared/auto-save-indicator/auto-s
 import { ActionButtonsComponent } from '../shared/action-buttons/action-buttons.component';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { FooterComponent } from '../footer/footer.component';
+import { CinScannerComponent } from '../cin-scanner/cin-scanner.component';
+import { OcrCinResult } from '../../services/ocr.service';
 
 @Component({
   selector: 'app-pre-inscription',
@@ -31,7 +33,8 @@ import { FooterComponent } from '../footer/footer.component';
     AutoSaveIndicatorComponent,
     ActionButtonsComponent,
     InputComponent,
-    FooterComponent
+    FooterComponent,
+    CinScannerComponent
   ],
   templateUrl: './pre-inscription.component.html',
   styleUrl: './pre-inscription.component.css',
@@ -68,6 +71,22 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   /** Diplômes responsables filtrés selon le type sélectionné */
   filteredDiplomesResponsables: DiplomeResponsable[] = [];
 
+  readonly bacTypes = [
+    { value: 'SCIENCES_EXPERIMENTALES', label: 'Bac Sciences Expérimentales' },
+    { value: 'MATHEMATIQUES', label: 'Bac Mathématiques' },
+    { value: 'TECHNIQUE', label: 'Bac Technique' },
+    { value: 'ECONOMIE_GESTION', label: 'Bac Économie et Gestion' },
+    { value: 'SCIENCES_INFORMATIQUE', label: 'Bac Sciences de l\'Informatique' },
+    { value: 'LETTRES', label: 'Bac Lettres' },
+    { value: 'SPORT', label: 'Bac Sport' },
+    { value: 'AUTRE', label: 'Autre' }
+  ];
+
+  get isTunisiaSelected(): boolean {
+    const paysId = this.inscriptionForm.get('personalInfo.pays')?.value;
+    return this.countries.find(c => c.id == paysId)?.nom === 'Tunisia';
+  }
+
 
   // loadInitialData(): void {
   //     this.countryService.getCountriesWithIndicatifs().subscribe(data => {
@@ -85,20 +104,17 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     const selected = this.diplomesResponsables.find(d => d.nomDiplome === nomDiplome);
     if (selected) {
       this.availableLangues = selected.langues;
+      this.levels = [];
+      this.inscriptionForm.get('academicInfo.niveauVise')?.setValue('');
 
-      // Pré-sélectionner si une seule langue
       if (this.availableLangues.length === 1) {
-        this.inscriptionForm.get('academicInfo.langueVise')
-          ?.setValue(this.availableLangues[0]);
+        const langue = this.availableLangues[0];
+        this.inscriptionForm.get('academicInfo.langueVise')?.setValue(langue);
+        // Le listener langueVise.valueChanges va automatiquement charger les niveaux
       } else {
         this.inscriptionForm.get('academicInfo.langueVise')?.setValue('');
       }
     }
-
-    // Charger les niveaux pour ce diplôme
-    this.diplomaService.getNiveauxByDiplomeName(nomDiplome).subscribe(data => {
-      this.levels = data;
-    });
   }
 
   /** Diplômes uniques par nom (pour le sélecteur) : on déduplique par nom † */
@@ -139,6 +155,16 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     this.initForm();
     this.loadInitialData();
     this.startDraftExpiryTimer();
+    this.inscriptionForm.get('academicInfo.langueVise')?.valueChanges.subscribe(langue => {
+      const nomDiplome = this.inscriptionForm.get('academicInfo.diplomeVise')?.value;
+      if (nomDiplome && langue) {
+        this.diplomaService.getNiveauxByDiplomeNameAndLangue(nomDiplome, langue)
+          .subscribe(data => {
+            this.levels = data;
+            this.inscriptionForm.get('academicInfo.niveauVise')?.setValue('');
+          });
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -164,7 +190,8 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
         pays: ['', Validators.required],
         adresse: ['', Validators.required],
         cin: ['', [Validators.pattern('^[0-9]{8}$')]],
-        numPassport: ['']
+        numPassport: [''],
+        typeBac: ['']
       }),
       academicInfo: this.fb.group({
         dernierDiplome: ['', Validators.required],
@@ -199,6 +226,16 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       if (country) {
         this.inscriptionForm.get('personalInfo.indicatif')?.setValue(country.indicatif);
       }
+
+      // Update typeBac validation
+      const typeBacControl = this.inscriptionForm.get('personalInfo.typeBac');
+      if (country?.nom === 'Tunisie') {
+        typeBacControl?.setValidators([Validators.required]);
+      } else {
+        typeBacControl?.clearValidators();
+        typeBacControl?.setValue('');
+      }
+      typeBacControl?.updateValueAndValidity();
     });
 
     // Watch for changes in indicatif to update pays
@@ -327,6 +364,50 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   setGender(gendre: 'HOMME' | 'FEMME'): void {
     this.inscriptionForm.get('personalInfo.gendre')?.setValue(gendre);
   }
+  onCinScanned(result: OcrCinResult): void {
+    if (!result.success) return;
+
+    const personalInfo = this.inscriptionForm.get('personalInfo');
+    if (!personalInfo) return;
+
+    if (result.nom) {
+      personalInfo.get('nom')?.setValue(result.nom);
+      personalInfo.get('nom')?.markAsTouched();
+    }
+
+    if (result.prenom) {
+      personalInfo.get('prenom')?.setValue(result.prenom);
+      personalInfo.get('prenom')?.markAsTouched();
+    }
+
+    if (result.dateNaissance) {
+      personalInfo.get('dateNaissance')?.setValue(result.dateNaissance);
+      personalInfo.get('dateNaissance')?.markAsTouched();
+    }
+
+    if (result.genre) {
+      this.setGender(result.genre);
+    }
+
+    if (result.numeroCin) {
+      this.setIdType('cin');
+      personalInfo.get('cin')?.setValue(result.numeroCin);
+      personalInfo.get('cin')?.markAsTouched();
+    }
+
+    if (result.adresse) {
+      personalInfo.get('adresse')?.setValue(result.adresse);
+      personalInfo.get('adresse')?.markAsTouched();
+    }
+
+    // Auto-sélectionner la Tunisie si CIN tunisienne détectée
+    const tunisia = this.countries.find(
+      c => c.nom?.toLowerCase().includes('tunis')
+    );
+    if (tunisia) {
+      personalInfo.get('pays')?.setValue(tunisia.id);
+    }
+  }
 
   get personalInfo() { return this.inscriptionForm.get('personalInfo') as FormGroup; }
   get academicInfo() { return this.inscriptionForm.get('academicInfo') as FormGroup; }
@@ -377,12 +458,14 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       this.diplomas = data;
     });
 
-    // Charger les types ET tous les diplômes responsables
-    this.diplomaService.getTypes().subscribe(types => {
-      this.typesDiplome = types;
-    });
-    this.diplomaService.getDiplomesResponsables().subscribe(data => {
-      this.diplomesResponsables = data;
+    // Charger les types ET les diplômes responsables, puis filtrer les types vides (ex: Doctorat sans diplôme)
+    forkJoin({
+      types: this.diplomaService.getTypes(),
+      responsables: this.diplomaService.getDiplomesResponsables()
+    }).subscribe(({ types, responsables }) => {
+      this.diplomesResponsables = responsables;
+      const typesWithDiplomas = new Set(responsables.filter(r => r.typeNom).map(r => r.typeNom));
+      this.typesDiplome = types.filter(t => typesWithDiplomas.has(t.nom));
     });
   }
 
@@ -391,6 +474,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     // Réinitialiser la sélection diplôme & langue
     this.inscriptionForm.get('academicInfo.diplomeVise')?.setValue('');
     this.inscriptionForm.get('academicInfo.langueVise')?.setValue('');
+    this.inscriptionForm.get('academicInfo.niveauVise')?.setValue('');
     this.availableLangues = [];
     this.levels = [];
 
@@ -409,7 +493,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
           .map(d => d.nom)
       );
       this.filteredDiplomesResponsables = this.diplomesResponsables.filter(
-        dr => nomsDuType.has(dr.nomDiplome)
+        dr => dr.typeNom === typeName
       );
     });
   }
@@ -536,7 +620,8 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
             anneeDernierDiplome: formValue.academicInfo.anneeDernierDiplome,
             paysId: formValue.personalInfo.pays,
             numCarteIdentite: formValue.personalInfo.cin || undefined,
-            numPassport: formValue.personalInfo.numPassport || undefined
+            numPassport: formValue.personalInfo.numPassport || undefined,
+            typeBac: formValue.personalInfo.typeBac || undefined
           };
 
           console.log('Creating Student...', studentData);

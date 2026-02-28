@@ -1,0 +1,245 @@
+<div class="page-shell">
+
+    <!-- ══ SIDEBAR ACCENT ══ -->
+    <div class="sidebar-accent"></div>
+
+    <div class="page-inner">
+
+        <!-- ══ LOADING ══════════════════════════════════════════════════════ -->
+        <div class="loader-wrap" *ngIf="loading">
+            <div class="loader-dots">
+                <span></span><span></span><span></span>
+            </div>
+            <p>Chargement en cours…</p>
+        </div>
+
+        <!-- ══ GRILLE DES NIVEAUX ════════════════════════════════════════════ -->
+        <div class="levels-grid" *ngIf="!loading">
+
+            <div class="level-card" *ngFor="let config of niveauxConfig; let i = index"
+                [style.animation-delay]="(i * 80) + 'ms'">
+
+                <!-- En-tête niveau -->
+                <div class="level-head">
+                    <div class="level-head-left">
+                        <div class="level-num">N{{ config.niveau }}</div>
+                        <div class="level-meta">
+                            <h3 class="level-name">{{ config.nomDiplome }}</h3>
+                            <span class="lang-tag">{{ config.langue }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Capacité -->
+                    <div class="cap-block">
+                        <span class="cap-eyebrow">Capacité</span>
+
+                        <div class="cap-display" *ngIf="!editingCapacite[config.niveauSpecifiqueId]">
+                            <span class="cap-number">{{ config.capaciteMax }}</span>
+                            <span class="cap-unit">places</span>
+                            <button class="ghost-icon" (click)="startEditCapacite(config)" title="Modifier">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="cap-edit-row" *ngIf="editingCapacite[config.niveauSpecifiqueId]">
+                            <input type="number" class="cap-input" [(ngModel)]="newCapacite[config.niveauSpecifiqueId]"
+                                min="1" max="999">
+                            <button class="icon-confirm" (click)="saveCapacite(config)"
+                                [disabled]="savingCapacite[config.niveauSpecifiqueId]">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                            </button>
+                            <button class="icon-cancel" (click)="cancelEditCapacite(config)">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Corps : liste prérequis -->
+                <div class="level-body">
+
+                    <!-- État vide -->
+                    <div class="empty-state" *ngIf="config.prerequis.length === 0">
+                        <div class="empty-icon">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <p class="empty-text">Aucun prérequis configuré</p>
+                        <button class="empty-cta" (click)="openAddModal(config)">
+                            Ajouter le premier prérequis
+                        </button>
+                    </div>
+
+                    <!-- Liste -->
+                    <div class="prereq-list" *ngIf="config.prerequis.length > 0">
+                        <div class="prereq-row" *ngFor="let p of config.prerequis; let j = index"
+                            [class.row-obligatoire]="p.obligatoire" [class.row-optionnel]="!p.obligatoire"
+                            [style.animation-delay]="(j * 50) + 'ms'">
+
+                            <div class="row-indicator" [class.ind-blue]="p.obligatoire"
+                                [class.ind-gray]="!p.obligatoire"></div>
+
+                            <span class="row-nom">{{ p.nom }}</span>
+
+                            <span class="row-badge" [class.badge-req]="p.obligatoire"
+                                [class.badge-opt]="!p.obligatoire">
+                                {{ p.obligatoire ? 'Obligatoire' : 'Optionnel' }}
+                            </span>
+
+                            <div class="row-actions">
+                                <button class="action-btn" (click)="openEditModal(config, p)" title="Modifier">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                                <button class="action-btn action-del" (click)="confirmerSuppression(config, p)"
+                                    title="Supprimer">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ajouter -->
+                    <button class="add-row-btn" *ngIf="config.prerequis.length > 0" (click)="openAddModal(config)">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Ajouter un prérequis
+                    </button>
+                </div>
+            </div>
+
+        </div><!-- /levels-grid -->
+    </div><!-- /page-inner -->
+</div><!-- /page-shell -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL AJOUT / MODIFICATION
+══════════════════════════════════════════════════════════ -->
+<div class="overlay" *ngIf="showFormModal" (click)="closeFormModal()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+
+        <div class="dialog-head" [class.dialog-head-edit]="isEditMode">
+            <div class="dialog-icon" [class.icon-edit]="isEditMode">
+                <svg *ngIf="!isEditMode" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <svg *ngIf="isEditMode" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="dialog-title">{{ isEditMode ? 'Modifier le prérequis' : 'Nouveau prérequis' }}</h2>
+                <p class="dialog-sub" *ngIf="selectedNiveau">
+                    Niveau {{ selectedNiveau.niveau }} · {{ selectedNiveau.nomDiplome }}
+                </p>
+            </div>
+            <button class="close-btn" (click)="closeFormModal()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="dialog-body">
+
+            <!-- Champ nom -->
+            <div class="field">
+                <label class="field-label">Description du prérequis <span class="req-star">*</span></label>
+                <input type="text" class="field-input" [(ngModel)]="formData.nom"
+                    placeholder="Ex : Licence BAC+3, Anglais niveau B2, Moyenne ≥ 12…"
+                    [class.field-error]="formErrors['nom']" autocomplete="off">
+                <span class="field-err-msg" *ngIf="formErrors['nom']">{{ formErrors['nom'] }}</span>
+            </div>
+
+            <!-- Toggle obligatoire -->
+            <div class="toggle-field">
+                <div class="toggle-field-text">
+                    <span class="toggle-field-label">Caractère obligatoire</span>
+                    <span class="toggle-field-hint">Si désactivé, ce prérequis est souhaitable mais non bloquant</span>
+                </div>
+                <button class="toggle" [class.toggle-on]="formData.obligatoire"
+                    (click)="formData.obligatoire = !formData.obligatoire" type="button">
+                    <span class="toggle-knob"></span>
+                </button>
+            </div>
+
+        </div>
+
+        <div class="dialog-foot">
+            <button class="btn-ghost" (click)="closeFormModal()">Annuler</button>
+            <button class="btn-primary" [class.btn-warning]="isEditMode" [disabled]="formLoading"
+                (click)="submitForm()">
+                <span class="btn-spinner" *ngIf="formLoading"></span>
+                <span>{{ formLoading ? 'En cours…' : (isEditMode ? 'Enregistrer' : 'Ajouter') }}</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══ MODAL SUPPRESSION ════════════════════════════════════════════════ -->
+<div class="overlay" *ngIf="showDeleteConfirm" (click)="showDeleteConfirm = false">
+    <div class="dialog dialog-sm" (click)="$event.stopPropagation()">
+
+        <div class="dialog-head dialog-head-del">
+            <div class="dialog-icon icon-del">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="dialog-title">Confirmer la suppression</h2>
+                <p class="dialog-sub">Le prérequis sera retiré de ce niveau uniquement.</p>
+            </div>
+            <button class="close-btn" (click)="showDeleteConfirm = false">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="del-preview">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>{{ prereqToDelete?.nom }}</span>
+        </div>
+
+        <div class="dialog-foot">
+            <button class="btn-ghost" (click)="showDeleteConfirm = false">Annuler</button>
+            <button class="btn-danger" [disabled]="deleteLoading" (click)="executerSuppression()">
+                <span class="btn-spinner" *ngIf="deleteLoading"></span>
+                <span>{{ deleteLoading ? 'Suppression…' : 'Confirmer' }}</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══ TOAST ════════════════════════════════════════════════════════════ -->
+<div class="toast" [class.toast-in]="toastVisible" [class.toast-success]="toastType === 'success'"
+    [class.toast-error]="toastType === 'error'">
+    <span class="toast-dot"></span>
+    {{ toastMessage }}
+</div>

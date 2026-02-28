@@ -60,7 +60,8 @@
               "buildTarget": "inscription-front:build:production"
             },
             "development": {
-              "buildTarget": "inscription-front:build:development"
+              "buildTarget": "inscription-front:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

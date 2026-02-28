@@ -8,7 +8,7 @@
                 {{ dashboard?.nomDiplome || 'Dashboard Département' }}
                 <span
                     class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#2563eb] border border-[#dbe6ff] uppercase tracking-wider">
-                    {{ dashboard?.langue || 'Département' }}
+                    {{ dashboard?.typeDiplome || dashboard?.langue || 'Département' }}
                 </span>
                 <span class="text-[#8b92a9] text-lg font-medium">| {{ dashboard?.nomDepartement }}</span>
             </h1>
@@ -154,7 +154,42 @@
                     </svg>
                     Capacité par Niveau
                 </h2>
-                <span class="section-badge">Temps réel</span>
+                <div class="flex items-center gap-3">
+                    <span class="section-badge">Temps réel</span>
+                    <button (click)="showParametrage = true"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#2563eb] bg-white text-[#2563eb] hover:bg-[#2563eb] hover:text-white transition-all font-bold text-[12px]">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Gérer les prérequis
+                    </button>
+                </div>
+            </div>
+
+            <!-- Prérequis Communs (Type) -->
+            <div class="common-prerequis-bar mb-6">
+                <div class="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
+                    <span class="text-[10px] font-bold text-[#2563eb] uppercase tracking-widest whitespace-nowrap">
+                        Prérequis Communs ({{ dashboard?.nomDiplome }}{{ dashboard?.typeDiplome ? ' - ' +
+                        dashboard?.typeDiplome : '' }}) :
+                    </span>
+                    <div class="flex flex-wrap gap-2" *ngIf="getCommonPrerequisType().length">
+                        <span *ngFor="let p of getCommonPrerequisType()"
+                            class="px-3 py-1 bg-white text-[#2563eb] text-[11px] font-bold rounded-lg border border-blue-200 shadow-sm">
+                            {{ p }}
+                        </span>
+                    </div>
+                    <span class="text-[10px] italic text-[#8b92a9]" *ngIf="!getCommonPrerequisType().length">
+                        Aucun prérequis commun défini pour ce diplôme
+                    </span>
+                    <button (click)="openAddPrereq()" *ngIf="!getCommonPrerequisType().length"
+                        class="ml-auto text-[10px] text-[#2563eb] font-bold hover:underline">
+                        + Ajouter
+                    </button>
+                </div>
             </div>
 
             <div class="niveau-grid">
@@ -163,7 +198,8 @@
                     <div class="niveau-header">
                         <div class="flex flex-col">
                             <span class="niveau-label">Niveau {{ cap.niveau }}</span>
-                            <span class="text-[10px] text-[#2563eb] font-bold uppercase">{{ cap.nomDiplome }} ({{
+                            <span class="text-[10px] text-[#2563eb] font-bold uppercase">{{ cap.nomDiplome }} {{
+                                cap.typeDiplome ? '- ' + cap.typeDiplome : '' }} ({{
                                 cap.langue }})</span>
                         </div>
                         <span class="niveau-status" [class.status-green]="cap.pourcentageRemplissage < 70"
@@ -212,10 +248,6 @@
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Prérequis requis
                         </p>
                         <div class="flex flex-wrap gap-1.5">
-                            <span *ngFor="let p of cap.prerequisType"
-                                class="px-2 py-0.5 bg-blue-50 text-[#2563eb] text-[9px] font-bold rounded-sm border border-blue-100">
-                                {{ p }}
-                            </span>
                             <span *ngFor="let p of cap.prerequisNiveau"
                                 class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[9px] font-bold rounded-sm border border-purple-100">
                                 {{ p }}
@@ -270,29 +302,47 @@
                     Demandes — EN_COURS_DEPARTEMENT
                 </h2>
 
-                <div class="filter-bar">
-                    <button class="filter-btn" [class.active]="currentFilter === 'tous'"
-                        (click)="setFilter('tous')">Tous</button>
-                    <button class="filter-btn" [class.active]="currentFilter === 'prerequis_ok'"
-                        (click)="setFilter('prerequis_ok')">
-                        <span class="dot dot-green"></span> Prérequis OK
-                    </button>
-                    <button class="filter-btn" [class.active]="currentFilter === 'prerequis_ko'"
-                        (click)="setFilter('prerequis_ko')">
-                        <span class="dot dot-red"></span> Prérequis ✗
-                    </button>
-                    <button class="filter-btn" [class.active]="currentFilter === 'liste_attente'"
-                        (click)="setFilter('liste_attente')">
-                        <span class="dot dot-amber"></span> Liste d'attente
-                    </button>
-                    <button class="filter-btn" [class.active]="currentFilter === 'valides'"
-                        (click)="setFilter('valides')">
-                        <span class="dot dot-green2"></span> Validés
-                    </button>
-                    <button class="filter-btn" [class.active]="currentFilter === 'rejetes'"
-                        (click)="setFilter('rejetes')">
-                        <span class="dot dot-rose"></span> Rejetés
-                    </button>
+                <div class="flex items-center gap-3">
+                    <div class="filter-bar">
+                        <button class="filter-btn" [class.active]="currentFilter === 'tous'"
+                            (click)="setFilter('tous')">Tous</button>
+                        <button class="filter-btn" [class.active]="currentFilter === 'prerequis_ok'"
+                            (click)="setFilter('prerequis_ok')">
+                            <span class="dot dot-green"></span> Prérequis OK
+                        </button>
+                        <button class="filter-btn" [class.active]="currentFilter === 'prerequis_ko'"
+                            (click)="setFilter('prerequis_ko')">
+                            <span class="dot dot-red"></span> Prérequis ✗
+                        </button>
+                        <button class="filter-btn" [class.active]="currentFilter === 'liste_attente'"
+                            (click)="setFilter('liste_attente')">
+                            <span class="dot dot-amber"></span> Liste d'attente
+                        </button>
+                        <button class="filter-btn" [class.active]="currentFilter === 'valides'"
+                            (click)="setFilter('valides')">
+                            <span class="dot dot-green2"></span> Validés
+                        </button>
+                        <button class="filter-btn" [class.active]="currentFilter === 'rejetes'"
+                            (click)="setFilter('rejetes')">
+                            <span class="dot dot-rose"></span> Rejetés
+                        </button>
+                    </div>
+
+                    <!-- View Toggle -->
+                    <div class="view-toggle">
+                        <button (click)="viewMode = 'list'" [class.active]="viewMode === 'list'" title="Vue liste">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                            </svg>
+                        </button>
+                        <button (click)="viewMode = 'grid'" [class.active]="viewMode === 'grid'" title="Vue grille">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -309,7 +359,7 @@
                 </div>
             </div>
 
-            <div class="table-wrap">
+            <div class="table-wrap" *ngIf="viewMode === 'list'">
                 <table class="dept-table">
                     <thead>
                         <tr>
@@ -399,8 +449,10 @@
                                         <div *ngIf="isCapaciteAtteinte(demande.niveauChoisi)" class="alert-indicator">!
                                         </div>
                                     </button>
-                                    <button class="action-btn btn-attente" [disabled]="!isActionnable(demande)"
-                                        (click)="openDecision(demande, 'LISTE_ATTENTE')" title="Liste d'attente">
+                                    <button class="action-btn btn-attente"
+                                        [disabled]="!isActionnable(demande) || !isCapaciteAtteinte(demande.niveauChoisi)"
+                                        (click)="openDecision(demande, 'LISTE_ATTENTE')"
+                                        [title]="isCapaciteAtteinte(demande.niveauChoisi) ? 'Placer en liste d\'attente' : 'La capacité n\'est pas encore atteinte'">
                                         <svg viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd"
                                                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
@@ -433,6 +485,116 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Grid View -->
+            <div class="grid-view animate-fadeIn" *ngIf="viewMode === 'grid'">
+                <div class="dossier-grid">
+                    <div *ngFor="let demande of filteredDemandes; let i = index" class="dossier-card"
+                        [style.animation-delay]="i * 0.05 + 's'" (click)="openDetail(demande)">
+                        <div class="card-header">
+                            <div class="card-avatar" [style.background]="getAvatarColor(i)">
+                                {{ getInitialesEtudiant(demande) }}
+                            </div>
+                            <div class="card-status-wrap">
+                                <span class="statut-chip" [ngClass]="getStatutClass(demande.statut)">
+                                    {{ getStatutLabel(demande.statut) }}
+                                </span>
+                                <span class="card-date">{{ getTempsEcoule(demande.dateCreation) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="card-body">
+                            <h3 class="card-name">{{ demande.prenomEtudiant }} {{ demande.nomEtudiant }}</h3>
+                            <p class="card-email">{{ demande.emailEtudiant }}</p>
+
+                            <div class="card-info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Diplôme</span>
+                                    <span class="info-val">{{ demande.nomDiplome }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Niveau</span>
+                                    <span class="info-val">Niveau {{ demande.niveauChoisi || '—' }}</span>
+                                </div>
+                            </div>
+
+                            <div class="card-prereq" [class.prereq-ok]="demande.prerequisSatisfaits"
+                                [class.prereq-ko]="!demande.prerequisSatisfaits">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path *ngIf="demande.prerequisSatisfaits" stroke-linecap="round"
+                                        stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    <path *ngIf="!demande.prerequisSatisfaits" stroke-linecap="round"
+                                        stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                {{ demande.prerequisSatisfaits ? 'Prérequis validés' : 'Prérequis à vérifier' }}
+                            </div>
+                        </div>
+
+                        <div class="card-actions" (click)="$event.stopPropagation()">
+                            <button class="card-btn btn-view" (click)="openDetail(demande)">Détails</button>
+                            <button class="card-btn btn-accept" [disabled]="!isActionnable(demande)"
+                                (click)="openDecision(demande, 'ACCEPTE')"
+                                [title]="isCapaciteAtteinte(demande.niveauChoisi) ? 'Attention: Capacité atteinte' : 'Valider'">
+                                Valider
+                            </button>
+                            <button class="card-btn btn-attente"
+                                [disabled]="!isActionnable(demande) || !isCapaciteAtteinte(demande.niveauChoisi)"
+                                (click)="openDecision(demande, 'LISTE_ATTENTE')"
+                                [title]="isCapaciteAtteinte(demande.niveauChoisi) ? 'Placer en liste d\'attente' : 'La capacité n\'est pas encore atteinte'">
+                                Attente
+                            </button>
+                            <button class="card-btn btn-reject" [disabled]="!isActionnable(demande)"
+                                (click)="openDecision(demande, 'REJETE')">
+                                Refuser
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="filteredDemandes.length === 0" class="empty-state">
+                    <div class="empty-content">
+                        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <p>Aucune demande trouvée</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-container" *ngIf="totalPages > 0">
+                <div class="pagination-info">
+                    Affichage de <strong>{{ currentPage * pageSize + 1 }}</strong> à <strong>{{
+                        Math.min((currentPage + 1) * pageSize, totalElements) }}</strong> sur <strong>{{
+                        totalElements }}</strong> demandes
+                </div>
+                <div class="pagination-controls">
+                    <button (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0"
+                        class="p-2 border border-[#e8eaf0] rounded-lg hover:bg-[#f1f3f9] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M15 19l-7-7 7-7" stroke-width="2.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </button>
+
+                    <div class="flex items-center gap-1 mx-2">
+                        <button *ngFor="let p of getPagesArray()" (click)="goToPage(p)"
+                            class="px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all"
+                            [class.bg-[#2563eb]]="currentPage === p" [class.text-white]="currentPage === p"
+                            [class.text-[#4a5068]]="currentPage !== p" [class.hover:bg-[#f1f3f9]]="currentPage !== p">
+                            {{ p + 1 }}
+                        </button>
+                    </div>
+
+                    <button (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages - 1"
+                        class="p-2 border border-[#e8eaf0] rounded-lg hover:bg-[#f1f3f9] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 5l7 7-7 7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- ══ ANALYTICS ═══════════════════════════════════════════════════════════ -->
@@ -464,6 +626,45 @@
                         <span class="taux-label">Taux de validation département</span>
                         <span class="taux-detail">{{ dashboard?.valides || 0 }} validés / {{ (dashboard?.valides || 0) +
                             (dashboard?.rejetes || 0) }} traités</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ MODAL PARAMÉTRAGE ══ -->
+        <div *ngIf="showParametrage" class="modal-backdrop" (click)="showParametrage = false">
+            <div class="modal-shell modal-parametrage-shell" (click)="$event.stopPropagation()">
+                <div class="modal-parametrage-container">
+                    <div class="modal-parametrage-header">
+                        <div class="flex items-center gap-4">
+                            <h2 class="section-title">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Paramétrage des Prérequis
+                            </h2>
+                            <button (click)="openAddPrereq()"
+                                class="flex items-center gap-2 px-3 py-1.5 bg-[#2563eb] text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-xs shadow-md">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                        d="M12 4v16m8-8H4" />
+                                </svg>
+                                Nouveau prérequis
+                            </button>
+                        </div>
+                        <button class="btn-close-section" (click)="showParametrage = false">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Fermer
+                        </button>
+                    </div>
+                    <div class="modal-parametrage-body">
+                        <app-parametrage-prerequis></app-parametrage-prerequis>
                     </div>
                 </div>
             </div>
@@ -513,6 +714,107 @@
                     <p class="prereq-global-sub">{{ getCountPrerequisOk(selectedDemande) }}/{{
                         selectedDemande.prerequisDetails.length || 0 }} conformes</p>
                 </div>
+            </div>
+
+            <!-- Workflow Stepper -->
+            <div class="sidebar-stepper mt-6">
+                <p class="stepper-title">Suivi du workflow</p>
+
+                <div class="stepper-list">
+                    <!-- SCOLARITÉ -->
+                    <div class="stepper-step" [class.done]="isStepDone('SCOLARITE')"
+                        [class.active]="isStepActive('SCOLARITE')" [class.failed]="isStepFailed('SCOLARITE')">
+                        <div class="step-dot">
+                            <svg *ngIf="isStepDone('SCOLARITE')" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                            <svg *ngIf="isStepFailed('SCOLARITE')" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="step-content">
+                            <span class="step-name">Scolarité</span>
+                            <span class="step-date">
+                                {{ isStepDone('SCOLARITE') ? 'Validé' : (isStepFailed('SCOLARITE') ? 'Rejeté' :
+                                (isStepActive('SCOLARITE') ? 'En cours' : '—')) }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stepper-connector" [class.done-line]="isStepDone('SCOLARITE')"></div>
+
+                    <!-- DÉPARTEMENT -->
+                    <div class="stepper-step" [class.done]="isStepDone('DEPARTEMENT')"
+                        [class.active]="isStepActive('DEPARTEMENT')" [class.failed]="isStepFailed('DEPARTEMENT')">
+                        <div class="step-dot">
+                            <svg *ngIf="isStepDone('DEPARTEMENT')" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                            <svg *ngIf="isStepFailed('DEPARTEMENT')" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <div *ngIf="isStepActive('DEPARTEMENT')" class="active-pulse"></div>
+                        </div>
+                        <div class="step-content">
+                            <span class="step-name">Département</span>
+                            <span class="step-date">
+                                {{ isStepDone('DEPARTEMENT') ? 'Validé' : (isStepFailed('DEPARTEMENT') ?
+                                'Rejeté' : (isStepActive('DEPARTEMENT') ? 'En cours' : '—')) }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stepper-connector" [class.done-line]="isStepDone('DEPARTEMENT')"></div>
+
+                    <!-- PAIEMENT -->
+                    <div class="stepper-step" [class.done]="isStepDone('PAIEMENT')"
+                        [class.active]="isStepActive('PAIEMENT')" [class.failed]="isStepFailed('PAIEMENT')">
+                        <div class="step-dot">
+                            <svg *ngIf="isStepDone('PAIEMENT')" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                            <svg *ngIf="isStepFailed('PAIEMENT')" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <div *ngIf="isStepActive('PAIEMENT')" class="active-pulse"></div>
+                        </div>
+                        <div class="step-content">
+                            <span class="step-name">Paiement</span>
+                            <span class="step-date">
+                                {{ isStepDone('PAIEMENT') ? 'Payé' : (isStepFailed('PAIEMENT') ? 'Refusé' :
+                                (isStepActive('PAIEMENT') ? 'En cours' : '—')) }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stepper-connector" [class.done-line]="isStepDone('PAIEMENT')"></div>
+
+                    <!-- INSCRIT -->
+                    <div class="stepper-step" [class.done]="isStepDone('INSCRIT')"
+                        [class.active]="isStepActive('INSCRIT')">
+                        <div class="step-dot">
+                            <svg *ngIf="isStepDone('INSCRIT')" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                            <div *ngIf="isStepActive('INSCRIT')" class="active-pulse"></div>
+                        </div>
+                        <div class="step-content">
+                            <span class="step-name">Inscrit</span>
+                            <span class="step-date">
+                                {{ isStepDone('INSCRIT') ? 'Finalisé' : (isStepActive('INSCRIT') ? 'En cours' : '—') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
             </div>
 
             <div class="sidebar-contact">
@@ -656,7 +958,7 @@
                 <ng-container *ngIf="activeTab === 'capacite'">
                     <div class="capacite-detail" *ngFor="let cap of dashboard?.capacites">
                         <div class="capacite-header">
-                            <span class="cap-niveau-label">Niveau {{ cap.niveau }} — {{ dashboard?.nomDiplome }}</span>
+                            <span class="cap-niveau-label">Niveau {{ cap.niveau }} — {{ cap.nomDiplome }}</span>
                             <span class="cap-max-badge">Max : {{ cap.capaciteMax }}</span>
                         </div>
                         <div class="cap-bar-large">

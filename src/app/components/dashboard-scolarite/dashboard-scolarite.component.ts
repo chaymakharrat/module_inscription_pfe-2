@@ -511,6 +511,9 @@ Le Service de Scolarité — ITECH University`;
     this.preparePieceRequestComment();
   }
   validerDossier() {
+    console.log('taskId:', this.taskId);
+    console.log('selectedDemande:', this.selectedDemande?.id);
+    console.log('commentaire:', this.commentaire);
     if (!this.selectedDemande || !this.taskId) return;
 
     this.actionLoading = true;

@@ -1,0 +1,10 @@
+{
+    "/scan-cin": {
+        "target": "http://localhost:5050",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug",
+        "proxyTimeout": 120000,
+        "timeout": 120000
+    }
+}

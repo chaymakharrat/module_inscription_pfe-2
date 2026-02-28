@@ -32,6 +32,35 @@
                     </div>
                 </div>
 
+                <!-- ═══════════════════════════════════════════════════════
+                    SCAN AUTO CIN — à insérer en haut du Step 1
+                    ═══════════════════════════════════════════════════════ -->
+                <div class="col-span-1 md:col-span-2 mb-2">
+
+                    <!-- Séparateur avec label -->
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-blue-200 to-transparent"></div>
+                        <div class="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-2xl">
+                            <span class="text-lg">🤖</span>
+                            <span class="text-xs font-black text-blue-700 tracking-wider uppercase">Remplissage
+                                automatique</span>
+                        </div>
+                        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-blue-200 to-transparent"></div>
+                    </div>
+
+                    <!-- Composant scanner -->
+                    <app-cin-scanner (scanned)="onCinScanned($event)"></app-cin-scanner>
+
+                    <!-- Séparateur avec label "ou remplir manuellement" -->
+                    <div class="flex items-center gap-4 mt-2 mb-4">
+                        <div class="flex-1 h-px bg-slate-200"></div>
+                        <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">ou remplir
+                            manuellement</span>
+                        <div class="flex-1 h-px bg-slate-200"></div>
+                    </div>
+
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
                     <app-input label="Prénom" formControlName="prenom" placeholder="Ex: Jean" [required]="true"
                         [isValid]="isFieldValid('personalInfo', 'prenom')"
@@ -49,6 +78,17 @@
                             <option value="" disabled selected>Pays de résidence</option>
                             <option *ngFor="let c of countries" [value]="c.id">{{c.nom}}</option>
                         </select>
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2 mb-6" *ngIf="isTunisiaSelected">
+                        <label class="block text-sm font-bold text-slate-700 mb-3">Type de Bac *</label>
+                        <select formControlName="typeBac" [class.field-valid]="isFieldValid('personalInfo', 'typeBac')"
+                            class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-semibold text-slate-700 bg-white/50">
+                            <option value="" disabled selected>Sélectionner votre type de Bac</option>
+                            <option *ngFor="let type of bacTypes" [value]="type.value">{{type.label}}</option>
+                        </select>
+                        <p *ngIf="getFieldError('personalInfo', 'typeBac')" class="mt-2 text-xs text-red-500 font-bold">
+                            {{getFieldError('personalInfo', 'typeBac')}}</p>
                     </div>
 
                     <!-- ID Type Toggle + CIN/Passport on same line -->
@@ -177,17 +217,13 @@
                         </p>
                     </div>
 
-                    <div>
+                    <div *ngIf="inscriptionForm.get('academicInfo.typeVise')?.value">
                         <label class="block text-sm font-bold text-slate-700 mb-3">Diplôme Visé *</label>
                         <select formControlName="diplomeVise"
                             (change)="onDiplomeResponsableChange(inscriptionForm.get('academicInfo.diplomeVise')?.value)"
                             [class.field-valid]="isFieldValid('academicInfo', 'diplomeVise')"
-                            [disabled]="!inscriptionForm.get('academicInfo.typeVise')?.value"
-                            class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-bold text-slate-700 bg-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <option value="" disabled selected>
-                                {{ inscriptionForm.get('academicInfo.typeVise')?.value ? 'Diplôme cible' : 'Choisir
-                                d\'abord un type' }}
-                            </option>
+                            class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-bold text-slate-700 bg-white/50">
+                            <option value="" disabled selected>Sélectionner le diplôme</option>
                             <option *ngFor="let d of filteredDiplomesResponsables" [value]="d.nomDiplome">{{
                                 d.nomDiplome }}
                             </option>
@@ -200,8 +236,8 @@
 
 
                     <!-- Langue d'enseignement -->
-                    <div *ngIf="availableLangues.length > 0" [class.col-span-1]="true"
-                        [class.md:col-span-2]="availableLangues.length === 1">
+                    <div *ngIf="inscriptionForm.get('academicInfo.diplomeVise')?.value && availableLangues.length > 0"
+                        [class.col-span-1]="true" [class.md:col-span-2]="availableLangues.length === 1">
                         <label class="block text-sm font-bold text-slate-700 mb-3">Langue d'Enseignement *</label>
 
                         <!-- Si une seule langue : affichage simple du nom -->
@@ -218,7 +254,7 @@
                         <select *ngIf="availableLangues.length > 1" formControlName="langueVise"
                             [class.field-valid]="isFieldValid('academicInfo', 'langueVise')"
                             class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-bold text-slate-700 bg-white/50">
-                            <option value="" disabled selected>Choisir la langue d'enseignement</option>
+                            <option value="" disabled selected>Sélectionner la langue</option>
                             <option *ngFor="let l of availableLangues" [value]="l">{{ langueLabels[l] }}</option>
                         </select>
                         <p *ngIf="getFieldError('academicInfo', 'langueVise')"
@@ -227,13 +263,13 @@
                         </p>
                     </div>
 
-                    <div class="col-span-1 md:col-span-2">
+                    <div class="col-span-1 md:col-span-2" *ngIf="inscriptionForm.get('academicInfo.langueVise')?.value">
                         <label class="block text-sm font-bold text-slate-700 mb-3">Niveau d'Entrée Visé *</label>
                         <select formControlName="niveauVise"
                             [class.field-valid]="isFieldValid('academicInfo', 'niveauVise')"
                             class="w-full py-4 px-5 rounded-2xl border-2 border-slate-200 outline-none focus:border-blue-500 transition-all font-bold text-slate-700 bg-white/50">
-                            <option value="" disabled selected>Séniorité du cursus</option>
-                            <option *ngFor="let l of levels" [value]="l.id">{{l.niveau}}</option>
+                            <option value="" disabled selected>Sélectionner le niveau</option>
+                            <option *ngFor="let l of levels" [value]="l.niveau">{{l.niveau}}</option>
                         </select>
                     </div>
                 </div>

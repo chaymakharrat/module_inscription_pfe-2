@@ -1,18 +1,29 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { KeycloakService } from 'keycloak-angular';
 import { KeycloakProfile } from 'keycloak-js';
 import { environment } from '../../envirements/enviremetns';
 import { ScolariteService, CamundaTask } from '../../services/scolarite.service';
+import { forkJoin } from 'rxjs';
+import { ParametragePrerequisComponent } from '../parametrage-prerequis/parametrage-prerequis.component';
 
 // ─── MODELS ───────────────────────────────────────────────────────────────────
+
+export interface StatsRapideDTO {
+  enCours: number;
+  valides: number;
+  rejetes: number;
+  listeAttente: number;
+}
+
 export interface DashboardDeptDTO {
   nomDepartement: string;
   nomEnseignant: string;
   emailEnseignant: string;
   nomDiplome: string;
+  typeDiplome?: string;
   langue: string;
   enCours: number;
   valides: number;
@@ -25,6 +36,7 @@ export interface DashboardDeptDTO {
 export interface CapaciteNiveauDTO {
   niveau: number;
   nomDiplome: string;
+  typeDiplome?: string;
   langue: string;
   capaciteMax: number;
   inscritsConfirmes: number;
@@ -32,8 +44,8 @@ export interface CapaciteNiveauDTO {
   listeAttente: number;
   placesRestantes: number;
   pourcentageRemplissage: number;
-  prerequisNiveau: string[]; // Changé en tableau pour Angular
-  prerequisType: string[];   // Changé en tableau pour Angular
+  prerequisNiveau: string[];
+  prerequisType: string[];
 }
 
 export interface DemandeDeptDTO {
@@ -44,7 +56,7 @@ export interface DemandeDeptDTO {
   emailEtudiant: string;
   nomDiplome: string;
   langue: string;
-  niveauChoisi: string; // ✅ Ajouté
+  niveauChoisi: string;
   dateCreation: string;
   statut: string;
   prerequisSatisfaits: boolean;
@@ -59,28 +71,47 @@ export interface PrerequisDetailDTO {
   conforme: boolean;
 }
 
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
+
 @Component({
   selector: 'app-dashboard-departement',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ParametragePrerequisComponent],
   templateUrl: './dashboard-departement.component.html',
   styleUrls: ['./dashboard-departement.component.css']
 })
 export class DashboardDepartementComponent implements OnInit {
 
+  @ViewChild(ParametragePrerequisComponent) paramComponent!: ParametragePrerequisComponent;
+
   // State principal
   dashboard: DashboardDeptDTO | null = null;
   loading = false;
   userProfile: KeycloakProfile | null = null;
-  emailEnseignant = ''; // sera récupéré depuis Keycloak
-  private apiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api`;
-  private inscriptionUrl = `${environment.apiUrl}/INSCRIPTION-SERVICE/api/demandes`; // ✅ ajout
+  emailEnseignant = '';
+  protected Math = Math;
+
+  private apiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/dashboardDepartment`;
 
   // Table / filtres
   currentFilter = 'tous';
   searchTerm = '';
   filteredDemandes: DemandeDeptDTO[] = [];
+  viewMode: 'list' | 'grid' = 'list';
+
+  // Pagination
+  currentPage = 0;
+  pageSize = 4;
+  totalElements = 0;
+  totalPages = 0;
 
   // Modal détail
   showModal = false;
@@ -92,23 +123,15 @@ export class DashboardDepartementComponent implements OnInit {
   pendingDecision: 'ACCEPTE' | 'LISTE_ATTENTE' | 'REJETE' | null = null;
   commentaire = '';
   actionLoading = false;
+  tokenFormulaire: string | null = null;
+  loadingToken = false;
 
   // Toast
   toastVisible = false;
   toastMessage = '';
   toastType: 'success' | 'error' = 'success';
 
-  // Motifs rapides
-  readonly motifsRejetRapides = [
-    'Prérequis insuffisants',
-    'Spécialité non compatible',
-    'Capacité atteinte',
-    'Dossier incomplet',
-    'Moyenne insuffisante',
-    'Autre'
-  ];
-
-  // Analytics //ba3d njibha mel les etudiant houma chnouma
+  // Analytics
   bacDistribution = [
     { label: 'Bac Math', pct: 45, color: '#2563eb' },
     { label: 'Bac Info', pct: 30, color: '#059669' },
@@ -120,6 +143,7 @@ export class DashboardDepartementComponent implements OnInit {
     '#2563eb', '#059669', '#7c3aed', '#d97706',
     '#dc2626', '#0891b2', '#4f46e5', '#065f46'
   ];
+  showParametrage = false;
 
   constructor(
     private http: HttpClient,
@@ -130,47 +154,45 @@ export class DashboardDepartementComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     try {
       const isLoggedIn = await this.keycloak.isLoggedIn();
-      if (!isLoggedIn) {
-        return;
-      }
+      if (!isLoggedIn) return;
 
       const profile = await this.keycloak.loadUserProfile();
       this.userProfile = profile;
-      console.log(profile);
-      // On privilégie l'email du profil, sinon celui du token
+
       this.emailEnseignant =
         (profile.email || '') ||
-        (this.keycloak.getKeycloakInstance().tokenParsed as any)?.email ||
-        '';
+        (this.keycloak.getKeycloakInstance().tokenParsed as any)?.email || '';
 
-      if (!this.emailEnseignant) {
-        return;
-      }
+      if (!this.emailEnseignant) return;
 
       this.loadDashboard();
     } catch {
-      // En cas d'erreur Keycloak, on n'affiche simplement pas le dashboard
+      // Erreur Keycloak silencieuse
     }
   }
 
-
   // ─── DATA ─────────────────────────────────────────────────────────────────
-
   loadDashboard(): void {
     if (!this.emailEnseignant) return;
-
     this.loading = true;
+    const email = this.emailEnseignant.trim().toLowerCase();
 
-    this.http.get<DashboardDeptDTO>(
-      `${this.apiUrl}/dashboardDepartment/dashboard/enseignant`,
-      {
-        params: { email: this.emailEnseignant.trim().toLowerCase() }
-      }
-    ).subscribe({
-      next: (data) => {
-        this.dashboard = data;
-        console.log(data);
-        this.applyFilter();
+    // ✅ 2 appels en parallèle : infos de base + première page des demandes
+    forkJoin({
+      info: this.http.get<DashboardDeptDTO>(`${this.apiUrl}/dashboard`, { params: { email } }),
+      demandes: this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
+        params: { email, page: '0', size: this.pageSize.toString() }
+      })
+    }).subscribe({
+      next: ({ info, demandes }) => {
+        this.dashboard = {
+          ...info,
+          demandes: demandes.content   // remplace la liste complète par la page 0
+        };
+        // ✅ totalPages et totalElements sont maintenant remplis
+        this.totalElements = demandes.totalElements;
+        this.totalPages = demandes.totalPages;
+        this.filteredDemandes = demandes.content;
         this.loading = false;
       },
       error: (err) => {
@@ -179,34 +201,122 @@ export class DashboardDepartementComponent implements OnInit {
       }
     });
   }
+  refreshAfterDecision(): void {
+    if (!this.emailEnseignant || !this.dashboard) return;
+    const email = this.emailEnseignant.trim().toLowerCase();
+
+    forkJoin({
+      stats: this.http.get<StatsRapideDTO>(`${this.apiUrl}/stats`, { params: { email } }),
+      capacites: this.http.get<CapaciteNiveauDTO[]>(`${this.apiUrl}/capacites`, { params: { email } }),
+      demandes: this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
+        params: {
+          email,
+          statut: this.getStatutFromFilter(this.currentFilter),
+          search: this.searchTerm.trim(),
+          page: this.currentPage.toString(),
+          size: this.pageSize.toString()
+        }
+      })
+    }).subscribe({
+      next: ({ stats, capacites, demandes }) => {
+        this.dashboard = {
+          ...this.dashboard!,
+          enCours: stats.enCours,
+          valides: stats.valides,
+          rejetes: stats.rejetes,
+          listeAttente: stats.listeAttente,
+          capacites,
+          demandes: demandes.content
+        };
+        this.filteredDemandes = demandes.content;
+        this.totalElements = demandes.totalElements;
+        this.totalPages = demandes.totalPages;
+      },
+      error: (err) => console.error('❌ Erreur refresh:', err)
+    });
+  }
+
+  /**
+   * Chargement paginé des demandes — navigation entre pages
+   */
+  loadDemandes(page = 0): void {
+    if (!this.emailEnseignant || !this.dashboard) return;
+    const email = this.emailEnseignant.trim().toLowerCase();
+    this.currentPage = page;
+
+    this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
+      params: {
+        email,
+        statut: this.getStatutFromFilter(this.currentFilter),
+        search: this.searchTerm.trim(),
+        page: this.currentPage.toString(),
+        size: this.pageSize.toString()
+      }
+    }).subscribe({
+      next: (response) => {
+        this.dashboard!.demandes = response.content;
+        this.totalElements = response.totalElements;
+        this.totalPages = response.totalPages;
+        this.filteredDemandes = response.content;
+      },
+      error: (err) => console.error('❌ Erreur demandes:', err)
+    });
+  }
 
   // ─── FILTRES ──────────────────────────────────────────────────────────────
 
   setFilter(filter: string): void {
     this.currentFilter = filter;
-    this.applyFilter();
+    this.currentPage = 0;
+    // Filtrage local sur les données déjà en mémoire — même comportement qu'avant
+    // this.applyFilterLocal();
+    this.loadDemandesFromBackend();
   }
 
   onSearch(): void {
-    this.applyFilter();
+    this.currentPage = 0;
+    // this.applyFilterLocal();
+    this.loadDemandesFromBackend();
+  }
+  // ✅ Remplace applyFilterLocal() — appelle le backend avec les filtres
+  loadDemandesFromBackend(): void {
+    if (!this.emailEnseignant || !this.dashboard) return;
+    const email = this.emailEnseignant.trim().toLowerCase();
+
+    this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
+      params: {
+        email,
+        statut: this.getStatutFromFilter(this.currentFilter),
+        search: this.searchTerm.trim(),
+        page: this.currentPage.toString(),
+        size: this.pageSize.toString()
+      }
+    }).subscribe({
+      next: (response) => {
+        this.dashboard!.demandes = response.content;
+        this.filteredDemandes = response.content;
+        this.totalElements = response.totalElements;
+        this.totalPages = response.totalPages;
+      },
+      error: (err) => console.error('❌ Erreur demandes:', err)
+    });
   }
 
 
-  applyFilter(): void {
+  /**
+   * Filtrage local — identique à l'ancien applyFilter()
+   * Travaille sur dashboard.demandes déjà en mémoire
+   */
+  applyFilterLocal(): void {
     if (!this.dashboard) return;
     let result = [...this.dashboard.demandes];
 
     switch (this.currentFilter) {
-      case 'prerequis_ok':
-        result = result.filter(d => d.prerequisSatisfaits); break;
-      case 'prerequis_ko':
-        result = result.filter(d => !d.prerequisSatisfaits); break;
-      case 'liste_attente':
-        result = result.filter(d => d.statut === 'LISTE_ATTENTE'); break;
-      case 'valides':
-        result = result.filter(d => d.statut === 'DEPARTEMENT_VALIDE' || d.statut === 'INSCRIT'); break;
-      case 'rejetes':
-        result = result.filter(d => d.statut === 'REJETE_DEPARTEMENT'); break;
+      case 'prerequis_ok': result = result.filter(d => d.prerequisSatisfaits); break;
+      case 'prerequis_ko': result = result.filter(d => !d.prerequisSatisfaits); break;
+      case 'liste_attente': result = result.filter(d => d.statut === 'LISTE_ATTENTE'); break;
+      case 'valides': result = result.filter(d => d.statut === 'DEPARTEMENT_VALIDE' || d.statut === 'INSCRIT'); break;
+      case 'rejetes': result = result.filter(d => d.statut === 'REJETE_DEPARTEMENT'); break;
     }
 
     if (this.searchTerm.trim()) {
@@ -223,6 +333,42 @@ export class DashboardDepartementComponent implements OnInit {
     this.filteredDemandes = result;
   }
 
+  /** Convertit le filtre UI en paramètre statut pour l'endpoint /demandes */
+  private getStatutFromFilter(filter: string): string {
+    const map: Record<string, string> = {
+      'liste_attente': 'LISTE_ATTENTE',
+      'valides': 'DEPARTEMENT_VALIDE',
+      'rejetes': 'REJETE_DEPARTEMENT'
+    };
+    return map[filter] || '';
+  }
+
+  // ─── PAGINATION ───────────────────────────────────────────────────────────
+
+  // goToPage(page: number): void {
+  //   if (page < 0 || page >= this.totalPages) return;
+  //   this.loadDemandes(page);
+  // }
+  goToPage(page: number): void {
+    if (page < 0 || page >= this.totalPages) return;
+    this.currentPage = page;
+    this.loadDemandesFromBackend();
+  }
+
+  getPagesArray(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(0, this.currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(this.totalPages, start + maxVisible);
+
+    if (end - start < maxVisible) {
+      start = Math.max(0, end - maxVisible);
+    }
+
+    for (let i = start; i < end; i++) pages.push(i);
+    return pages;
+  }
+
   // ─── MODAL ────────────────────────────────────────────────────────────────
 
   openDetail(demande: DemandeDeptDTO, tab: 'prerequis' | 'capacite' | 'decision' = 'prerequis'): void {
@@ -230,8 +376,10 @@ export class DashboardDepartementComponent implements OnInit {
     this.activeTab = tab;
     this.showModal = true;
     this.showDecisionForm = false;
+    this.pendingDecision = null;
+    this.commentaire = '';
 
-    // Récupérer le taskId
+    // Récupérer le taskId Camunda
     this.scolariteService.getTasksForEnrollment(demande.id).subscribe({
       next: (tasks: CamundaTask[]) => {
         if (tasks && tasks.length > 0) {
@@ -240,8 +388,6 @@ export class DashboardDepartementComponent implements OnInit {
       },
       error: (err) => console.error('Erreur taskId:', err)
     });
-    this.pendingDecision = null;
-    this.commentaire = '';
   }
 
   closeModal(): void {
@@ -252,19 +398,19 @@ export class DashboardDepartementComponent implements OnInit {
 
   openDecision(demande: DemandeDeptDTO, decision: 'ACCEPTE' | 'LISTE_ATTENTE' | 'REJETE'): void {
     this.openDetail(demande, 'decision');
-    this.prepareDecision(decision);
+    // Délai court pour laisser le taskId se charger avant prepareDecision
+    setTimeout(() => this.prepareDecision(decision), 100);
   }
-  tokenFormulaire: string | null = null;
-  loadingToken = false;
+
+  // ─── DÉCISION ─────────────────────────────────────────────────────────────
 
   prepareDecision(decision: 'ACCEPTE' | 'LISTE_ATTENTE' | 'REJETE'): void {
     this.pendingDecision = decision;
     this.showDecisionForm = true;
 
     if (decision === 'ACCEPTE') {
-      // Générer le token AVANT d'afficher l'email, comme dans le dashboard scolarité
       this.loadingToken = true;
-      this.commentaire = ''; // vide le temps de charger
+      this.commentaire = '';
 
       this.http.post(
         `${environment.apiUrl}/FINANCE-SERVICE/api/formulaire/token/generate/${this.selectedDemande!.id}`,
@@ -277,9 +423,8 @@ export class DashboardDepartementComponent implements OnInit {
           this.commentaire = this.buildEmailValidation(token);
         },
         error: (err) => {
-          console.error('Erreur génération token formulaire:', err);
+          console.error('Erreur génération token:', err);
           this.loadingToken = false;
-          // Fallback : afficher l'email sans lien réel
           this.commentaire = this.buildEmailValidation(null);
         }
       });
@@ -291,16 +436,47 @@ export class DashboardDepartementComponent implements OnInit {
     }
   }
 
+  confirmerDecision(): void {
+    if (!this.selectedDemande || !this.pendingDecision || !this.commentaire.trim()) return;
+
+    const taskId = this.selectedDemande.taskId;
+    if (!taskId) {
+      this.showToast('❌ Tâche introuvable dans le workflow', 'error');
+      return;
+    }
+
+    this.actionLoading = true;
+    const login = this.userProfile?.email || this.userProfile?.username || 'enseignant_responsable';
+
+    this.scolariteService.completeTask(taskId, this.pendingDecision, this.commentaire, login)
+      .subscribe({
+        next: () => {
+          this.actionLoading = false;
+          this.showToast(
+            this.pendingDecision === 'ACCEPTE' ? '✅ Dossier validé avec succès' :
+              this.pendingDecision === 'LISTE_ATTENTE' ? '🕐 Candidat mis en liste d\'attente' :
+                '❌ Dossier rejeté avec succès',
+            'success'
+          );
+          this.showModal = false;
+          // ✅ Refresh léger au lieu du reload complet
+          this.refreshAfterDecision();
+        },
+        error: (err) => {
+          this.actionLoading = false;
+          console.error('Erreur décision:', err);
+          this.showToast('❌ Erreur lors du traitement de la décision', 'error');
+        }
+      });
+  }
+
+  // ─── BUILDERS EMAIL ───────────────────────────────────────────────────────
+
   private buildEmailValidation(token: string | null): string {
-    const nom = this.selectedDemande
-      ? `${this.selectedDemande.prenomEtudiant} ${this.selectedDemande.nomEtudiant}`
-      : 'Candidat(e)';
     const diplome = this.selectedDemande?.nomDiplome || 'votre diplôme';
     const dept = this.dashboard?.nomDepartement || 'le Département';
     const enseignant = this.dashboard?.nomEnseignant || 'Le Responsable';
-
-    // Construire le lien réel si token disponible, sinon placeholder clair
-    const frontendBaseUrl = 'http://localhost:4200'; // ou environment.frontendUrl si tu l'as
+    const frontendBaseUrl = 'http://localhost:4200';
     const lienFormulaire = token
       ? `${frontendBaseUrl}/paiement/formulaire?token=${token}`
       : '[LIEN FORMULAIRE - SERA GÉNÉRÉ AUTOMATIQUEMENT]';
@@ -338,9 +514,7 @@ ${dept} — ITECH University`;
   }
 
   private buildEmailListeAttente(): string {
-    const nom = this.selectedDemande
-      ? `${this.selectedDemande.prenomEtudiant} ${this.selectedDemande.nomEtudiant}`
-      : 'Candidat(e)';
+    const nom = this.selectedDemande ? `${this.selectedDemande.prenomEtudiant} ${this.selectedDemande.nomEtudiant}` : 'Candidat(e)';
     const diplome = this.selectedDemande?.nomDiplome || 'votre diplôme';
 
     return `Bonjour ${nom},
@@ -356,10 +530,9 @@ Cordialement,
 ${this.dashboard?.nomEnseignant || 'Le Responsable'}
 ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
   }
+
   private buildEmailRejet(): string {
-    const nom = this.selectedDemande
-      ? `${this.selectedDemande.prenomEtudiant} ${this.selectedDemande.nomEtudiant}`
-      : 'Candidat(e)';
+    const nom = this.selectedDemande ? `${this.selectedDemande.prenomEtudiant} ${this.selectedDemande.nomEtudiant}` : 'Candidat(e)';
     const diplome = this.selectedDemande?.nomDiplome || 'votre diplôme';
 
     return `Bonjour ${nom},
@@ -378,43 +551,6 @@ ${this.dashboard?.nomEnseignant || 'Le Responsable'}
 ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
   }
 
-  confirmerDecision(): void {
-    if (!this.selectedDemande || !this.pendingDecision || !this.commentaire.trim()) return;
-
-    const taskId = this.selectedDemande.taskId;
-    if (!taskId) {
-      this.showToast('❌ Tâche introuvable dans le workflow', 'error');
-      return;
-    }
-
-    this.actionLoading = true;
-    const login = this.userProfile?.email || this.userProfile?.username || 'enseignant_responsable';
-
-    this.scolariteService.completeTask(
-      taskId,
-      this.pendingDecision,
-      this.commentaire,
-      login
-    ).subscribe({
-      next: () => {
-        this.actionLoading = false;
-        this.showToast(
-          this.pendingDecision === 'ACCEPTE' ? '✅ Dossier validé avec succès' :
-            this.pendingDecision === 'LISTE_ATTENTE' ? '🕐 Candidat mis en liste d\'attente' :
-              '❌ Dossier rejeté avec succès',
-          'success'
-        );
-        this.showModal = false;
-        this.loadDashboard(); // Recharger pour voir les changements
-      },
-      error: (error) => {
-        this.actionLoading = false;
-        console.error('Erreur lors de la décision:', error);
-        this.showToast('❌ Erreur lors du traitement de la décision', 'error');
-      }
-    });
-  }
-
   // ─── HELPERS ──────────────────────────────────────────────────────────────
 
   getCapaciteGlobale(): { inscrits: number; max: number; pct: number } | null {
@@ -428,9 +564,9 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
     if (!this.dashboard?.capacites?.length) return false;
     if (niveau) {
       const cap = this.dashboard.capacites.find(c => c.niveau.toString() === niveau);
-      return cap ? cap.placesRestantes <= 0 : false;
+      return cap ? cap.inscritsConfirmes >= cap.capaciteMax : false;
     }
-    return this.dashboard.capacites.some(c => c.placesRestantes <= 0);
+    return this.dashboard.capacites.some(c => c.inscritsConfirmes >= c.capaciteMax);
   }
 
   getCapaciteText(niveau?: string): string {
@@ -445,9 +581,7 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
 
   getCapacite(niveau?: string): CapaciteNiveauDTO | undefined {
     if (!this.dashboard?.capacites?.length) return undefined;
-    if (niveau) {
-      return this.dashboard.capacites.find(c => c.niveau.toString() === niveau);
-    }
+    if (niveau) return this.dashboard.capacites.find(c => c.niveau.toString() === niveau);
     return this.dashboard.capacites[0];
   }
 
@@ -494,8 +628,7 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
   getInitiales(): string {
     if (!this.dashboard?.nomEnseignant) return 'E';
     const parts = this.dashboard.nomEnseignant.replace('Dr. ', '').split(' ');
-    const initials = parts.map(p => p[0]).join('').substring(0, 2).toUpperCase();
-    return initials || 'EN';
+    return parts.map(p => p[0]).join('').substring(0, 2).toUpperCase() || 'EN';
   }
 
   getDisplayRole(): string {
@@ -536,10 +669,90 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
     return Math.round((this.dashboard.valides / total) * 100);
   }
 
+  // ─── PARAMÉTRAGE ──────────────────────────────────────────────────────────
+
+  openAddPrereq(): void {
+    if (this.paramComponent) {
+      this.paramComponent.openAddModal(null);
+    }
+  }
+
+  getCommonPrerequisType(): string[] {
+    if (!this.dashboard?.capacites?.length) return [];
+    // On prend les prérequis de type du premier niveau (ils devraient être identiques)
+    return this.dashboard.capacites[0].prerequisType || [];
+  }
+
   private showToast(message: string, type: 'success' | 'error'): void {
     this.toastMessage = message;
     this.toastType = type;
     this.toastVisible = true;
     setTimeout(() => this.toastVisible = false, 3500);
   }
+
+  // ─── WORKFLOW STEPPER ─────────────────────────────────────────────────────
+
+  isStepDone(step: string): boolean {
+    if (!this.selectedDemande) return false;
+    const statut = this.selectedDemande.statut || '';
+
+    const order = [
+      'SOUMIS', 'EN_COURS_SCOLARITE', 'EN_ATTENTE_DOCUMENT',
+      'SCOLARITE_VALIDEE', 'EN_COURS_DEPARTEMENT', 'DEPARTEMENT_VALIDE',
+      'EN_ATTENTE_PAIEMENT', 'PAIEMENT_VALIDE', 'INSCRIT'
+    ];
+    const stepMap: Record<string, string> = {
+      'SCOLARITE': 'SCOLARITE_VALIDEE',
+      'DEPARTEMENT': 'DEPARTEMENT_VALIDE',
+      'PAIEMENT': 'PAIEMENT_VALIDE',
+      'INSCRIT': 'INSCRIT'
+    };
+
+    const targetStatus = stepMap[step];
+    if (!targetStatus) return false;
+
+    const currentIndex = order.indexOf(statut);
+    const targetIndex = order.indexOf(targetStatus);
+    return currentIndex >= targetIndex && currentIndex !== -1;
+  }
+
+  isStepActive(step: string): boolean {
+    if (!this.selectedDemande) return false;
+    const statut = this.selectedDemande.statut || '';
+
+    const stepMap: Record<string, string[]> = {
+      'SCOLARITE': ['SOUMIS', 'EN_COURS_SCOLARITE', 'EN_ATTENTE_DOCUMENT'],
+      'DEPARTEMENT': ['EN_COURS_DEPARTEMENT', 'SCOLARITE_VALIDEE'],
+      'PAIEMENT': ['EN_ATTENTE_PAIEMENT', 'DEPARTEMENT_VALIDE'],
+      'INSCRIT': ['PAIEMENT_VALIDE'],
+    };
+    return stepMap[step]?.includes(statut) ?? false;
+  }
+
+  isStepFailed(step: string): boolean {
+    if (!this.selectedDemande) return false;
+    const statut = this.selectedDemande.statut || '';
+
+    const failureMap: Record<string, string[]> = {
+      'SCOLARITE': ['REJETE_SCOLARITE'],
+      'DEPARTEMENT': ['REJETE_DEPARTEMENT'],
+      'PAIEMENT': ['REJETE_FINANCE'],
+    };
+    return failureMap[step]?.includes(statut) ?? false;
+  }
+
+  getCompletionPercentage(): number {
+    if (!this.selectedDemande) return 0;
+    const statut = this.selectedDemande.statut || '';
+
+    const order = [
+      'SOUMIS', 'EN_COURS_SCOLARITE', 'SCOLARITE_VALIDEE',
+      'EN_COURS_DEPARTEMENT', 'DEPARTEMENT_VALIDE',
+      'EN_ATTENTE_PAIEMENT', 'PAIEMENT_VALIDE', 'INSCRIT'
+    ];
+    const index = order.indexOf(statut);
+    if (index === -1) return 0;
+    return Math.round(((index + 1) / order.length) * 100);
+  }
+
 }

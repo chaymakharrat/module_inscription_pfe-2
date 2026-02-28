@@ -10,6 +10,7 @@ import { StatistiquesComponent } from './components/statistiques/statistiques.co
 import { NotificationsComponent } from './components/notifications/notifications.component';
 import { UsersManagementComponent } from './components/users-management-component/users-management-component.component';
 import { DashboardDepartementComponent } from './components/dashboard-departement/dashboard-departement.component';
+import { ParametragePrerequisComponent } from './components/parametrage-prerequis/parametrage-prerequis.component';
 
 export const routes: Routes = [
     { path: '', component: HomeComponent },
@@ -23,5 +24,6 @@ export const routes: Routes = [
     { path: 'statistiques', component: StatistiquesComponent },
     { path: 'notifications', component: NotificationsComponent },
     { path: 'admin/users', component: UsersManagementComponent, canActivate: [authGuard], data: { roles: ['ADMIN'] } },
+    { path: 'parametrage-prerequis', component: ParametragePrerequisComponent, canActivate: [authGuard], data: { roles: ['ENSEIGNANT_RESPONSABLE'] } },
     { path: '**', redirectTo: '' }
 ];

@@ -44,4 +44,9 @@ export class DiplomaService {
     getTypes(): Observable<TypeDiplome[]> {
         return this.http.get<TypeDiplome[]>(this.typesUrl);
     }
+    getNiveauxByDiplomeNameAndLangue(nomDiplome: string, langue: string): Observable<NiveauDiplomeSpecifique[]> {
+        return this.http.get<NiveauDiplomeSpecifique[]>(
+            `${this.apiUrl}/nom/${encodeURIComponent(nomDiplome)}/langue/${langue}/niveaux`
+        );
+    }
 }
