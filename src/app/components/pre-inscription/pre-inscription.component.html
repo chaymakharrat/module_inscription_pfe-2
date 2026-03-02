@@ -36,29 +36,51 @@
                     SCAN AUTO CIN — à insérer en haut du Step 1
                     ═══════════════════════════════════════════════════════ -->
                 <div class="col-span-1 md:col-span-2 mb-2">
-
-                    <!-- Séparateur avec label -->
-                    <div class="flex items-center gap-4 mb-6">
-                        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-blue-200 to-transparent"></div>
-                        <div class="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-2xl">
-                            <span class="text-lg">🤖</span>
-                            <span class="text-xs font-black text-blue-700 tracking-wider uppercase">Remplissage
-                                automatique</span>
+                    <!-- Choix du mode de remplissage -->
+                    <div class="grid grid-cols-1 gap-4 mb-6">
+                        <!-- Scanner CIN -->
+                        <div class="p-4 bg-white/50 border border-slate-200 rounded-[2rem] shadow-sm">
+                            <h3
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="text-lg">🪪</span> Carte d'Identité
+                            </h3>
+                            <app-cin-scanner (scanned)="onCinScanned($event)"></app-cin-scanner>
                         </div>
-                        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-blue-200 to-transparent"></div>
+
+                        <!-- Scanner Diplôme BAC (QR simple) -->
+                        <div class="p-4 bg-white/50 border border-slate-200 rounded-[2rem] shadow-sm">
+                            <h3
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="text-lg">🎓</span> Diplôme BAC (QR simple)
+                            </h3>
+                            <app-bac-scanner (scanned)="onBacScanned($event)"></app-bac-scanner>
+                        </div>
+
+                        <!-- Scanner Diplôme BAC (Bilan complet avec notes) -->
+                        <div class="p-4 bg-white/50 border border-amber-200 rounded-[2rem] shadow-sm">
+                            <h3
+                                class="text-xs font-black text-amber-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="text-lg">📊</span> Bilan BAC (Notes + Mention)
+                            </h3>
+                            <app-bac-scanner-service (scanned)="onBacServiceScanned($event)"></app-bac-scanner-service>
+                        </div>
+                    </div>
+                    <!-- Scanner Relevé de Notes -->
+                    <div class="p-4 bg-white/50 border border-indigo-200 rounded-[2rem] shadow-sm">
+                        <h3
+                            class="text-xs font-black text-indigo-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <span class="text-lg">📋</span> Relevé de Notes
+                        </h3>
+                        <app-bulletin-scanner (scanned)="onBulletinScanned($event)"></app-bulletin-scanner>
                     </div>
 
-                    <!-- Composant scanner -->
-                    <app-cin-scanner (scanned)="onCinScanned($event)"></app-cin-scanner>
-
                     <!-- Séparateur avec label "ou remplir manuellement" -->
-                    <div class="flex items-center gap-4 mt-2 mb-4">
+                    <div class="flex items-center gap-4 mt-2 mb-8">
                         <div class="flex-1 h-px bg-slate-200"></div>
                         <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">ou remplir
                             manuellement</span>
                         <div class="flex-1 h-px bg-slate-200"></div>
                     </div>
-
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">

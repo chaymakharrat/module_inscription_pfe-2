@@ -21,6 +21,9 @@ import { animate, style, transition, trigger } from '@angular/animations';
 import { FooterComponent } from '../footer/footer.component';
 import { CinScannerComponent } from '../cin-scanner/cin-scanner.component';
 import { OcrCinResult } from '../../services/ocr.service';
+import { BacScannerComponent, BacResult } from '../bac-scanner/bac-scanner.component';
+import { BacScannerServiceComponent, BacResult as BacServiceResult } from '../bac-scanner-service/bac-scanner-service.component';
+import { BulletinResult, BulletinScannerComponent } from '../bulletin-scanner/bulletin-scanner.component';
 
 @Component({
   selector: 'app-pre-inscription',
@@ -34,7 +37,10 @@ import { OcrCinResult } from '../../services/ocr.service';
     ActionButtonsComponent,
     InputComponent,
     FooterComponent,
-    CinScannerComponent
+    CinScannerComponent,
+    BacScannerComponent,
+    BacScannerServiceComponent,
+    BulletinScannerComponent
   ],
   templateUrl: './pre-inscription.component.html',
   styleUrl: './pre-inscription.component.css',
@@ -406,6 +412,129 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     );
     if (tunisia) {
       personalInfo.get('pays')?.setValue(tunisia.id);
+    }
+  }
+
+  onBacScanned(result: BacResult): void {
+    if (!result.success) return;
+
+    const personalInfo = this.inscriptionForm.get('personalInfo');
+    if (!personalInfo) return;
+
+    if (result.nom) {
+      personalInfo.get('nom')?.setValue(result.nom);
+      personalInfo.get('nom')?.markAsTouched();
+    }
+
+    if (result.prenom) {
+      personalInfo.get('prenom')?.setValue(result.prenom);
+      personalInfo.get('prenom')?.markAsTouched();
+    }
+
+    if (result.dateNaissance) {
+      personalInfo.get('dateNaissance')?.setValue(result.dateNaissance);
+      personalInfo.get('dateNaissance')?.markAsTouched();
+    }
+
+    if (result.lieuNaissance) {
+      personalInfo.get('adresse')?.setValue(result.lieuNaissance);
+      personalInfo.get('adresse')?.markAsTouched();
+    }
+
+    // Auto-sélectionner Tunisie si détecté via le QR bac tunisien
+    const tunisia = this.countries.find(
+      c => c.nom?.toLowerCase().includes('tunis')
+    );
+    if (tunisia) {
+      personalInfo.get('pays')?.setValue(tunisia.id);
+    }
+  }
+
+  // ─── Handler pour app-bac-scanner-service (Bilan complet avec notes) ───────
+  onBacServiceScanned(result: BacServiceResult): void {
+    if (!result.success) return;
+
+    const personalInfo = this.inscriptionForm.get('personalInfo');
+    if (!personalInfo) return;
+
+    // nomComplet ex: "شيماء الخراط" → split : prénom = 1er mot, nom = reste
+    if (result.nomComplet) {
+      const parts = result.nomComplet.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        personalInfo.get('prenom')?.setValue(parts[0]);
+        personalInfo.get('prenom')?.markAsTouched();
+        personalInfo.get('nom')?.setValue(parts.slice(1).join(' '));
+        personalInfo.get('nom')?.markAsTouched();
+      } else {
+        personalInfo.get('nom')?.setValue(result.nomComplet);
+        personalInfo.get('nom')?.markAsTouched();
+      }
+    }
+
+    if (result.dateNaissance) {
+      personalInfo.get('dateNaissance')?.setValue(result.dateNaissance);
+      personalInfo.get('dateNaissance')?.markAsTouched();
+    }
+
+    if (result.lieuNaissance) {
+      personalInfo.get('adresse')?.setValue(result.lieuNaissance);
+      personalInfo.get('adresse')?.markAsTouched();
+    }
+
+    // Auto-sélectionner Tunisie
+    const tunisia = this.countries.find(c => c.nom?.toLowerCase().includes('tunis'));
+    if (tunisia) {
+      personalInfo.get('pays')?.setValue(tunisia.id);
+    }
+  }
+  // onBulletinScanned(result: BulletinResult): void {
+  //   if (!result.success) return;
+  //   const personalInfo = this.inscriptionForm.get('personalInfo');
+  //   if (result.nomPrenom) {
+  //     const parts = result.nomPrenom.trim().split(/\s+/);
+  //     personalInfo?.get('nom')?.setValue(parts[0]);
+  //     personalInfo?.get('prenom')?.setValue(parts.slice(1).join(' '));
+  //   }
+  //   if (result.dateNaissance) {
+  //     personalInfo?.get('dateNaissance')?.setValue(result.dateNaissance);
+  //   }
+  //   if (result.numeroCin) {
+  //     this.setIdType('cin');
+  //     personalInfo?.get('cin')?.setValue(result.numeroCin);
+  //   }
+  // }
+  onBulletinScanned(result: BulletinResult): void {
+    if (result.errorMessage) return;
+
+    const personalInfo = this.inscriptionForm.get("personalInfo");
+    if (!personalInfo) return;
+
+    if (result.nomPrenom) {
+      const parts = result.nomPrenom.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        personalInfo.get("nom")?.setValue(parts[0]);
+        personalInfo.get("prenom")?.setValue(parts.slice(1).join(" "));
+      } else {
+        personalInfo.get("nom")?.setValue(result.nomPrenom);
+      }
+      personalInfo.get("nom")?.markAsTouched();
+      personalInfo.get("prenom")?.markAsTouched();
+    }
+
+    if (result.dateNaissance) {
+      personalInfo.get("dateNaissance")?.setValue(result.dateNaissance);
+      personalInfo.get("dateNaissance")?.markAsTouched();
+    }
+
+    if (result.numeroCin) {
+      this.setIdType("cin");
+      personalInfo.get("cin")?.setValue(result.numeroCin);
+      personalInfo.get("cin")?.markAsTouched();
+    }
+
+    const tunisia = this.countries.find(c => c.nom?.toLowerCase().includes("tunis"));
+    if (tunisia) {
+      personalInfo.get("pays")?.setValue(tunisia.id);
     }
   }
 

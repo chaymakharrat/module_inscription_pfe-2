@@ -1,0 +1,233 @@
+<!-- ═══════════════════════════════════════════════════════════════════
+     BULLETIN SCANNER — Format-agnostique (Ollama LLM Vision)
+     ═══════════════════════════════════════════════════════════════════ -->
+
+<div class="bulletin-scanner">
+
+    <!-- ── IDLE / ERROR ───────────────────────────────────────────────── -->
+    <div *ngIf="state() === 'idle' || state() === 'error'" class="drop-zone" [class.dragging]="isDragging()"
+        (dragover)="onDragOver($event)" (dragleave)="onDragLeave()" (drop)="onDrop($event)"
+        (click)="triggerFileInput()">
+
+        <div class="drop-icon">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="48" height="48" rx="14" fill="#EEF2FF" />
+                <path d="M24 14v14m0-14l-5 5m5-5l5 5" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                <path d="M14 30v2a2 2 0 002 2h16a2 2 0 002-2v-2" stroke="#6366F1" stroke-width="2.5"
+                    stroke-linecap="round" />
+            </svg>
+        </div>
+
+        <p class="drop-title">Déposer le relevé de notes</p>
+        <p class="drop-sub">ou <span class="drop-link">parcourir</span> · JPG, PNG, WebP · max 15 Mo</p>
+        <p class="drop-hint">✨ Fonctionne avec tous les formats et toutes les facultés</p>
+
+        <div *ngIf="state() === 'error'" class="error-badge">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0
+                 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            {{ error() }}
+        </div>
+
+        <input #fileInput type="file" accept="image/jpeg,image/png,image/webp" class="hidden"
+            (change)="onFileSelected($event)" />
+    </div>
+
+    <!-- ── LOADING ────────────────────────────────────────────────────── -->
+    <div *ngIf="state() === 'loading'" class="loading-panel">
+        <div *ngIf="preview()" class="preview-wrapper">
+            <img [src]="preview()" alt="Aperçu" class="preview-img" />
+            <div class="scan-overlay">
+                <div class="scan-line"></div>
+            </div>
+        </div>
+        <div class="loading-text">
+            <div class="spinner"></div>
+            <div>
+                <p class="loading-title">Analyse en cours…</p>
+                <p class="loading-sub">IA en train de lire votre relevé (peut prendre 30s)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── SUCCESS ────────────────────────────────────────────────────── -->
+    <div *ngIf="state() === 'success'" class="success-panel">
+
+        <!-- Header -->
+        <div class="success-header">
+            <div class="success-badge">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div>
+                <p class="success-title">Relevé extrait avec succès</p>
+                <p class="success-sub">{{ getModuleCount() }} module(s) · {{ getSemestres().length }} semestre(s)</p>
+            </div>
+            <button type="button" class="reset-btn" (click)="reset()" title="Scanner un autre">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 4v5h.582M20 20v-5h-.581M4.582 9A8 8 0 0120 12M19.418 15A8 8 0 014 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Warning Ollama -->
+        <div *ngIf="result()?.warning" class="warning-badge">
+            ⚠️ {{ result()?.warning }}
+        </div>
+
+        <div class="data-grid" *ngIf="result() as r">
+
+            <!-- Identité -->
+            <div class="data-section">
+                <h4 class="section-title"><span class="section-icon">👤</span> Identité</h4>
+                <div class="data-rows">
+                    <div class="data-row" *ngIf="r.nomPrenom">
+                        <span class="data-label">Nom & Prénom</span>
+                        <span class="data-value">{{ r.nomPrenom }}</span>
+                    </div>
+                    <div class="data-row" *ngIf="r.dateNaissance">
+                        <span class="data-label">Date de naissance</span>
+                        <span class="data-value">{{ r.dateNaissance }}</span>
+                    </div>
+                    <div class="data-row" *ngIf="r.matricule">
+                        <span class="data-label">Matricule</span>
+                        <span class="data-value font-mono">{{ r.matricule }}</span>
+                    </div>
+                    <div class="data-row" *ngIf="r.numeroCin">
+                        <span class="data-label">N° CIN</span>
+                        <span class="data-value font-mono">{{ r.numeroCin }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Parcours -->
+            <div class="data-section">
+                <h4 class="section-title"><span class="section-icon">🎓</span> Parcours</h4>
+                <div class="data-rows">
+                    <div class="data-row" *ngIf="r.filiere">
+                        <span class="data-label">Filière</span>
+                        <span class="data-value text-xs">{{ r.filiere }}</span>
+                    </div>
+                    <div class="data-row" *ngIf="r.niveauEtude">
+                        <span class="data-label">Niveau</span>
+                        <span class="data-value">{{ r.niveauEtude }}</span>
+                    </div>
+                    <div class="data-row" *ngIf="r.anneeUniversitaire">
+                        <span class="data-label">Année</span>
+                        <span class="data-value">{{ r.anneeUniversitaire }}</span>
+                    </div>
+                    <div class="data-row" *ngIf="r.session">
+                        <span class="data-label">Session</span>
+                        <span class="data-value">{{ r.session }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Résultat -->
+            <div class="data-section result-section">
+                <h4 class="section-title"><span class="section-icon">📊</span> Résultat</h4>
+                <div class="result-grid">
+                    <div class="result-card moyenne">
+                        <span class="result-label">Moyenne Générale</span>
+                        <span class="result-value" [class]="getMoyenneClass(r.moyenneGenerale)">
+                            {{ r.moyenneGenerale ?? '—' }}
+                        </span>
+                    </div>
+                    <div class="result-card credits">
+                        <span class="result-label">Crédits Acquis</span>
+                        <span class="result-value">{{ r.creditsAcquis ?? r.creditsValides ?? '—' }}</span>
+                    </div>
+                    <div class="result-card mention col-span-2" *ngIf="r.mention">
+                        <span class="result-label">Mention</span>
+                        <span class="result-value">{{ r.mention }}</span>
+                    </div>
+                    <div class="result-card decision col-span-2" *ngIf="r.decision">
+                        <span class="result-label">Décision du jury</span>
+                        <span class="result-value decision-text">{{ r.decision }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── SEMESTRES ─────────────────────────────────────────────── -->
+            <ng-container *ngFor="let sem of getSemestres()">
+                <div class="data-section col-span-1 md:col-span-2" *ngIf="sem.unites.length">
+                    <h4 class="section-title">
+                        <span class="section-icon">📚</span> {{ sem.nom }}
+                    </h4>
+                    <div class="modules-table-wrapper">
+                        <table class="modules-table">
+                            <thead>
+                                <tr>
+                                    <th class="th-module">Module / Unité</th>
+                                    <th class="th-num">Coef</th>
+                                    <th class="th-num">Crédit</th>
+                                    <th class="th-num">Régime</th>
+                                    <th class="th-num final">Moyenne</th>
+                                    <th class="th-num">Cr. Acquis</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <ng-container *ngFor="let u of sem.unites">
+                                    <!-- Ligne unité principale -->
+                                    <tr class="module-row unite-row">
+                                        <td class="td-module">
+                                            <strong>{{ u.nom }}</strong>
+                                        </td>
+                                        <td class="td-num">{{ u.coefficient ?? '—' }}</td>
+                                        <td class="td-num">{{ u.credit ?? '—' }}</td>
+                                        <td class="td-num">
+                                            <span class="regime-badge" *ngIf="u.regime">{{ u.regime }}</span>
+                                            <span *ngIf="!u.regime">—</span>
+                                        </td>
+                                        <td class="td-num final-note" [class]="getMoyenneClass(u.moyenne)">
+                                            {{ u.moyenne ?? '—' }}
+                                        </td>
+                                        <td class="td-num">{{ u.creditAcquis ?? '—' }}</td>
+                                    </tr>
+                                    <!-- Sous-éléments (si présents) -->
+                                    <tr *ngFor="let e of u.elements" class="module-row element-row">
+                                        <td class="td-module td-element">
+                                            <span class="element-indent">↳</span> {{ e.nom }}
+                                            <!-- Si Format 1 : afficher CC/Exam -->
+                                            <span *ngIf="e.cc || e.exam" class="notes-inline">
+                                                <span *ngIf="e.cc" class="note-chip cc">CC: {{e.cc}}</span>
+                                                <span *ngIf="e.exam" class="note-chip ex">Ex: {{e.exam}}</span>
+                                                <span *ngIf="e.noteFinal" class="note-chip fn">Fin:
+                                                    {{e.noteFinal}}</span>
+                                            </span>
+                                        </td>
+                                        <td class="td-num">{{ e.coefficient ?? '—' }}</td>
+                                        <td class="td-num">—</td>
+                                        <td class="td-num">
+                                            <span class="regime-badge" *ngIf="e.regime">{{ e.regime }}</span>
+                                            <span *ngIf="!e.regime">—</span>
+                                        </td>
+                                        <td class="td-num final-note" [class]="getMoyenneClass(e.moyenne)">
+                                            {{ e.moyenne ?? '—' }}
+                                        </td>
+                                        <td class="td-num">{{ e.creditAcquis ?? '—' }}</td>
+                                    </tr>
+                                </ng-container>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </ng-container>
+
+        </div><!-- /data-grid -->
+
+        <button type="button" class="rescan-btn" (click)="reset()">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 4v5h.582M20 20v-5h-.581M4.582 9A8 8 0 0120 12M19.418 15A8 8 0 014 12" />
+            </svg>
+            Scanner un autre relevé
+        </button>
+
+    </div><!-- /success-panel -->
+
+</div><!-- /bulletin-scanner -->

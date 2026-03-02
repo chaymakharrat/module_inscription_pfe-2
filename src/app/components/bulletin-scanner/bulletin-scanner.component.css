@@ -1,0 +1,107 @@
+/* ── AJOUTS pour le nouveau format Ollama ─────────────────────────── */
+
+.drop-hint {
+    font-size: 0.68rem;
+    color: #a5b4fc;
+    margin: 0;
+    font-style: italic;
+}
+
+.warning-badge {
+    padding: 8px 14px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #92400e;
+}
+
+/* Ligne unité principale */
+.unite-row td {
+    background: #f8fafc;
+    font-weight: 700;
+    border-top: 2px solid #e2e8f0;
+}
+
+/* Ligne sous-élément */
+.element-row td {
+    background: white;
+    font-size: 0.72rem;
+}
+
+.td-element {
+    padding-left: 24px !important;
+    color: #64748b;
+}
+
+.element-indent {
+    color: #c7d2fe;
+    margin-right: 4px;
+    font-weight: 400;
+}
+
+/* Badge régime CC / MX */
+.regime-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+/* Notes CC/Exam inline */
+.notes-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 2px;
+}
+
+.note-chip {
+    display: inline-flex;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+}
+
+.note-chip.cc {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.note-chip.ex {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.note-chip.fn {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+/* Mention card */
+.result-card.mention {
+    background: linear-gradient(135deg, #fdf4ff, #f3e8ff);
+    border: 1px solid #e9d5ff;
+}
+
+/* Couleurs moyennes */
+.note-high {
+    color: #16a34a !important;
+    font-weight: 900;
+}
+
+.note-medium {
+    color: #d97706 !important;
+    font-weight: 700;
+}
+
+.note-low {
+    color: #dc2626 !important;
+    font-weight: 700;
+}

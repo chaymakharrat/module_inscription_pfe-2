@@ -6,5 +6,61 @@
         "logLevel": "debug",
         "proxyTimeout": 120000,
         "timeout": 120000
+    },
+    "/scan-bac": {
+        "target": "http://localhost:5051",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug",
+        "proxyTimeout": 120000,
+        "timeout": 120000
+    },
+    "/parse-qr-raw": {
+        "target": "http://localhost:5051",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug",
+        "proxyTimeout": 120000,
+        "timeout": 120000
+    },
+    "/bilan-bac": {
+        "target": "http://localhost:5052",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug",
+        "proxyTimeout": 120000,
+        "timeout": 120000
+    },
+    "/parse-bilan-bac": {
+        "target": "http://localhost:5052",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug",
+        "proxyTimeout": 120000,
+        "timeout": 120000
+    },
+    "/debug-qr": {
+        "target": "http://localhost:5052",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug",
+        "proxyTimeout": 120000,
+        "timeout": 120000
+    },
+    "/scan-bulletin": {
+        "target": "http://localhost:5053",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug",
+        "proxyTimeout": 600000,
+        "timeout": 600000
+    },
+    "/debug-bulletin": {
+        "target": "http://localhost:5053",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug",
+        "proxyTimeout": 600000,
+        "timeout": 600000
     }
 }

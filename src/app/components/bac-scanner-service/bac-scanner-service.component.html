@@ -1,0 +1,173 @@
+<div class="bac-wrapper">
+    <input #fileInput type="file" accept="image/*" class="hidden" (change)="onFileSelected($event)" />
+
+    <!-- ── IDLE ──────────────────────────────────────────────────── -->
+    <ng-container *ngIf="state === 'idle'">
+        <div class="idle-card">
+            <div class="icon-wrap">🎓</div>
+            <p class="idle-title">Scanner le diplôme de Bac</p>
+            <p class="idle-sub">
+                Photographiez le <strong>diplôme complet</strong> — le 2D-DOC est en bas à gauche<br />
+                <strong>100 % fiable · Toutes les notes extraites automatiquement</strong>
+            </p>
+            <div class="idle-btns">
+                <button type="button" class="btn-camera" (click)="startCamera()">📷 Caméra live</button>
+                <button type="button" class="btn-gallery" (click)="fileInput.click()">🖼️ Galerie</button>
+            </div>
+            <p class="idle-tip">💡 Cadrez tout le diplôme, pas seulement le QR code</p>
+        </div>
+    </ng-container>
+
+    <!-- ── CAMERA LIVE ───────────────────────────────────────────── -->
+    <ng-container *ngIf="state === 'camera'">
+        <p class="frame-hint">🎯 Cadrez le QR code 2D-DOC dans le carré</p>
+        <div class="camera-wrap">
+            <video #videoEl class="camera-video" autoplay playsinline muted></video>
+            <canvas #processCanvas class="hidden"></canvas>
+            <div class="camera-overlay">
+                <div class="qr-frame" [class.detected]="qrDetected">
+                    <div class="qr-c tl"></div>
+                    <div class="qr-c tr"></div>
+                    <div class="qr-c bl"></div>
+                    <div class="qr-c br"></div>
+                    <div class="scan-line" [class.stop]="qrDetected"></div>
+                </div>
+                <div class="cam-badge" [class.found]="qrDetected">
+                    <span *ngIf="!qrDetected">🔍 Cherche le 2D-DOC…</span>
+                    <span *ngIf="qrDetected">✅ Détecté !</span>
+                </div>
+            </div>
+        </div>
+        <div class="camera-btns">
+            <button type="button" class="btn-ghost" (click)="stopCamera(); state='idle'">✕ Annuler</button>
+            <button type="button" class="btn-ghost" (click)="stopCamera(); fileInput.click()">🖼️ Galerie</button>
+        </div>
+    </ng-container>
+
+    <!-- ── LOADING ───────────────────────────────────────────────── -->
+    <ng-container *ngIf="state === 'loading'">
+        <div class="loading-card">
+            <div class="loading-spinner"></div>
+            <p class="loading-txt">Lecture du 2D-DOC…</p>
+            <p class="loading-sub">Extraction de toutes les notes officielles</p>
+        </div>
+    </ng-container>
+
+    <!-- ── SUCCESS ───────────────────────────────────────────────── -->
+    <ng-container *ngIf="state === 'success'">
+        <div class="result-card">
+
+            <!-- En-tête -->
+            <div class="result-header">
+                <span class="success-icon">🎓</span>
+                <div>
+                    <p class="result-title">Données BAC extraites</p>
+                    <p class="result-sub">Certifiées par le 2D-DOC officiel</p>
+                </div>
+                <button type="button" class="btn-sm" (click)="reset()">↺</button>
+            </div>
+
+            <!-- Identité -->
+            <div class="section-label">👤 Identité</div>
+            <div class="data-list">
+
+                <div class="data-item" *ngIf="result?.nomComplet">
+                    <span class="dk">Nom complet</span>
+                    <span class="dv rtl">{{ result?.nomComplet }}</span>
+                </div>
+
+                <div class="data-item" *ngIf="result?.dateNaissance">
+                    <span class="dk">Date naissance</span>
+                    <span class="dv">{{ result?.dateNaissance }}</span>
+                </div>
+
+                <div class="data-item" *ngIf="result?.lieuNaissance">
+                    <span class="dk">Lieu naissance</span>
+                    <span class="dv rtl">{{ result?.lieuNaissance }}</span>
+                </div>
+
+                <div class="data-item" *ngIf="result?.numDossier">
+                    <span class="dk">N° dossier</span>
+                    <span class="dv mono">{{ result?.numDossier }}</span>
+                </div>
+
+                <div class="data-item" *ngIf="result?.session">
+                    <span class="dk">Session</span>
+                    <span class="dv mono">{{ result?.session }}</span>
+                </div>
+
+                <div class="data-item" *ngIf="result?.dateDiplome">
+                    <span class="dk">Date diplôme</span>
+                    <span class="dv">{{ result?.dateDiplome }}</span>
+                </div>
+
+                <div class="data-item" *ngIf="result?.specialiteFr || result?.specialite">
+                    <span class="dk">Spécialité</span>
+                    <div class="dv-dual">
+                        <span class="dv">{{ result?.specialiteFr }}</span>
+                        <span class="dv-ar rtl" *ngIf="result?.specialite">{{ result?.specialite }}</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Tableau des notes -->
+            <div class="section-label" *ngIf="result?.notes?.length">📊 Notes</div>
+            <div class="notes-table" *ngIf="result?.notes?.length">
+                <div class="note-row" *ngFor="let n of result?.notes" [class.note-high]="isHigh(n.note)"
+                    [class.note-mid]="isMid(n.note)" [class.note-low]="isLow(n.note)"
+                    [class.note-avg]="n.key === 'moyennefinale'">
+                    <div class="note-matiere">
+                        <span class="note-fr">{{ n.matiere_fr }}</span>
+                        <span class="note-ar">{{ n.matiere_ar }}</span>
+                    </div>
+                    <span class="note-val">{{ n.note }}</span>
+                </div>
+            </div>
+
+            <!-- Moyenne + Mention -->
+            <div class="avg-block" *ngIf="result?.moyennefinale">
+                <div class="avg-score">
+                    {{ result?.moyennefinale }}
+                    <span class="avg-denom">/ 20</span>
+                </div>
+                <div class="mention-badge" [ngClass]="mentionClass(result?.mentionFr)">
+                    {{ result?.mentionFr || result?.mention }}
+                </div>
+            </div>
+
+            <!-- Debug -->
+            <details class="debug-section" *ngIf="result?.rawQr">
+                <summary class="debug-toggle">🔧 QR brut (debug)</summary>
+                <pre class="debug-raw">{{ result?.rawQr }}</pre>
+                <div class="debug-fields" *ngIf="result?.allFields">
+                    <div *ngFor="let f of objectEntries(result?.allFields)" class="debug-field-row">
+                        <span class="debug-tag">{{ f[0] }}</span>
+                        <span class="debug-val rtl">{{ f[1] }}</span>
+                    </div>
+                </div>
+            </details>
+
+            <button type="button" class="btn-confirm" (click)="confirm()">
+                ✓ UTILISER CES DONNÉES
+            </button>
+
+        </div>
+    </ng-container>
+
+    <!-- ── ERROR ─────────────────────────────────────────────────── -->
+    <ng-container *ngIf="state === 'error'">
+        <div class="error-card">
+            <p class="error-title">⚠️ {{ errorMessage }}</p>
+            <p class="error-sub">
+                Conseil : photographiez <strong>le diplôme entier</strong>, pas seulement le QR code.
+                Bonne lumière, image nette.
+            </p>
+            <div class="idle-btns" style="margin-top:10px">
+                <button type="button" class="btn-camera" (click)="startCamera()">📷 Réessayer</button>
+                <button type="button" class="btn-gallery" (click)="reset()">Annuler</button>
+            </div>
+        </div>
+    </ng-container>
+
+</div>

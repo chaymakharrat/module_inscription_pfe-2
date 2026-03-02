@@ -18,7 +18,7 @@ function initializeKeycloak(keycloak: KeycloakService) {
         checkLoginIframe: false,
       },
       enableBearerInterceptor: true,
-      bearerExcludedUrls: ['/assets', '/clients/public'],
+      bearerExcludedUrls: ['/assets', '/clients/public']
     });
 }
 
