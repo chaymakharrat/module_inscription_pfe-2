@@ -74,6 +74,40 @@
                         <app-bulletin-scanner (scanned)="onBulletinScanned($event)"></app-bulletin-scanner>
                     </div>
 
+                    <!-- Résultat de vérification — visible dès que les 2 docs sont scannés -->
+                    <div *ngIf="verifyMatch !== null" class="mt-4 p-4 rounded-2xl border-2 flex items-center gap-3"
+                        [ngClass]="{
+       'bg-green-50 border-green-200': verifyMatch === true,
+       'bg-red-50   border-red-200':   verifyMatch === false
+     }">
+
+                        <!-- Icône -->
+                        <span class="text-2xl flex-shrink-0">
+                            {{ verifyMatch ? '✅' : '❌' }}
+                        </span>
+
+                        <!-- Texte -->
+                        <div>
+                            <p class="text-sm font-black" [ngClass]="verifyMatch ? 'text-green-700' : 'text-red-700'">
+                                {{ verifyMatch ? 'Documents vérifiés' : 'Documents non concordants' }}
+                            </p>
+                            <p class="text-xs font-medium mt-0.5"
+                                [ngClass]="verifyMatch ? 'text-green-600' : 'text-red-500'">
+                                {{ verifyReason }}
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <!-- Message d'attente — visible si on attend d'autres docs pour comparer -->
+                    <div *ngIf="verifyMatch === null && (bacDiplomeData || bacReleveData || cinData)"
+                        class="mt-4 p-4 rounded-2xl border-2 border-amber-200 bg-amber-50 flex items-center gap-3">
+                        <span class="text-xl">⏳</span>
+                        <p class="text-xs font-bold text-amber-700">
+                            En attente des autres documents pour la vérification croisée (CIN, Diplôme, Relevé)
+                        </p>
+                    </div>
+
                     <!-- Séparateur avec label "ou remplir manuellement" -->
                     <div class="flex items-center gap-4 mt-2 mb-8">
                         <div class="flex-1 h-px bg-slate-200"></div>

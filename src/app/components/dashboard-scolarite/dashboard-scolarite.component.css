@@ -463,6 +463,79 @@
     letter-spacing: -.3px;
 }
 
+/* 🆕 Styles pour les nouveaux champs */
+.cin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 4px 10px;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.badge-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.badge-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+.sidebar-diploma-info {
+    margin-bottom: 24px;
+}
+
+.section-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+}
+
+.diploma-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.diploma-icon {
+    font-size: 20px;
+}
+
+.diploma-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.diploma-year {
+    font-size: 10px;
+    font-weight: 600;
+    color: #2563eb;
+    margin: 2px 0 0;
+}
+
+.adresse-text {
+    word-break: break-word;
+}
+
 /* Progress */
 .sidebar-progress {
     margin-bottom: 24px;
@@ -910,6 +983,16 @@
     text-transform: uppercase;
     letter-spacing: .5px;
     margin: 0;
+}
+
+.doc-rejection-reason {
+    font-size: 11px;
+    color: #ef4444;
+    margin: 4px 0 0;
+    padding: 6px 10px;
+    background: #fef2f2;
+    border-radius: 6px;
+    border-left: 2px solid #ef4444;
 }
 
 .doc-status-pill {

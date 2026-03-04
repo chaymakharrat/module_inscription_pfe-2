@@ -67,7 +67,7 @@
                 <button type="button" class="btn-sm" (click)="reset()">↺</button>
             </div>
 
-            <!-- Identité -->
+            <!-- ── Identité ── -->
             <div class="section-label">👤 Identité</div>
             <div class="data-list">
 
@@ -111,21 +111,20 @@
 
             </div>
 
-            <!-- Tableau des notes -->
-            <div class="section-label" *ngIf="result?.notes?.length">📊 Notes</div>
-            <div class="notes-table" *ngIf="result?.notes?.length">
-                <div class="note-row" *ngFor="let n of result?.notes" [class.note-high]="isHigh(n.note)"
-                    [class.note-mid]="isMid(n.note)" [class.note-low]="isLow(n.note)"
-                    [class.note-avg]="n.key === 'moyennefinale'">
+            <!-- ── Note Anglais uniquement ── -->
+            <div class="section-label" *ngIf="result?.noteAnglais">📊 Note</div>
+            <div class="notes-table" *ngIf="result?.noteAnglais">
+                <div class="note-row" [class.note-high]="isHigh(result?.noteAnglais)"
+                    [class.note-mid]="isMid(result?.noteAnglais)" [class.note-low]="isLow(result?.noteAnglais)">
                     <div class="note-matiere">
-                        <span class="note-fr">{{ n.matiere_fr }}</span>
-                        <span class="note-ar">{{ n.matiere_ar }}</span>
+                        <span class="note-fr">Anglais</span>
+                        <span class="note-ar">الإنجليزية</span>
                     </div>
-                    <span class="note-val">{{ n.note }}</span>
+                    <span class="note-val">{{ result?.noteAnglais }}</span>
                 </div>
             </div>
 
-            <!-- Moyenne + Mention -->
+            <!-- ── Moyenne + Mention ── -->
             <div class="avg-block" *ngIf="result?.moyennefinale">
                 <div class="avg-score">
                     {{ result?.moyennefinale }}
@@ -135,18 +134,6 @@
                     {{ result?.mentionFr || result?.mention }}
                 </div>
             </div>
-
-            <!-- Debug -->
-            <details class="debug-section" *ngIf="result?.rawQr">
-                <summary class="debug-toggle">🔧 QR brut (debug)</summary>
-                <pre class="debug-raw">{{ result?.rawQr }}</pre>
-                <div class="debug-fields" *ngIf="result?.allFields">
-                    <div *ngFor="let f of objectEntries(result?.allFields)" class="debug-field-row">
-                        <span class="debug-tag">{{ f[0] }}</span>
-                        <span class="debug-val rtl">{{ f[1] }}</span>
-                    </div>
-                </div>
-            </details>
 
             <button type="button" class="btn-confirm" (click)="confirm()">
                 ✓ UTILISER CES DONNÉES

@@ -10,31 +10,29 @@ import { HttpClient } from '@angular/common/http';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface NoteItem {
-  tag: string;   // ex: '1N'
-  key: string;   // ex: 'noteMaths'
-  matiere_fr: string;   // ex: 'Mathématiques'
-  matiere_ar: string;   // ex: 'الرياضيات'
-  note: string;   // ex: '08,50'
+  tag: string;
+  key: string;
+  matiere_fr: string;
+  matiere_ar: string;
+  note: string;
 }
 
 export interface BacResult {
   success: boolean;
   errorMessage?: string;
 
-  // ── Identité ────────────────────────────────────────────────────
-  nomComplet?: string;   // arabe : شيماء الخراط
-  dateNaissance?: string;   // "12-05-2004"
-  lieuNaissance?: string;   // arabe : صفاقس
-  numDossier?: string;   // "140901"
-  session?: string;   // "2023"
-  dateDiplome?: string;   // "25/06/2023"
-  specialite?: string;   // arabe
-  specialiteFr?: string;   // "Mathématiques"
-  mention?: string;   // arabe
-  mentionFr?: string;   // "Assez Bien"
-  codeSection?: string;   // "A"
+  nomComplet?: string;
+  dateNaissance?: string;
+  lieuNaissance?: string;
+  numDossier?: string;
+  session?: string;
+  dateDiplome?: string;
+  specialite?: string;
+  specialiteFr?: string;
+  mention?: string;
+  mentionFr?: string;
+  codeSection?: string;
 
-  // ── Notes individuelles ─────────────────────────────────────────
   noteMaths?: string;
   noteSciPhys?: string;
   noteSVT?: string;
@@ -56,10 +54,7 @@ export interface BacResult {
   noteSport?: string;
   moyennefinale?: string;
 
-  // ── Tableau ordonné pour affichage ──────────────────────────────
   notes?: NoteItem[];
-
-  // ── Debug ───────────────────────────────────────────────────────
   rawQr?: string;
   allFields?: Record<string, string>;
 }
@@ -86,6 +81,7 @@ export class BacScannerServiceComponent implements OnDestroy {
   state: 'idle' | 'camera' | 'loading' | 'success' | 'error' = 'idle';
   result: BacResult | null = null;
   errorMessage = '';
+  warningMessage = '';   // ← nouveau : avertissement OCR
   qrDetected = false;
 
   private stream: MediaStream | null = null;
@@ -102,13 +98,13 @@ export class BacScannerServiceComponent implements OnDestroy {
     return obj ? Object.entries(obj) : [];
   }
 
-  private toNum(note: string): number {
+  private toNum(note: string | undefined): number {
     return parseFloat(note?.replace(',', '.') ?? '0') || 0;
   }
 
-  isHigh(note: string): boolean { const n = this.toNum(note); return n >= 16; }
-  isMid(note: string): boolean { const n = this.toNum(note); return n >= 10 && n < 16; }
-  isLow(note: string): boolean { const n = this.toNum(note); return n > 0 && n < 10; }
+  isHigh(note: string | undefined): boolean { const n = this.toNum(note); return n >= 16; }
+  isMid(note: string | undefined): boolean { const n = this.toNum(note); return n >= 10 && n < 16; }
+  isLow(note: string | undefined): boolean { const n = this.toNum(note); return n > 0 && n < 10; }
 
   mentionClass(mention?: string): string {
     if (!mention) return 'mention-default';
@@ -192,13 +188,49 @@ export class BacScannerServiceComponent implements OnDestroy {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
     (e.target as HTMLInputElement).value = '';
-    this.ngZone.run(() => { this.state = 'loading'; });
+    this.ngZone.run(() => { this.state = 'loading'; this.warningMessage = ''; });
+
     const fd = new FormData();
     fd.append('file', file);
+
+    // ── Étape 1 : QR 2D-DOC via /bilan-bac (port 5052) ──────────────────
     this.http.post<BacResult>('/bilan-bac', fd).subscribe({
-      next: res => this.ngZone.run(() => this.handleResult(res)),
+      next: res => {
+        if (res.success) {
+          // QR décodé avec succès
+          this.ngZone.run(() => this.handleResult(res));
+        } else {
+          // QR illisible → fallback OCR via /scan-releve (port 5054)
+          this.tryScanReleve(file);
+        }
+      },
+      error: () => {
+        // Erreur réseau sur 5052 → tenter quand même 5054
+        this.tryScanReleve(file);
+      }
+    });
+  }
+
+  // ── Fallback OCR : /scan-releve (port 5054) ──────────────────────────────
+  // Cascade interne : QR → LLaVA → PaddleOCR
+
+  private tryScanReleve(file: File): void {
+    const fd = new FormData();
+    fd.append('file', file);
+
+    this.http.post<any>('/scan-releve', fd).subscribe({
+      next: res => this.ngZone.run(() => {
+        if (res.success) {
+          // Ajouter avertissement si données extraites par OCR
+          if (res.strategy?.includes('ocr') || res.strategy?.includes('llava') || res.strategy?.includes('paddle')) {
+            res.warning = res.warning || '⚠️ QR illisible — données extraites par OCR, vérifiez les informations';
+          }
+        }
+        this.handleResult(res);
+      }),
       error: () => this.ngZone.run(() => {
-        this.errorMessage = 'Service indisponible';
+        // Les deux services sont down
+        this.errorMessage = 'Service indisponible. Vérifiez votre connexion.';
         this.state = 'error';
       })
     });
@@ -207,10 +239,27 @@ export class BacScannerServiceComponent implements OnDestroy {
   // ── QR caméra → backend ──────────────────────────────────────────────────
 
   private processRawQr(rawQr: string): void {
-    this.ngZone.run(() => { this.state = 'loading'; });
+    this.ngZone.run(() => { this.state = 'loading'; this.warningMessage = ''; });
+
+    // Tenter d'abord /parse-bilan-bac (diplôme, port 5052)
     this.http.post<BacResult>('/parse-bilan-bac', { raw: rawQr }).subscribe({
+      next: res => {
+        if (res.success) {
+          this.ngZone.run(() => this.handleResult(res));
+        } else {
+          // Tenter /parse-releve-raw (relevé, port 5054)
+          this.ngZone.run(() => this.parseReleveRaw(rawQr));
+        }
+      },
+      error: () => this.ngZone.run(() => this.parseReleveRaw(rawQr))
+    });
+  }
+
+  private parseReleveRaw(rawQr: string): void {
+    this.http.post<any>('/parse-releve-raw', { raw: rawQr }).subscribe({
       next: res => this.ngZone.run(() => this.handleResult(res)),
       error: () => this.ngZone.run(() => {
+        // Fallback client minimal
         const parsed = this.clientParse(rawQr);
         this.handleResult({ success: true, rawQr: rawQr.substring(0, 300), ...parsed });
       })
@@ -228,15 +277,28 @@ export class BacScannerServiceComponent implements OnDestroy {
     return r;
   }
 
-  private handleResult(res: BacResult): void {
-    if (res.success) { this.result = res; this.state = 'success'; }
-    else { this.errorMessage = res.errorMessage || 'QR non lisible'; this.state = 'error'; }
+  // ── Gestion résultat ─────────────────────────────────────────────────────
+
+  private handleResult(res: any): void {
+    if (res.success) {
+      this.result = res as BacResult;
+      this.warningMessage = res.warning || '';
+      this.state = 'success';
+    } else if (res.fallbackRequired) {
+      this.errorMessage = 'Document illisible. Photographiez le document entier, bonne lumière, image nette.';
+      this.state = 'error';
+    } else {
+      this.errorMessage = res.errorMessage || 'QR non lisible';
+      this.state = 'error';
+    }
   }
 
   confirm(): void { if (this.result) this.scanned.emit(this.result); }
 
   reset(): void {
     this.stopCamera();
-    this.state = 'idle'; this.result = null; this.errorMessage = ''; this.qrDetected = false;
+    this.state = 'idle'; this.result = null;
+    this.errorMessage = ''; this.warningMessage = '';
+    this.qrDetected = false;
   }
 }

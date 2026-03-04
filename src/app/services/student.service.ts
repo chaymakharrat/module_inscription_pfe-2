@@ -90,4 +90,15 @@ export class StudentService {
             `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}/status`
         );
     }
+    // Retourne l'étudiant complet par CIN (pour le smart form)
+    getStudentByCin(cin: string): Observable<Student> {
+        return this.http.get<Student>(`${this.apiUrl}/numCarteIdentite/${cin}`);
+    }
+
+    // Retourne l'étudiant complet par passeport + pays (pour le smart form)
+    getStudentByPassport(numPassport: string, paysId: number): Observable<Student> {
+        return this.http.get<Student>(`${this.apiUrl}/passportAndPays`, {
+            params: { numPassport, paysId: paysId.toString() }
+        });
+    }
 }

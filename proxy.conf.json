@@ -62,5 +62,21 @@
         "logLevel": "debug",
         "proxyTimeout": 600000,
         "timeout": 600000
+    },
+    "/scan-releve": {
+        "target": "http://localhost:5054",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug",
+        "proxyTimeout": 120000,
+        "timeout": 120000
+    },
+    "/parse-releve-raw": {
+        "target": "http://localhost:5054",
+        "secure": false,
+        "changeOrigin": true,
+        "logLevel": "debug",
+        "proxyTimeout": 120000,
+        "timeout": 120000
     }
 }

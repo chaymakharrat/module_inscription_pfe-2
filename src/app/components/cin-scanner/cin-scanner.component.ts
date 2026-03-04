@@ -8,6 +8,16 @@ import { OcrCinResult, OcrService } from '../../services/ocr.service';
 
 interface Point { x: number; y: number; }
 
+type ScanState = 'idle' | 'framing' | 'scanning' | 'success' | 'error';
+
+interface EditableResult {
+  nom: string;
+  prenom: string;
+  numeroCin: string;
+  dateNaissance: string;
+  genre: 'HOMME' | 'FEMME' | null;
+}
+
 @Component({
   selector: 'app-cin-scanner',
   standalone: true,
@@ -45,7 +55,6 @@ interface Point { x: number; y: number; }
   <!-- ══════════ FRAMING ══════════ -->
   <ng-container *ngIf="state === 'framing'">
     <p class="frame-hint">📐 Alignez la CIN dans le cadre bleu</p>
-
     <div class="viewport-wrap">
       <div #viewport class="viewport"
            (mousedown)="onPointerDown($event)"
@@ -57,23 +66,15 @@ interface Point { x: number; y: number; }
            (touchend)="onTouchEnd($event)"
            (wheel)="onWheel($event)">
 
-        <!-- Image déplaçable -->
-        <div class="img-layer"
-             [style.transform]="imgTransform"
-             [style.transformOrigin]="'center center'">
+        <div class="img-layer" [style.transform]="imgTransform" [style.transformOrigin]="'center center'">
           <img #photoImg [src]="previewUrl" class="photo-img" draggable="false"/>
         </div>
 
-        <!-- Masque + cadre guide SVG -->
-        <svg class="mask-svg"
-             [attr.width]="vpW" [attr.height]="vpH"
-             [attr.viewBox]="'0 0 ' + vpW + ' ' + vpH">
+        <svg class="mask-svg" [attr.width]="vpW" [attr.height]="vpH" [attr.viewBox]="'0 0 ' + vpW + ' ' + vpH">
           <defs>
             <mask id="cinHole">
               <rect width="100%" height="100%" fill="white"/>
-              <rect [attr.x]="frameX" [attr.y]="frameY"
-                    [attr.width]="frameW" [attr.height]="frameH"
-                    rx="10" fill="black"/>
+              <rect [attr.x]="frameX" [attr.y]="frameY" [attr.width]="frameW" [attr.height]="frameH" rx="10" fill="black"/>
             </mask>
             <linearGradient id="scanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%"   stop-color="#3b82f6" stop-opacity="0"/>
@@ -81,31 +82,18 @@ interface Point { x: number; y: number; }
               <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
             </linearGradient>
             <clipPath id="frameClip">
-              <rect [attr.x]="frameX" [attr.y]="frameY"
-                    [attr.width]="frameW" [attr.height]="frameH" rx="10"/>
+              <rect [attr.x]="frameX" [attr.y]="frameY" [attr.width]="frameW" [attr.height]="frameH" rx="10"/>
             </clipPath>
           </defs>
-
-          <!-- Fond sombre autour du cadre -->
           <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#cinHole)"/>
-
-          <!-- Contour cadre (vert si aligné, bleu sinon) -->
-          <rect [attr.x]="frameX" [attr.y]="frameY"
-                [attr.width]="frameW" [attr.height]="frameH"
-                rx="10" fill="none"
-                [attr.stroke]="alignmentGood ? '#4ade80' : '#3b82f6'"
-                stroke-width="2.5"/>
-
-          <!-- Coins renforcés -->
-          <g [attr.stroke]="alignmentGood ? '#4ade80' : '#60a5fa'"
-             stroke-width="4" stroke-linecap="round" fill="none">
+          <rect [attr.x]="frameX" [attr.y]="frameY" [attr.width]="frameW" [attr.height]="frameH"
+                rx="10" fill="none" [attr.stroke]="alignmentGood ? '#4ade80' : '#3b82f6'" stroke-width="2.5"/>
+          <g [attr.stroke]="alignmentGood ? '#4ade80' : '#60a5fa'" stroke-width="4" stroke-linecap="round" fill="none">
             <path [attr.d]="'M'+(frameX+3)+','+(frameY+20)+' L'+(frameX+3)+','+(frameY+3)+' L'+(frameX+20)+','+(frameY+3)"/>
             <path [attr.d]="'M'+(frameX+frameW-20)+','+(frameY+3)+' L'+(frameX+frameW-3)+','+(frameY+3)+' L'+(frameX+frameW-3)+','+(frameY+20)"/>
             <path [attr.d]="'M'+(frameX+3)+','+(frameY+frameH-20)+' L'+(frameX+3)+','+(frameY+frameH-3)+' L'+(frameX+20)+','+(frameY+frameH-3)"/>
             <path [attr.d]="'M'+(frameX+frameW-20)+','+(frameY+frameH-3)+' L'+(frameX+frameW-3)+','+(frameY+frameH-3)+' L'+(frameX+frameW-3)+','+(frameY+frameH-20)"/>
           </g>
-
-          <!-- Ligne scan animée (clippée dans le cadre) -->
           <line clip-path="url(#frameClip)"
                 [attr.x1]="frameX+8" [attr.x2]="frameX+frameW-8"
                 [attr.y1]="scanLineY" [attr.y2]="scanLineY"
@@ -128,20 +116,16 @@ interface Point { x: number; y: number; }
           </g>
         </svg>
 
-        <!-- Badge alignement -->
         <div class="align-badge" [class.good]="alignmentGood">
           <span *ngIf="!alignmentGood">⚠ Centrez la CIN dans le cadre</span>
           <span *ngIf="alignmentGood">✓ Bon alignement</span>
         </div>
       </div>
 
-      <!-- Barre contrôles -->
       <div class="ctrl-bar">
         <div class="ctrl-group">
           <button class="ctrl-btn" (click)="adjustZoom(-0.12)">−</button>
-          <input type="range" min="0.2" max="5" step="0.05"
-                 [value]="scale" (input)="onZoomSlider($event)"
-                 class="zoom-slider"/>
+          <input type="range" min="0.2" max="5" step="0.05" [value]="scale" (input)="onZoomSlider($event)" class="zoom-slider"/>
           <button class="ctrl-btn" (click)="adjustZoom(0.12)">+</button>
         </div>
         <div class="ctrl-sep"></div>
@@ -159,17 +143,11 @@ interface Point { x: number; y: number; }
     </div>
 
     <div class="frame-btns">
-      <button type="button" class="btn-ghost"   (click)="resetFrame()">↺ Réinitialiser</button>
-      <button type="button" class="btn-ghost"   (click)="openGallery()">🖼️ Autre photo</button>
-      <button type="button" class="btn-analyze"
-            
-              (click)="analyzePhoto()">🔍 Analyser</button>
+      <button type="button" class="btn-ghost" (click)="resetFrame()">↺ Réinitialiser</button>
+      <button type="button" class="btn-ghost" (click)="openGallery()">🖼️ Autre photo</button>
+      <button type="button" class="btn-analyze" (click)="analyzePhoto()">🔍 Analyser</button>
     </div>
-    <p class="idle-tip">
-      {{ alignmentGood
-           ? '✅ Prêt — cliquez sur Analyser'
-           : 'Glissez · Pincez · Molette pour ajuster' }}
-    </p>
+    <p class="idle-tip">{{ alignmentGood ? '✅ Prêt — cliquez sur Analyser' : 'Glissez · Pincez · Molette pour ajuster' }}</p>
   </ng-container>
 
   <!-- ══════════ SCANNING ══════════ -->
@@ -177,81 +155,84 @@ interface Point { x: number; y: number; }
     <div class="scanning-wrap">
       <div class="scan-preview-wrap">
         <img *ngIf="croppedPreviewUrl" [src]="croppedPreviewUrl" class="scan-preview-img"/>
-
-        <!-- Zones animées — SYNCHRONISÉES avec CIN_ZONES de ocr_service.py -->
         <div class="scan-overlay">
           <div *ngFor="let z of CIN_FIELD_ZONES; let i = index"
                class="zone-hl"
                [class.pending]="currentZoneIdx < i"
                [class.active]="currentZoneIdx === i"
                [class.done]="currentZoneIdx > i"
-               [style.left.%]="z.x[0]"
-               [style.top.%]="z.y[0]"
-               [style.width.%]="z.x[1] - z.x[0]"
-               [style.height.%]="z.y[1] - z.y[0]"
+               [style.left.%]="z.x[0]" [style.top.%]="z.y[0]"
+               [style.width.%]="z.x[1] - z.x[0]" [style.height.%]="z.y[1] - z.y[0]"
                [style.--zc]="z.color">
             <span class="zone-lbl" *ngIf="currentZoneIdx === i">{{ z.label }}</span>
           </div>
         </div>
-
-        <!-- Spinner -->
         <div class="scan-center">
           <div class="scan-spinner"></div>
           <p class="scan-txt">{{ scanLabel }}</p>
         </div>
       </div>
-
       <div class="progress-bar">
-        <div class="progress-fill"
-             [style.width.%]="((currentZoneIdx+1) / CIN_FIELD_ZONES.length)*100">
-        </div>
+        <div class="progress-fill" [style.width.%]="((currentZoneIdx+1) / CIN_FIELD_ZONES.length)*100"></div>
       </div>
     </div>
   </ng-container>
 
   <!-- ══════════ SUCCESS ══════════ -->
   <ng-container *ngIf="state === 'success'">
-    <div class="result-card" (click)="$event.stopPropagation()">
+    <div class="result-card">
       <div class="result-header">
         <div class="result-icon">✏️</div>
         <div class="rh-text">
           <p class="result-title">CIN lue — Vérifiez et corrigez si besoin</p>
-          <p class="result-sub">L'OCR peut faire des erreurs sur certains caractères arabes</p>
+          <p class="result-sub">Le formulaire a été pré-rempli avec les données extraites.</p>
         </div>
         <button type="button" class="btn-restart" (click)="reset()">↺ Recommencer</button>
       </div>
-
       <div class="fields-grid">
+        <!-- PRÉNOM -->
         <div class="field-group">
           <label>Prénom <span class="field-ar">الاسم</span></label>
-          <input type="text" [(ngModel)]="editableResult.prenom" dir="rtl" placeholder="الاسم"/>
-        </div>
-        <div class="field-group">
-          <label>Nom <span class="field-ar">اللقب</span></label>
-          <input type="text" [(ngModel)]="editableResult.nom" dir="rtl" placeholder="اللقب"/>
-        </div>
-        <div class="field-group">
-          <label>N° CIN</label>
-          <input type="text" [(ngModel)]="editableResult.numeroCin" maxlength="8"
-                 placeholder="12345678" class="tracking"/>
-        </div>
-        <div class="field-group">
-          <label>Date de naissance</label>
-          <input type="date" [(ngModel)]="editableResult.dateNaissance"/>
-        </div>
-        <div class="field-group">
-          <label>Genre</label>
-          <div class="genre-toggle">
-            <button type="button" [class.active]="editableResult.genre==='HOMME'"
-                    (click)="editableResult.genre='HOMME'">HOMME</button>
-            <button type="button" [class.active]="editableResult.genre==='FEMME'"
-                    (click)="editableResult.genre='FEMME'">FEMME</button>
+          <div class="field-input-row">
+            <input type="text" [(ngModel)]="editableResult.prenom" dir="rtl" placeholder="الاسم"/>
           </div>
         </div>
+
+        <!-- NOM -->
         <div class="field-group">
-          <label>Ville <span class="field-ar">السكنى</span></label>
-          <input type="text" [(ngModel)]="editableResult.adresse" dir="rtl" placeholder="Ville"/>
+          <label>Nom <span class="field-ar">اللقب</span></label>
+          <div class="field-input-row">
+            <input type="text" [(ngModel)]="editableResult.nom" dir="rtl" placeholder="اللقب" readonly/>
+          </div>
         </div>
+
+        <!-- N° CIN -->
+        <div class="field-group">
+          <label>N° CIN</label>
+          <div class="field-input-row">
+            <input type="text" [(ngModel)]="editableResult.numeroCin" maxlength="8" placeholder="12345678" class="tracking" readonly/>
+          </div>
+        </div>
+
+        <!-- DATE -->
+        <div class="field-group">
+          <label>Date de naissance</label>
+          <div class="field-input-row">
+            <input type="date" [(ngModel)]="editableResult.dateNaissance"/>
+          </div>
+        </div>
+
+        <!-- GENRE -->
+        <div class="field-group">
+          <label>Genre</label>
+          <div class="field-input-row genre-row">
+            <div class="genre-toggle">
+              <button type="button" [class.active]="editableResult.genre==='HOMME'" (click)="editableResult.genre='HOMME'">HOMME</button>
+              <button type="button" [class.active]="editableResult.genre==='FEMME'" (click)="editableResult.genre='FEMME'">FEMME</button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <button type="button" class="btn-confirm" (click)="confirmAndFill()">
@@ -300,7 +281,7 @@ interface Point { x: number; y: number; }
     .idle-tip   { font-size: 10px; color: #94a3b8; margin: 6px 0 0; text-align: center; }
     .idle-btns  { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
-    /* ── Boutons ── */
+    /* ── Buttons ── */
     .btn-primary {
       padding: 10px 24px; background: #2563eb; color: #fff;
       border: none; border-radius: 12px; font-weight: 800; font-size: 12px;
@@ -324,8 +305,8 @@ interface Point { x: number; y: number; }
       border: none; border-radius: 12px; font-weight: 900; font-size: 12px;
       letter-spacing: .08em; cursor: pointer; transition: all .2s;
     }
-    .btn-analyze:hover:not(.disabled) { background: #15803d; }
-    .btn-analyze.disabled { background: #86efac; cursor: not-allowed; opacity: .65; }
+    .btn-analyze:hover:not(:disabled) { background: #15803d; }
+    .btn-analyze:disabled { background: #86efac; cursor: not-allowed; opacity: .65; }
     .btn-confirm {
       width: 100%; padding: 14px; background: #16a34a; color: #fff;
       border: none; border-radius: 14px; font-weight: 900; font-size: 12px;
@@ -337,6 +318,34 @@ interface Point { x: number; y: number; }
       padding: 6px 12px; background: transparent; border: none;
       color: #94a3b8; font-size: 11px; font-weight: 700; cursor: pointer;
       text-decoration: underline; white-space: nowrap; flex-shrink: 0;
+    }
+
+    /* ── RESCAN BUTTON (inline per field) ── */
+    .btn-rescan {
+      width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+      border: 2px solid #e2e8f0; background: #f8fafc;
+      font-size: 14px; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; transition: all .2s; padding: 0;
+    }
+    .btn-rescan:hover {
+      border-color: #f59e0b; background: #fffbeb;
+      transform: scale(1.1);
+    }
+    .field-input-row {
+      display: flex; gap: 6px; align-items: center;
+    }
+    .field-input-row input,
+    .field-input-row .genre-toggle {
+      flex: 1;
+    }
+    .genre-row { align-items: center; }
+    .field-rescan-active {
+      animation: rescan-pulse 0.5s ease-out;
+    }
+    @keyframes rescan-pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+      70%  { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
+      100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
     }
 
     /* ── FRAMING ── */
@@ -352,8 +361,7 @@ interface Point { x: number; y: number; }
     }
     .viewport:active { cursor: grabbing; }
     .img-layer {
-      position: absolute; top: 0; left: 0;
-      will-change: transform; pointer-events: none;
+      position: absolute; top: 0; left: 0; will-change: transform; pointer-events: none;
     }
     .photo-img { display: block; max-width: none; pointer-events: none; user-select: none; }
     .mask-svg  { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -366,7 +374,6 @@ interface Point { x: number; y: number; }
     }
     .align-badge.good { color: #4ade80; }
 
-    /* Barre contrôles */
     .ctrl-bar {
       display: flex; align-items: center; gap: 8px;
       margin-top: 10px; padding: 8px 12px;
@@ -382,7 +389,7 @@ interface Point { x: number; y: number; }
       transition: all .15s;
     }
     .ctrl-btn:hover { background: #e2e8f0; }
-    .ctrl-btn.active { background: #dbeafe; border-color: #3b82f6; }
+    .ctrl-btn.active { background: #dbeafe; border-color: #3b82f6; color: #2563eb; }
     .zoom-slider { flex: 1; accent-color: #2563eb; cursor: pointer; min-width: 70px; }
     .zoom-val { font-size: 11px; font-weight: 700; color: #475569; min-width: 36px; text-align: right; margin-left: auto; }
     .frame-btns { display: flex; gap: 8px; margin-top: 10px; }
@@ -395,8 +402,6 @@ interface Point { x: number; y: number; }
     }
     .scan-preview-img { width: 100%; height: 100%; object-fit: cover; opacity: .28; }
     .scan-overlay { position: absolute; inset: 0; }
-
-    /* Zones animées avec couleur variable */
     .zone-hl {
       position: absolute; border-radius: 4px;
       transition: all .35s ease; pointer-events: none; border: 2px solid transparent;
@@ -406,14 +411,14 @@ interface Point { x: number; y: number; }
       background: color-mix(in srgb, var(--zc) 18%, transparent);
       border-color: var(--zc); opacity: 1;
     }
-    .zone-hl.done {
-      background: rgba(74,222,128,.1); border-color: #4ade80; opacity: 1;
-    }
+    .zone-hl.done { background: rgba(74,222,128,.1); border-color: #4ade80; opacity: 1; }
     .zone-lbl {
       position: absolute; top: 2px; left: 4px;
-      font-size: 8px; font-weight: 900;
-      color: var(--zc); white-space: nowrap; font-family: monospace;
+      font-size: 8px; font-weight: 900; color: var(--zc);
+      white-space: nowrap; font-family: monospace;
     }
+
+
     .scan-center {
       position: absolute; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
@@ -426,12 +431,9 @@ interface Point { x: number; y: number; }
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .scan-txt { font-size: 13px; font-weight: 800; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.6); }
-    .progress-bar {
-      width: 100%; height: 4px; background: #dbeafe; border-radius: 4px; overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%; background: #2563eb; border-radius: 4px; transition: width .45s ease;
-    }
+    .progress-bar { width: 100%; height: 4px; background: #dbeafe; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #2563eb; border-radius: 4px; transition: width .45s ease; }
+
 
     /* ── SUCCESS ── */
     .result-card {
@@ -458,7 +460,7 @@ interface Point { x: number; y: number; }
     .field-group input {
       padding: 9px 12px; border: 2px solid #e2e8f0; border-radius: 12px;
       font-size: 13px; font-weight: 700; color: #334155;
-      background: #fff; outline: none; transition: border .2s;
+      background: #fff; outline: none; transition: border .2s; width: 100%; box-sizing: border-box;
     }
     .field-group input:focus { border-color: #3b82f6; }
     .field-group input.tracking { letter-spacing: .15em; font-family: monospace; }
@@ -492,13 +494,10 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
   @Output() scanned = new EventEmitter<OcrCinResult>();
 
   // ═══════════════════════════════════════════════════════════════════════
-  // ZONES SYNCHRONISÉES avec ocr_service.py → CIN_ZONES
-  // Si vous recalibrez dans calibrage-zones.html, mettez à jour ICI aussi.
+  // ZONES — pour l'animation de scan global (5 zones affichées)
   // ═══════════════════════════════════════════════════════════════════════
   readonly CIN_FIELD_ZONES = [
-    // ── N° CIN : 8 chiffres, centré en haut de la carte ─────────────
     { key: 'cin', label: 'N° CIN (8 chiffres)', x: [20, 80], y: [22, 38], color: '#f59e0b' },
-    // ── Zone texte droite : photo occupe ~0-38% en largeur ──────────
     { key: 'nom', label: 'اللقب (Nom)', x: [38, 98], y: [38, 55], color: '#3b82f6' },
     { key: 'prenom', label: 'الاسم (Prénom)', x: [38, 98], y: [53, 68], color: '#8b5cf6' },
     { key: 'genre', label: 'بن / بنت (Genre)', x: [15, 98], y: [65, 79], color: '#ec4899' },
@@ -513,25 +512,25 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
     'تاريخ الولادة — Date…',
   ];
 
-  // États
-  state: 'idle' | 'framing' | 'scanning' | 'success' | 'error' = 'idle';
+  // ── State ──────────────────────────────────────────────────────────────
+  state: ScanState = 'idle';
   previewUrl: string | null = null;
   croppedPreviewUrl: string | null = null;
   errorMessage = '';
   capturedFile: File | null = null;
+  private croppedBlob: Blob | null = null; // stored for re-scan calls
+
+  // ── Field guide toggle ────────────────────────────────────────────────
   showFieldGuide = false;
 
-  // Transform image
+  // ── Transform image ───────────────────────────────────────────────────
   scale = 1;
   translateX = 0;
   translateY = 0;
   rotation = 0;
-
-  // Dimensions viewport
   vpW = 480;
   vpH = 303;
 
-  // Cadre guide (82% de la largeur viewport, centré)
   get frameW() { return this.vpW * 0.82; }
   get frameH() { return this.frameW / 1.585; }
   get frameX() { return (this.vpW - this.frameW) / 2; }
@@ -553,13 +552,13 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
       top + dispH >= this.frameY + this.frameH;
   }
 
-  // Interactions
+  // ── Interactions ───────────────────────────────────────────────────────
   private isDragging = false;
   private isPinching = false;
   private lastPointer: Point = { x: 0, y: 0 };
   private lastPinchDist = 0;
 
-  // Animations
+  // ── Animations ────────────────────────────────────────────────────────
   scanLineY = 0;
   currentZoneIdx = -1;
   scanLabel = '';
@@ -567,18 +566,25 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
   private scanLineInt: any;
   private scanInt: any;
 
-  // Résultat éditable
-  editableResult = {
+  // ── Result ────────────────────────────────────────────────────────────
+  editableResult: EditableResult = {
     nom: '', prenom: '', numeroCin: '',
-    dateNaissance: '', genre: null as 'HOMME' | 'FEMME' | null, adresse: ''
+    dateNaissance: '', genre: null
   };
+  // ── Draw state ────────────────────────────────────────────────────────
+  isDrawing = false;
+  drawStart: Point = { x: 0, y: 0 };
+  drawRect = { x: 0, y: 0, w: 0, h: 0 };
+  drawField: keyof EditableResult | null = null;
 
   constructor(private ocrService: OcrService, private ngZone: NgZone) { }
 
   ngAfterViewInit() { this.startScanLine(); }
   ngOnDestroy() { clearInterval(this.scanInt); clearInterval(this.scanLineInt); }
 
-  // ── Actions ──────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────
+
+  // ── File / Camera ─────────────────────────────────────────────────────
   openCamera() { this.cameraInput.nativeElement.click(); }
   openGallery() { this.galleryInput.nativeElement.click(); }
   rotate(deg: number) { this.rotation = (this.rotation + deg) % 360; }
@@ -605,11 +611,7 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
     const rect = vp.getBoundingClientRect();
     this.vpW = rect.width || 480;
     this.vpH = rect.height || this.vpW / 1.585;
-    // Zoom minimal pour que l'image couvre tout le cadre + petite marge
-    const minScale = Math.max(
-      this.frameW / img.naturalWidth,
-      this.frameH / img.naturalHeight
-    ) * 1.08;
+    const minScale = Math.max(this.frameW / img.naturalWidth, this.frameH / img.naturalHeight) * 1.08;
     this.scale = minScale;
     this.translateX = this.vpW / 2;
     this.translateY = this.vpH / 2;
@@ -618,7 +620,7 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
 
   resetFrame() { this.fitImageToFrame(); }
 
-  // ── Scan line ────────────────────────────────────
+  // ── Scan line ─────────────────────────────────────────────────────────
   private startScanLine() {
     clearInterval(this.scanLineInt);
     this.scanLineY = this.frameY + 6;
@@ -630,11 +632,8 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
     }, 16);
   }
 
-  // ── Drag souris ──────────────────────────────────
-  onPointerDown(e: MouseEvent) {
-    this.isDragging = true;
-    this.lastPointer = { x: e.clientX, y: e.clientY };
-  }
+  // ── Drag ──────────────────────────────────────────────────────────────
+  onPointerDown(e: MouseEvent) { this.isDragging = true; this.lastPointer = { x: e.clientX, y: e.clientY }; }
   onPointerMove(e: MouseEvent) {
     if (!this.isDragging) return;
     this.translateX += e.clientX - this.lastPointer.x;
@@ -643,11 +642,7 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
   }
   onPointerUp(_e: MouseEvent) { this.isDragging = false; }
 
-  // ── Zoom molette ─────────────────────────────────
-  onWheel(e: WheelEvent) {
-    e.preventDefault();
-    this.zoomAt(e.deltaY > 0 ? -0.08 : 0.08, e.offsetX, e.offsetY);
-  }
+  onWheel(e: WheelEvent) { e.preventDefault(); this.zoomAt(e.deltaY > 0 ? -0.08 : 0.08, e.offsetX, e.offsetY); }
   adjustZoom(delta: number) { this.zoomAt(delta, this.vpW / 2, this.vpH / 2); }
   onZoomSlider(e: Event) {
     const nv = parseFloat((e.target as HTMLInputElement).value);
@@ -661,16 +656,10 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
     this.scale = ns;
   }
 
-  // ── Touch drag + pinch ────────────────────────────
   onTouchStart(e: TouchEvent) {
     e.preventDefault();
-    if (e.touches.length === 1) {
-      this.isDragging = true; this.isPinching = false;
-      this.lastPointer = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    } else if (e.touches.length === 2) {
-      this.isDragging = false; this.isPinching = true;
-      this.lastPinchDist = this.pinchDist(e);
-    }
+    if (e.touches.length === 1) { this.isDragging = true; this.isPinching = false; this.lastPointer = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }
+    else if (e.touches.length === 2) { this.isDragging = false; this.isPinching = true; this.lastPinchDist = this.pinchDist(e); }
   }
   onTouchMove(e: TouchEvent) {
     e.preventDefault();
@@ -692,13 +681,10 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
     if (e.touches.length === 0) this.isDragging = false;
   }
   private pinchDist(e: TouchEvent) {
-    return Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
+    return Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
   }
 
-  // ── Crop canvas + envoi OCR ──────────────────────
+  // ── CROP + GLOBAL SCAN ────────────────────────────────────────────────
   analyzePhoto() {
     if (!this.capturedFile || !this.previewUrl) return;
     this.cropAndSend();
@@ -708,69 +694,54 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
     const img = this.photoImg?.nativeElement;
     if (!img) return;
     const canvas = this.cropCanvas.nativeElement;
-
-    // Résolution minimale 1400px (requis par ocr_service.py pour CLAHE + upscale)
     const outW = Math.max(1400, Math.round(this.frameW / this.scale));
     const outH = Math.round(outW / 1.585);
-    canvas.width = outW;
-    canvas.height = outH;
-
+    canvas.width = outW; canvas.height = outH;
     const ctx = canvas.getContext('2d')!;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, outW, outH);
-
-    // Reproduire exactement la CSS transform sur le canvas :
-    // CSS : translate(tx,ty) translate(-50%,-50%) scale(s) rotate(r°)
-    // Le centre du cadre dans le viewport = (vpW/2, vpH/2)
-    // → on centre le canvas sur ce point, mis à l'échelle outW/frameW
     const ratio = outW / this.frameW;
     ctx.translate(outW / 2, outH / 2);
     ctx.scale(ratio, ratio);
     ctx.translate(this.translateX - this.vpW / 2, this.translateY - this.vpH / 2);
     ctx.rotate(this.rotation * Math.PI / 180);
     ctx.scale(this.scale, this.scale);
-    ctx.drawImage(img,
-      -img.naturalWidth / 2, -img.naturalHeight / 2,
-      img.naturalWidth, img.naturalHeight);
-
-    // ── Prétraitement image côté client ──────────────────────────────
-    // 1. Auto-contrast : étire l'histogramme (percentiles 5%–95%)
-    // 2. Sharpen : filtre de convolution 3×3 → lettres plus nettes
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform avant lecture pixels
+    ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2, img.naturalWidth, img.naturalHeight);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     let imgData = ctx.getImageData(0, 0, outW, outH);
     imgData = this.autoContrast(imgData);
     imgData = this.sharpen(imgData, outW, outH);
     ctx.putImageData(imgData, 0, 0);
-    // ─────────────────────────────────────────────────────────────────
-
     this.croppedPreviewUrl = canvas.toDataURL('image/jpeg', 0.85);
     this.startScanAnimation();
 
     canvas.toBlob(blob => {
       if (!blob) { this.handleError('Recadrage impossible'); return; }
-      this.ocrService.scanCin(new File([blob], 'cin_crop.jpg', { type: 'image/jpeg' }))
-        .subscribe({
-          next: res => this.ngZone.run(() => {
-            clearInterval(this.scanInt);
-            if (res.success) {
-              this.state = 'success';
-              this.editableResult = {
-                nom: res.nom || '',
-                prenom: res.prenom || '',
-                numeroCin: res.numeroCin || '',
-                dateNaissance: res.dateNaissance || '',
-                genre: res.genre || null,
-                adresse: res.adresse || '',
-              };
-            } else {
-              this.handleError(res.errorMessage || 'Échec OCR');
-            }
-          }),
-          error: () => this.ngZone.run(() => {
-            clearInterval(this.scanInt);
-            this.handleError('Service OCR indisponible (port 5050)');
-          })
-        });
+      // Store the cropped blob for future zone re-scans
+      this.croppedBlob = blob;
+      const file = new File([blob], 'cin_crop.jpg', { type: 'image/jpeg' });
+
+      this.ocrService.scanCin(file).subscribe({
+        next: res => this.ngZone.run(() => {
+          clearInterval(this.scanInt);
+          if (res.success) {
+            this.state = 'success';
+            this.editableResult = {
+              nom: res.nom || '',
+              prenom: res.prenom || '',
+              numeroCin: res.numeroCin || '',
+              dateNaissance: res.dateNaissance || '',
+              genre: res.genre || null,
+            };
+          } else {
+            this.handleError(res.errorMessage || 'Échec OCR');
+          }
+        }),
+        error: () => this.ngZone.run(() => {
+          clearInterval(this.scanInt);
+          this.handleError('Service OCR indisponible (port 5050)');
+        })
+      });
     }, 'image/jpeg', 0.95);
   }
 
@@ -781,65 +752,16 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
     let i = 0;
     this.scanInt = setInterval(() => {
       i++;
-      if (i < this.scanLabels.length) {
-        this.currentZoneIdx = i;
-        this.scanLabel = this.scanLabels[i];
-      }
+      if (i < this.scanLabels.length) { this.currentZoneIdx = i; this.scanLabel = this.scanLabels[i]; }
     }, 500);
   }
 
+
+  // ── Error / Reset ─────────────────────────────────────────────────────
   private handleError(msg: string) {
     clearInterval(this.scanInt);
     this.state = 'error';
     this.errorMessage = msg;
-  }
-
-  // ── Prétraitement : Auto-contrast (percentile stretch 5%–95%) ─────
-  private autoContrast(imgData: ImageData): ImageData {
-    const d = imgData.data;
-    const n = d.length;
-    // Collecter les luminances
-    const lums: number[] = [];
-    for (let i = 0; i < n; i += 4) {
-      lums.push(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
-    }
-    lums.sort((a, b) => a - b);
-    const lo = lums[Math.floor(lums.length * 0.05)];
-    const hi = lums[Math.floor(lums.length * 0.95)];
-    if (hi === lo) return imgData; // image déjà uniforme
-    const range = hi - lo;
-    for (let i = 0; i < n; i += 4) {
-      for (let c = 0; c < 3; c++) {
-        d[i + c] = Math.min(255, Math.max(0, Math.round((d[i + c] - lo) / range * 255)));
-      }
-    }
-    return imgData;
-  }
-
-  // ── Prétraitement : Sharpen (convolution 3×3) ─────────────────────
-  private sharpen(imgData: ImageData, w: number, h: number): ImageData {
-    const src = new Uint8ClampedArray(imgData.data);
-    const dst = imgData.data;
-    // Kernel sharpen standard
-    const k = [0, -1, 0,
-      -1, 5, -1,
-      0, -1, 0];
-    for (let y = 1; y < h - 1; y++) {
-      for (let x = 1; x < w - 1; x++) {
-        const idx = (y * w + x) * 4;
-        for (let c = 0; c < 3; c++) {
-          let val = 0;
-          for (let ky = -1; ky <= 1; ky++) {
-            for (let kx = -1; kx <= 1; kx++) {
-              const si = ((y + ky) * w + (x + kx)) * 4 + c;
-              val += src[si] * k[(ky + 1) * 3 + (kx + 1)];
-            }
-          }
-          dst[idx + c] = Math.min(255, Math.max(0, val));
-        }
-      }
-    }
-    return imgData;
   }
 
   confirmAndFill() {
@@ -850,16 +772,51 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
       numeroCin: this.editableResult.numeroCin || undefined,
       dateNaissance: this.editableResult.dateNaissance || undefined,
       genre: this.editableResult.genre || undefined,
-      adresse: this.editableResult.adresse || undefined,
     });
   }
 
   reset() {
     clearInterval(this.scanInt);
-    this.state = 'idle'; this.previewUrl = null;
-    this.croppedPreviewUrl = null; this.capturedFile = null;
-    this.errorMessage = ''; this.currentZoneIdx = -1;
+    this.state = 'idle';
+    this.previewUrl = null;
+    this.croppedPreviewUrl = null;
+    this.capturedFile = null;
+    this.croppedBlob = null;
+    this.errorMessage = '';
+    this.currentZoneIdx = -1;
+    this.showFieldGuide = false;
     this.scale = 1; this.translateX = 0; this.translateY = 0; this.rotation = 0;
-    this.editableResult = { nom: '', prenom: '', numeroCin: '', dateNaissance: '', genre: null, adresse: '' };
+    this.editableResult = { nom: '', prenom: '', numeroCin: '', dateNaissance: '', genre: null };
+  }
+
+  // ── Image preprocessing ───────────────────────────────────────────────
+  private autoContrast(imgData: ImageData): ImageData {
+    const d = imgData.data; const n = d.length;
+    const lums: number[] = [];
+    for (let i = 0; i < n; i += 4) lums.push(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+    lums.sort((a, b) => a - b);
+    const lo = lums[Math.floor(lums.length * 0.05)];
+    const hi = lums[Math.floor(lums.length * 0.95)];
+    if (hi === lo) return imgData;
+    const range = hi - lo;
+    for (let i = 0; i < n; i += 4)
+      for (let c = 0; c < 3; c++)
+        d[i + c] = Math.min(255, Math.max(0, Math.round((d[i + c] - lo) / range * 255)));
+    return imgData;
+  }
+
+  private sharpen(imgData: ImageData, w: number, h: number): ImageData {
+    const src = new Uint8ClampedArray(imgData.data); const dst = imgData.data;
+    const k = [0, -1, 0, -1, 5, -1, 0, -1, 0];
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const idx = (y * w + x) * 4;
+      for (let c = 0; c < 3; c++) {
+        let val = 0;
+        for (let ky = -1; ky <= 1; ky++) for (let kx = -1; kx <= 1; kx++)
+          val += src[((y + ky) * w + (x + kx)) * 4 + c] * k[(ky + 1) * 3 + (kx + 1)];
+        dst[idx + c] = Math.min(255, Math.max(0, val));
+      }
+    }
+    return imgData;
   }
 }

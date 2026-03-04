@@ -10,6 +10,7 @@ export interface DemandeDetailDTO {
     nomDiplome: string;
     typeDiplome?: string;
     langueDiplome?: string;
+    niveauChoisi?: string; // 🆕 Ajout du niveau
     statutActuel: string;
     dateCreation: string;
     processInstanceId: string;
@@ -33,6 +34,9 @@ export interface EtudiantInfoDTO {
     numCarteIdentite: string;
     numPassport: string;
     paysNom: string;
+    adresse?: string; // 🆕 Ajout
+    dernierDiplome?: string; // 🆕 Ajout
+    anneeDernierDiplome?: number; // 🆕 Ajout
 }
 
 export interface DocumentStatusDTO {
