@@ -18,6 +18,8 @@ export interface BacResult {
   wilaya?: string;
   rawQr?: string;
   errorMessage?: string;
+  file?: File | null;      // ✅ AJOUTER
+  isManual?: boolean;
 }
 
 @Component({
@@ -47,7 +49,7 @@ export interface BacResult {
 
   <!-- CAMERA LIVE -->
   <ng-container *ngIf="state === 'camera'">
-    <p class="frame-hint">🎯 Cadrez le QR code 2D-DOC dans le carré</p>
+    <p class="frame-hint">🎯 Cadrez le code 2D-DOC dans le carré</p>
     <div class="camera-wrap">
       <video #videoEl class="camera-video" autoplay playsinline muted></video>
       <canvas #processCanvas class="hidden"></canvas>
@@ -134,14 +136,45 @@ export interface BacResult {
         <pre class="debug-raw">{{ result?.rawQr }}</pre>
       </details>
 
-      <button type="button" class="btn-confirm" (click)="confirm()">
+      <!-- <button type="button" class="btn-confirm" (click)="confirm()">
         ✓ UTILISER CES DONNÉES
-      </button>
+      </button> -->
+      <!-- <div class="flex items-center gap-2 mt-3 p-3 rounded-xl bg-green-50 border border-green-200">
+  <span>✅</span>
+  <p class="text-xs font-bold text-green-700">
+    Données transmises automatiquement
+  </p>
+  <button type="button" class="ml-auto text-xs text-slate-400 hover:text-slate-600 font-bold" 
+          (click)="reset()">
+    ↺ Rescanner
+  </button>
+</div> -->
+<div class="flex items-center gap-2 mt-3 p-3 rounded-xl"
+     [ngClass]="result?.isManual ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-200'">
+  <span>{{ result?.isManual ? '⚠️' : '✅' }}</span>
+  <div class="flex-1">
+    <p class="text-xs font-bold" [ngClass]="result?.isManual ? 'text-amber-700' : 'text-green-700'">
+      <ng-container *ngIf="!result?.isManual">
+        Données transmises automatiquement
+      </ng-container>
+      <ng-container *ngIf="result?.isManual">
+        QR illisible — document enregistré pour vérification
+      </ng-container>
+    </p>
+    <p *ngIf="result?.isManual" class="text-xs text-amber-600 mt-0.5">
+      💡 Pour un meilleur résultat : photographiez le diplôme entier avec bonne lumière, en cadrant bien le code 2D-DOC en bas à gauche.
+    </p>
+  </div>
+  <button type="button" class="ml-auto text-xs text-slate-400 hover:text-slate-600 font-bold flex-shrink-0"
+          (click)="reset()">
+    ↺ Rescanner
+  </button>
+</div>
     </div>
   </ng-container>
 
   <!-- ERROR -->
-  <ng-container *ngIf="state === 'error'">
+  <!-- <ng-container *ngIf="state === 'error'">
     <div class="error-card">
       <p class="error-title">⚠️ {{ errorMessage }}</p>
       <p class="error-sub">
@@ -153,7 +186,35 @@ export interface BacResult {
         <button type="button" class="btn-gallery" (click)="reset()">Annuler</button>
       </div>
     </div>
-  </ng-container>
+  </ng-container> -->
+  <ng-container *ngIf="state === 'error'">
+  <div class="error-card">
+    <p class="error-title">⚠️ {{ errorMessage }}</p>
+    <p class="error-sub">
+      QR code illisible ou absent sur ce diplôme.
+    </p>
+    <div class="idle-btns" style="margin-top:10px">
+      <button type="button" class="btn-camera" (click)="startCamera()">📷 Réessayer</button>
+      <button type="button" class="btn-gallery" (click)="fileInput.click()">🖼️ Autre photo</button>
+    </div>
+
+    <!-- ✅ AJOUTER : upload sans QR -->
+    <div class="manual-upload-section">
+      <div class="manual-divider">ou</div>
+      <p class="manual-hint">
+        📎 Votre diplôme n'a pas de QR code ?
+      </p>
+      <button type="button" class="btn-manual" (click)="manualInput.click()">
+        Uploader le fichier sans scan QR
+      </button>
+      <input #manualInput type="file" accept="image/*,application/pdf"
+             class="hidden" (change)="onManualUpload($event)"/>
+      <p class="manual-note">
+        ✅ Le fichier sera transmis — l'administration vérifiera le document.
+      </p>
+    </div>
+  </div>
+</ng-container>
 </div>
   `,
   styles: [`
@@ -236,6 +297,37 @@ export interface BacResult {
     .error-title { font-size:13px; font-weight:900; color:#dc2626; margin:0 0 6px; }
     .error-sub   { font-size:11px; color:#64748b; margin:0; }
     .error-sub strong { color:#dc2626; }
+    .manual-upload-section {
+  margin-top: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding-top: 14px;
+  border-top: 1px dashed #fecaca;
+}
+.manual-divider {
+  font-size: 10px; color: #94a3b8; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em;
+}
+.manual-hint {
+  font-size: 11px; color: #64748b; font-weight: 600; margin: 0; text-align: center;
+}
+.manual-note {
+  font-size: 10px; color: #16a34a; font-weight: 700; margin: 0; text-align: center;
+}
+.btn-manual {
+  width: 100%; padding: 10px 16px;
+  background: #f8fafc; color: #475569;
+  border: 2px dashed #cbd5e1; border-radius: 12px;
+  font-weight: 700; font-size: 11px; cursor: pointer; transition: all .2s;
+}
+.btn-manual:hover { border-color: #94a3b8; background: #f1f5f9; }
+.btn-manual-idle {
+  padding: 10px 20px;
+  background: transparent; color: #64748b;
+  border: 2px dashed #e2e8f0; border-radius: 12px;
+  font-weight: 700; font-size: 11px; cursor: pointer; transition: all .2s;
+  width: 100%;
+}
+.btn-manual-idle:hover { border-color: #94a3b8; }
   `]
 })
 export class BacScannerComponent implements OnDestroy {
@@ -252,18 +344,88 @@ export class BacScannerComponent implements OnDestroy {
 
   private stream: MediaStream | null = null;
   private scanLoopId: number | null = null;
-  private jsQR: any = null;
+
+  // ★ ZXing-js à la place de jsQR — supporte DataMatrix + QR Code
+  private zxingReader: any = null;
+  private zxingLoaded = false;
+  private lastFile: File | null = null;
 
   constructor(private http: HttpClient, private ngZone: NgZone) { }
   ngOnDestroy() { this.stopCamera(); }
 
+  // ── Chargement ZXing-js ─────────────────────────────────────────
+  private loadZXing(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.zxingLoaded) { resolve(); return; }
+
+      // ZXing-js supporte QR Code ET DataMatrix (2D-DOC tunisien)
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+      script.onload = () => {
+        try {
+          const ZXing = (window as any).ZXing;
+          // MultiFormatReader → tente QR + DataMatrix + autres formats
+          const hints = new Map();
+          const formats = [
+            ZXing.BarcodeFormat.DATA_MATRIX,  // ★ 2D-DOC tunisien
+            ZXing.BarcodeFormat.QR_CODE,
+            ZXing.BarcodeFormat.PDF_417,
+          ];
+          hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+          hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+          this.zxingReader = new ZXing.MultiFormatReader();
+          this.zxingReader.setHints(hints);
+          this.zxingLoaded = true;
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      };
+      script.onerror = () => reject(new Error('ZXing non chargé'));
+      document.head.appendChild(script);
+    });
+  }// ✅ AJOUTER dans BacScannerComponent
+  @ViewChild('manualInput') manualInput!: ElementRef<HTMLInputElement>;
+
+  onManualUpload(e: Event): void {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.lastFile = file;
+    (e.target as HTMLInputElement).value = '';
+
+    // Émettre directement sans QR — fichier stocké, données vides
+    this.state = 'success';
+    this.result = {
+      success: true,
+      errorMessage: undefined
+    };
+
+    this.scanned.emit({
+      success: true,
+      file: file,
+      isManual: true,
+    } as any);
+  }
+
   // ── Caméra live ─────────────────────────────────────────────────
   async startCamera(): Promise<void> {
-    this.state = 'camera'; this.qrDetected = false;
-    if (!this.jsQR) await this.loadJsQR();
+    this.state = 'camera';
+    this.qrDetected = false;
+
+    try {
+      await this.loadZXing();
+    } catch {
+      // Fallback: continuer sans ZXing, on utilisera le backend
+      console.warn('ZXing non disponible, fallback backend');
+    }
+
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },   // ★ Résolution max pour DataMatrix
+          height: { ideal: 1080 }
+        }
       });
       setTimeout(() => {
         if (this.videoEl?.nativeElement) {
@@ -280,39 +442,90 @@ export class BacScannerComponent implements OnDestroy {
     }
   }
 
-  private loadJsQR(): Promise<void> {
-    return new Promise(resolve => {
-      if ((window as any).jsQR) { this.jsQR = (window as any).jsQR; resolve(); return; }
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
-      s.onload = () => { this.jsQR = (window as any).jsQR; resolve(); };
-      document.head.appendChild(s);
-    });
-  }
-
+  // ── Boucle de scan caméra ────────────────────────────────────────
   private startScanLoop(): void {
     const video = this.videoEl?.nativeElement;
     const canvas = this.processCanvas?.nativeElement;
     if (!video || !canvas) return;
+
     const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+    let frameCount = 0;
+
     const loop = () => {
       if (this.state !== 'camera') return;
+
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = this.jsQR?.(imageData.data, imageData.width, imageData.height,
-          { inversionAttempts: 'dontInvert' });
-        if (code?.data) {
-          this.qrDetected = true;
-          setTimeout(() => { this.stopCamera(); this.processRawQr(code.data); }, 600);
-          return;
+        frameCount++;
+        // ★ Scanner 1 frame sur 3 pour économiser CPU (DataMatrix = lourd à décoder)
+        if (frameCount % 3 === 0) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          const decoded = this.tryDecodeFrame(canvas, ctx);
+          if (decoded) {
+            this.qrDetected = true;
+            setTimeout(() => {
+              this.stopCamera();
+              this.processRawQr(decoded);
+            }, 600);
+            return;
+          }
         }
       }
       this.scanLoopId = requestAnimationFrame(loop);
     };
+
     this.scanLoopId = requestAnimationFrame(loop);
+  }
+
+  // ── Décodage d'une frame ─────────────────────────────────────────
+  private tryDecodeFrame(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): string | null {
+    const w = canvas.width;
+    const h = canvas.height;
+
+    if (!this.zxingLoaded || !this.zxingReader) return null;
+
+    try {
+      const ZXing = (window as any).ZXing;
+
+      // ★ Essai 1 : image complète
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const luminance = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+      const binaryBitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance));
+      const result = this.zxingReader.decode(binaryBitmap);
+      if (result?.getText() && result.getText().length >= 20) {
+        return result.getText();
+      }
+    } catch {
+      // Pas de code détecté dans cette frame
+    }
+
+    try {
+      const ZXing = (window as any).ZXing;
+      // ★ Essai 2 : crop bas-gauche (position DataMatrix sur diplôme complet)
+      const cropX = 0;
+      const cropY = Math.floor(h * 0.6);
+      const cropW = Math.floor(w * 0.45);
+      const cropH = h - cropY;
+
+      const offscreen = document.createElement('canvas');
+      offscreen.width = cropW;
+      offscreen.height = cropH;
+      const octx = offscreen.getContext('2d')!;
+      octx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+      const lum2 = new ZXing.HTMLCanvasElementLuminanceSource(offscreen);
+      const bin2 = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum2));
+      const res2 = this.zxingReader.decode(bin2);
+      if (res2?.getText() && res2.getText().length >= 20) {
+        return res2.getText();
+      }
+    } catch {
+      // Rien trouvé
+    }
+
+    return null;
   }
 
   stopCamera(): void {
@@ -320,36 +533,74 @@ export class BacScannerComponent implements OnDestroy {
     if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; }
   }
 
-  // ── Galerie ──────────────────────────────────────────────────────
+  // ── Galerie → backend ────────────────────────────────────────────
   onFileSelected(e: Event): void {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
+    this.lastFile = file;
     (e.target as HTMLInputElement).value = '';
-    this.ngZone.run(() => { this.state = 'loading'; });
-    const fd = new FormData();
-    fd.append('file', file);
-    this.http.post<BacResult>('/scan-bac', fd).subscribe({
-      next: res => this.ngZone.run(() => this.handleResult(res)),
-      error: () => this.ngZone.run(() => {
-        this.errorMessage = 'Service indisponible';
-        this.state = 'error';
-      })
+
+    // ★ Tentative ZXing côté client AVANT d'envoyer au backend
+    // (plus rapide si l'image est propre)
+    this.tryDecodeImageFile(file).then(raw => {
+      if (raw) {
+        this.ngZone.run(() => { this.state = 'loading'; });
+        this.processRawQr(raw);
+      } else {
+        // Fallback: envoyer au backend Python
+        this.ngZone.run(() => { this.state = 'loading'; });
+        const fd = new FormData();
+        fd.append('file', file);
+        this.http.post<BacResult>('/scan-bac', fd).subscribe({
+          next: res => this.ngZone.run(() => this.handleResult(res)),
+          error: () => this.ngZone.run(() => {
+            this.errorMessage = 'Service indisponible';
+            this.state = 'error';
+          })
+        });
+      }
     });
   }
 
-  // ── QR caméra → backend ──────────────────────────────────────────
+  // ── Décodage fichier image côté client ───────────────────────────
+  private tryDecodeImageFile(file: File): Promise<string | null> {
+    return new Promise(resolve => {
+      if (!this.zxingLoaded) { this.loadZXing().then(() => this.tryDecodeImageFile(file).then(resolve)).catch(() => resolve(null)); return; }
+
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const canvas = document.createElement('canvas');
+        // ★ Limiter à 2000px max (DataMatrix se lit bien à cette résolution)
+        const maxDim = 2000;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const result = this.tryDecodeFrame(canvas, ctx);
+        resolve(result);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+
+  // ── QR/DataMatrix décodé → backend parse ────────────────────────
   private processRawQr(rawQr: string): void {
     this.ngZone.run(() => { this.state = 'loading'; });
     this.http.post<BacResult>('/parse-qr-raw', { raw: rawQr, type: 'bac' }).subscribe({
       next: res => this.ngZone.run(() => this.handleResult(res)),
       error: () => this.ngZone.run(() => {
-        // Fallback client minimal
         const parsed = this.clientParse(rawQr);
         this.handleResult({ success: true, rawQr: rawQr.substring(0, 300), ...parsed });
       })
     });
   }
 
+  // ── Parser client minimal (fallback) ────────────────────────────
   private clientParse(raw: string): Partial<BacResult> {
     const r: Partial<BacResult> = {};
     const d = raw.match(/\b((?:19|20)\d{2})[\/\-](\d{2})[\/\-](\d{2})\b/);
@@ -361,15 +612,43 @@ export class BacScannerComponent implements OnDestroy {
     return r;
   }
 
+  // private handleResult(res: BacResult): void {
+  //   if (res.success) {
+  //     this.result = res;
+  //     this.state = 'success';
+  //     // ✅ Attacher le fichier au résultat émis
+  //     this.scanned.emit({ ...this.result, file: this.lastFile } as any);
+  //   } else {
+  //     this.errorMessage = res.errorMessage || 'QR non lisible';
+  //     this.state = 'error';
+  //   }
+  // }
   private handleResult(res: BacResult): void {
-    if (res.success) { this.result = res; this.state = 'success'; }
-    else { this.errorMessage = res.errorMessage || 'QR non lisible'; this.state = 'error'; }
+    if (res.success) {
+      this.result = { ...res, isManual: false };
+      this.state = 'success';
+      this.scanned.emit({ ...this.result, file: this.lastFile });
+    } else {
+      // QR échoué → fichier stocké quand même si disponible
+      if (this.lastFile) {
+        this.result = { success: true, isManual: true };
+        this.state = 'success';
+        this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+      } else {
+        this.errorMessage = res.errorMessage || 'QR non lisible';
+        this.state = 'error';
+      }
+    }
   }
 
   confirm(): void { if (this.result) this.scanned.emit(this.result); }
 
   reset(): void {
     this.stopCamera();
-    this.state = 'idle'; this.result = null; this.errorMessage = ''; this.qrDetected = false;
+    this.state = 'idle';
+    this.result = null;
+    this.errorMessage = '';
+    this.qrDetected = false;
+    this.lastFile = null;  // ✅ AJOUTER
   }
 }

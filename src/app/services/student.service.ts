@@ -101,4 +101,10 @@ export class StudentService {
             params: { numPassport, paysId: paysId.toString() }
         });
     }
+    validatePassport(numPassport: string, paysId: number): Observable<any> {
+        return this.http.get<any>(
+            `${this.apiUrl}/passport/validate`,
+            { params: { numPassport, paysId: paysId.toString() } }
+        );
+    }
 }

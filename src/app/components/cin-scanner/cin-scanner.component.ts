@@ -202,7 +202,7 @@ interface EditableResult {
         <div class="field-group">
           <label>Nom <span class="field-ar">اللقب</span></label>
           <div class="field-input-row">
-            <input type="text" [(ngModel)]="editableResult.nom" dir="rtl" placeholder="اللقب" readonly/>
+            <input type="text" [(ngModel)]="editableResult.nom" dir="rtl" placeholder="اللقب"/>
           </div>
         </div>
 
@@ -216,11 +216,22 @@ interface EditableResult {
 
         <!-- DATE -->
         <div class="field-group">
-          <label>Date de naissance</label>
-          <div class="field-input-row">
-            <input type="date" [(ngModel)]="editableResult.dateNaissance"/>
-          </div>
-        </div>
+  <label>Date de naissance</label>
+  <div class="field-input-row">
+    <input type="date" 
+           [(ngModel)]="editableResult.dateNaissance"
+           (change)="onDateNaissanceChange()"
+           [max]="maxDateNaissance"/>
+  </div>
+</div>
+<!-- ✅ Message erreur âge — juste avant le bouton confirmer -->
+<div *ngIf="ageError"
+     style="margin-bottom:10px; padding:10px 14px; background:#fff5f5; 
+            border:2px solid #fecaca; border-radius:12px; 
+            display:flex; align-items:center; gap:8px;">
+  <span style="font-size:16px;">⛔</span>
+  <p style="margin:0; font-size:12px; font-weight:700; color:#dc2626;">{{ ageError }}</p>
+</div>
 
         <!-- GENRE -->
         <div class="field-group">
@@ -530,6 +541,8 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
   rotation = 0;
   vpW = 480;
   vpH = 303;
+  private lastFile: File | null = null;
+  ageError: string | null = null;
 
   get frameW() { return this.vpW * 0.82; }
   get frameH() { return this.frameW / 1.585; }
@@ -592,7 +605,7 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
   onFileSelected(e: Event): void {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    this.capturedFile = file;
+    this.lastFile = file;  // ✅ STOCKER
     const r = new FileReader();
     r.onload = ev => {
       this.previewUrl = ev.target?.result as string;
@@ -686,7 +699,7 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
 
   // ── CROP + GLOBAL SCAN ────────────────────────────────────────────────
   analyzePhoto() {
-    if (!this.capturedFile || !this.previewUrl) return;
+    if (!this.lastFile || !this.previewUrl) return;
     this.cropAndSend();
   }
 
@@ -764,7 +777,42 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
     this.errorMessage = msg;
   }
 
+  // ── Getter : âge calculé ────────────────────────────────────────
+  get studentAge(): number | null {
+    const dateNaissance = this.editableResult.dateNaissance;
+    if (!dateNaissance) return null;
+    const today = new Date();
+    const birth = new Date(dateNaissance);
+    if (isNaN(birth.getTime())) return null;
+    let age = today.getFullYear() - birth.getFullYear();
+    const moisPasse = today.getMonth() > birth.getMonth()
+      || (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate());
+    if (!moisPasse) age--;
+    return age;
+  }
+  // ── Réinitialiser erreur si la date change ───────────────────────
+  onDateNaissanceChange(): void {
+    this.ageError = null;
+  }
   confirmAndFill() {
+    this.ageError = null;
+
+    if (!this.editableResult.dateNaissance) {
+      this.ageError = 'Veuillez saisir votre date de naissance.';
+      return;
+    }
+
+    const age = this.studentAge;
+    if (age === null) {
+      this.ageError = 'Date de naissance invalide.';
+      return;
+    }
+
+    if (age < 18) {
+      this.ageError = `Âge détecté : ${age} an${age > 1 ? 's' : ''}. L'inscription requiert 18 ans minimum.`;
+      return;
+    }
+
     this.scanned.emit({
       success: true,
       nom: this.editableResult.nom || undefined,
@@ -772,7 +820,13 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
       numeroCin: this.editableResult.numeroCin || undefined,
       dateNaissance: this.editableResult.dateNaissance || undefined,
       genre: this.editableResult.genre || undefined,
-    });
+      file: this.lastFile,
+    } as any);
+  }
+  get maxDateNaissance(): string {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    return d.toISOString().split('T')[0]; // YYYY-MM-DD
   }
 
   reset() {
@@ -782,11 +836,13 @@ export class CinScannerComponent implements AfterViewInit, OnDestroy {
     this.croppedPreviewUrl = null;
     this.capturedFile = null;
     this.croppedBlob = null;
+    this.lastFile = null;  // ✅ AJOUTER
     this.errorMessage = '';
     this.currentZoneIdx = -1;
     this.showFieldGuide = false;
     this.scale = 1; this.translateX = 0; this.translateY = 0; this.rotation = 0;
     this.editableResult = { nom: '', prenom: '', numeroCin: '', dateNaissance: '', genre: null };
+    this.ageError = null;  // ← ajouter
   }
 
   // ── Image preprocessing ───────────────────────────────────────────────

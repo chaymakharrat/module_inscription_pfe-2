@@ -31,6 +31,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
         <input
           [type]="type"
           [value]="value"
+          [disabled]="isDisabled"
           [placeholder]="placeholder"
           (input)="onInput($event)"
           (blur)="onBlur()"
@@ -39,7 +40,8 @@ import { trigger, transition, style, animate } from '@angular/animations';
                    (icon ? 'pl-12 pr-12' : 'px-5 pr-12') + ' ' +
                    (isFocused ? 'border-blue-500 bg-white ring-8 ring-blue-50 shadow-xl -translate-y-0.5' : 'border-slate-200 bg-white/50 hover:border-blue-300 hover:bg-white') + ' ' +
                    (error ? 'border-red-500 ring-red-50 bg-red-50/10' : '') + ' ' +
-                   (isValid ? 'border-green-500 ring-green-50' : '')"
+                   (isValid ? 'border-green-500 ring-green-50' : '') + ' ' +
+                   (isDisabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : '')"
         >
 
         <!-- Validation icons -->

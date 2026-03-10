@@ -1,101 +1,1344 @@
-<div class="dashboard-layout">
-    <aside class="dashboard-sidebar">
-        <div class="p-6 flex flex-col">
-            <div class="logo-header text-center mb-10">
-                <img src="logo-itech.png" alt="iTech" class="w-14 h-auto mx-auto">
-                <p class="subtitle text-xs font-semibold text-gray-500 uppercase tracking-widest mt-3">Admin Finance</p>
+<div class="fin-main animate-fadeIn">
+
+    <!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+    <header
+        class="bg-white/80 backdrop-blur-xl border-b border-[#e8eaf0] px-8 py-5 sticky top-0 z-40 flex items-center justify-between">
+        <div class="flex flex-col">
+            <h1 class="text-2xl font-bold text-[#0f1117] tracking-tight flex items-center gap-3">
+                <svg class="w-7 h-7 text-[#2563eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Tableau de Bord Finance
+                <span
+                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#2563eb] border border-[#dbe6ff] uppercase tracking-wider">
+                    Live Supervision
+                </span>
+            </h1>
+            <div class="flex items-center mt-1 gap-2">
+                <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                <p class="text-[11px] font-semibold text-[#8b92a9]">
+                    Bienvenue, <strong>{{ userProfile?.firstName }} {{ userProfile?.lastName }}</strong>
+                </p>
             </div>
-            <nav>
-                <ul class="list-none p-0 m-0 space-y-1">
-                    <li class="finance-nav-item finance-nav-active px-4 py-2.5 rounded-lg font-semibold text-blue-600 bg-blue-50 cursor-pointer">Gestion Utilisateurs</li>
-                    <li class="finance-nav-item px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 cursor-pointer">Workflows Camunda</li>
-                    <li class="finance-nav-item px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 cursor-pointer">Paramètres Faculté</li>
-                </ul>
+        </div>
+
+        <div class="flex items-center gap-6">
+            <!-- Pill récap encaissement -->
+            <div class="capacity-pill-premium" *ngIf="stats">
+                <div class="cap-info">
+                    <span class="cap-label">Total Encaissé</span>
+                    <span class="cap-value">{{ (stats.montantTotalEncaisse || 0) | number:'1.0-0' }} TND</span>
+                </div>
+                <div class="cap-bar-mini">
+                    <div class="cap-fill-mini" [class.fill-green]="getTauxRecouvrement() >= 80"
+                        [class.fill-orange]="getTauxRecouvrement() >= 50 && getTauxRecouvrement() < 80"
+                        [class.fill-red]="getTauxRecouvrement() < 50" [style.width.%]="getTauxRecouvrement()"></div>
+                </div>
+                <span class="cap-pct" [class.text-green-600]="getTauxRecouvrement() >= 80"
+                    [class.text-orange-600]="getTauxRecouvrement() >= 50 && getTauxRecouvrement() < 80"
+                    [class.text-red-600]="getTauxRecouvrement() < 50">
+                    {{ getTauxRecouvrement() }}%
+                </span>
+            </div>
+
+            <div class="flex items-center pl-6 border-l border-[#e8eaf0]">
+                <div class="text-right mr-4 hidden md:block">
+                    <p class="text-sm font-bold text-[#0f1117] leading-tight">
+                        {{ userProfile?.firstName }} {{ userProfile?.lastName }}
+                    </p>
+                    <p class="text-[10px] font-bold text-[#2563eb] uppercase tracking-widest mt-0.5">
+                        {{ getDisplayRole() }}
+                    </p>
+                </div>
+                <div class="avatar-premium" [style.background]="getAvatarColor(0)">
+                    {{ getProfileInitials() }}
+                    <span class="status-indicator"></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="fin-content">
+
+        <!-- ══ STAT CARDS ════════════════════════════════════════════════════════ -->
+        <div class="stats-grid">
+            <div class="stat-card stat-blue">
+                <div class="stat-icon-wrap">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-body">
+                    <span class="stat-value">{{ stats?.formulairesEnAttente || 0 }}</span>
+                    <span class="stat-label">À Traiter</span>
+                </div>
+                <div class="stat-trend trend-warn" *ngIf="(stats?.formulairesEnAttente || 0) > 0">Action req.</div>
+                <div class="stat-trend trend-neutral" *ngIf="(stats?.formulairesEnAttente || 0) === 0">— Aucun</div>
+            </div>
+
+            <div class="stat-card stat-green">
+                <div class="stat-icon-wrap">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-body">
+                    <span class="stat-value">{{ (stats?.montantTotalEncaisse || 0) | number:'1.0-0' }} TND</span>
+                    <span class="stat-label">Total Encaissé</span>
+                </div>
+                <div class="stat-trend trend-up">Actif</div>
+            </div>
+
+            <div class="stat-card stat-amber">
+                <div class="stat-icon-wrap">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <div class="stat-body">
+                    <span class="stat-value">{{ stats?.facturesGenerees || 0 }}</span>
+                    <span class="stat-label">Factures Générées</span>
+                </div>
+                <div class="stat-trend trend-neutral">— stable</div>
+            </div>
+
+            <div class="stat-card stat-red">
+                <div class="stat-icon-wrap">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div class="stat-body">
+                    <span class="stat-value">{{ stats?.echeancesEnRetard || 0 }}</span>
+                    <span class="stat-label">Impayés / Retards</span>
+                </div>
+                <div class="stat-trend" [class.trend-warn]="(stats?.echeancesEnRetard || 0) > 0"
+                    [class.trend-neutral]="(stats?.echeancesEnRetard || 0) === 0">
+                    <ng-container *ngIf="(stats?.echeancesEnRetard || 0) > 0">⚠ Retard</ng-container>
+                    <ng-container *ngIf="(stats?.echeancesEnRetard || 0) === 0">— OK</ng-container>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ TABLEAU PRINCIPAL ══════════════════════════════════════════════════ -->
+        <div class="section-card">
+            <div class="section-header-premium">
+                <div class="section-title-wrap">
+                    <h2 class="section-title">
+                        <svg class="w-5 h-5 text-[#2563eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Gestion des Dossiers Financiers
+                    </h2>
+                    <p class="section-subtitle">Supervision des formulaires de paiement et des remises</p>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <!-- Refresh -->
+                    <button (click)="refreshAll()"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#e8eaf0] bg-white text-[#8b92a9] hover:text-[#2563eb] hover:border-[#2563eb] transition-all font-bold text-[12px]">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Rafraîchir
+                    </button>
+                    <button (click)="ouvrirRemisesDrawer()" style="display:flex;align-items:center;gap:8px;padding:7px 16px;
+           background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;
+           border:none;border-radius:10px;font-size:12px;font-weight:700;
+           cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,.25);
+           transition:all .2s;">
+                        <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828
+               l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        Remises
+                        <span style="background:rgba(255,255,255,.25);padding:1px 7px;
+                 border-radius:20px;font-size:10px;font-weight:800;">
+                            {{ remises.length }}
+                        </span>
+                    </button>
+
+                    <!-- View Toggle -->
+                    <div class="view-toggle">
+                        <button (click)="viewMode = 'list'" [class.active]="viewMode === 'list'">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                            </svg>
+                        </button>
+                        <button (click)="viewMode = 'grid'" [class.active]="viewMode === 'grid'">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search + Filters -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input type="text" class="search-input" [(ngModel)]="searchTerm" (input)="onSearch()"
+                        placeholder="Rechercher un étudiant, un dossier...">
+                </div>
+
+                <div class="filter-group">
+                    <button class="filter-btn" [class.active]="currentFilter === 'tous'"
+                        (click)="setFilter('tous')">Tous</button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'SOUMIS'"
+                        (click)="setFilter('SOUMIS')">
+                        <span class="dot dot-blue"></span> À Traiter
+                    </button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'VALIDE'"
+                        (click)="setFilter('VALIDE')">
+                        <span class="dot dot-green"></span> Validés
+                    </button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'REFUSE'"
+                        (click)="setFilter('REFUSE')">
+                        <span class="dot dot-rose"></span> Refusés
+                    </button>
+                </div>
+            </div>
+
+            <!-- LIST VIEW -->
+            <div class="table-wrap" *ngIf="viewMode === 'list'">
+                <table class="finance-table">
+                    <thead>
+                        <tr>
+                            <th>Étudiant</th>
+                            <th>Formation</th>
+                            <th>Préférences</th>
+                            <th>Statut</th>
+                            <th class="text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let f of formulaires; let i = index" class="table-row animate-fadeIn"
+                            [style.animation-delay]="i * 0.04 + 's'" (click)="openDetail(f)">
+                            <td>
+                                <div class="student-cell">
+                                    <div class="mini-avatar" [style.background]="getAvatarColor(i)">{{ getInitiales(f)
+                                        }}</div>
+                                    <div class="student-info">
+                                        <span class="student-name">{{ f.prenomEtudiant }} {{ f.nomEtudiant }}</span>
+                                        <span class="student-id">{{ f.emailEtudiant }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="diplome-cell">
+                                    <span class="diplome-name">{{ f.nomDiplome }}</span>
+                                    <span class="diplome-langue">Niveau {{ f.niveauChoisi }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="flex flex-wrap gap-1">
+                                    <span class="statut-chip" [class.chip-blue]="f.typePaiement === 'TOTAL'"
+                                        [class.chip-purple]="f.typePaiement === 'PARTIEL'">
+                                        {{ f.typePaiement }}
+                                    </span>
+                                    <span *ngIf="f.paiementEnLigne" class="statut-chip chip-green">En ligne</span>
+                                    <span *ngIf="!f.paiementEnLigne" class="statut-chip chip-gray">Présentiel</span>
+                                    <span *ngIf="f.totalRemiseDemandee > 0" class="statut-chip chip-amber">
+                                        -{{ f.totalRemiseDemandee }}% (acceptées : {{ f.totalRemiseAcceptee }}%)
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="statut-chip" [ngClass]="getStatutDemandeClass(f.statutDemande)">
+                                    {{ getStatutDemandeLabel(f.statutDemande) }}
+                                </span>
+                            </td>
+                            <td class="text-right">
+                                <div class="actions-cell" (click)="$event.stopPropagation()">
+                                    <button class="action-btn btn-view" (click)="openDetail(f)" title="Voir détails">
+                                        <svg viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                            <path fill-rule="evenodd"
+                                                d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <button class="action-btn btn-accept" [disabled]="!isActionnable(f)"
+                                        (click)="openDetail(f, 'decision')" title="Traiter">
+                                        <svg viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr *ngIf="formulaires.length === 0 && !loading">
+                            <td colspan="5" class="empty-state">
+                                <div class="empty-content">
+                                    <p>Aucun dossier trouvé</p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr *ngIf="loading">
+                            <td colspan="5" style="padding: 40px; text-align: center;">
+                                <div
+                                    style="display: inline-block; width: 28px; height: 28px; border: 3px solid #e8eaf0; border-top-color: #2563eb; border-radius: 50%; animation: spin .7s linear infinite;">
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- GRID VIEW -->
+            <div class="grid-view animate-fadeIn" *ngIf="viewMode === 'grid'">
+                <div class="dossier-grid">
+                    <div *ngFor="let f of formulaires; let i = index" class="dossier-card"
+                        [style.animation-delay]="i * 0.05 + 's'" (click)="openDetail(f)">
+                        <div class="card-header">
+                            <div class="card-avatar" [style.background]="getAvatarColor(i)">{{ getInitiales(f) }}</div>
+                            <div class="card-status-wrap">
+                                <span class="statut-chip" [ngClass]="getStatutDemandeClass(f.statutDemande)">{{
+                                    getStatutDemandeLabel(f.statutDemande) }}</span>
+                                <span class="card-date">{{ getTempsEcoule(f.dateExpiration) }}</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h3 class="card-name">{{ f.prenomEtudiant }} {{ f.nomEtudiant }}</h3>
+                            <p class="card-email">{{ f.emailEtudiant }}</p>
+                            <div class="card-info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Diplôme</span>
+                                    <span class="info-val">{{ f.nomDiplome }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Paiement</span>
+                                    <span class="info-val">{{ f.typePaiement }}</span>
+                                </div>
+                            </div>
+                            <div class="card-prereq" [class.prereq-ok]="f.statut === 'VALIDE'"
+                                [class.prereq-ko]="f.statut === 'REFUSE' || f.statut === 'SOUMIS'">
+                                {{ f.statut === 'VALIDE' ? '✓ Dossier validé' : (f.statut === 'REFUSE' ? '✕ Dossier
+                                refusé' : '⚠ Action requise') }}
+                            </div>
+                        </div>
+                        <div class="card-actions" (click)="$event.stopPropagation()">
+                            <button class="card-btn btn-view" (click)="openDetail(f)">Détails</button>
+                            <button class="card-btn btn-accept" [disabled]="!isActionnable(f)"
+                                (click)="openDetail(f, 'decision')">Traiter</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-container" *ngIf="totalPages > 0">
+                <div class="pagination-info">
+                    Affichage de <strong>{{ currentPage * pageSize + 1 }}</strong> à
+                    <strong>{{ Math.min((currentPage + 1) * pageSize, totalElements) }}</strong> sur
+                    <strong>{{ totalElements }}</strong> dossiers
+                </div>
+                <div class="pagination-controls">
+                    <button (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0"
+                        class="p-2 border border-[#e8eaf0] rounded-lg hover:bg-[#f1f3f9] disabled:opacity-30 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M15 19l-7-7 7-7" stroke-width="2.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                    <div class="flex items-center gap-1 mx-2">
+                        <button *ngFor="let p of getPagesArray()" (click)="goToPage(p)"
+                            class="px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all"
+                            [class.bg-blue-600]="currentPage === p" [class.text-white]="currentPage === p"
+                            [class.text-gray-600]="currentPage !== p">
+                            {{ p + 1 }}
+                        </button>
+                    </div>
+                    <button (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages - 1"
+                        class="p-2 border border-[#e8eaf0] rounded-lg hover:bg-[#f1f3f9] disabled:opacity-30 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 5l7 7-7 7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /fin-content -->
+</div>
+<!-- ══ SECTION GESTION REMISES ══════════════════════════════════════════════ -->
+<!-- ══ DRAWER REMISES ══════════════════════════════════════════════════════ -->
+<!-- ══ DRAWER REMISES ══════════════════════════════════════════════════════ -->
+<div *ngIf="showRemisesDrawer" style="position:fixed;inset:0;z-index:250;display:flex;justify-content:flex-end;"
+    (click)="fermerRemisesDrawer()">
+
+    <!-- Overlay sombre -->
+    <div style="position:absolute;inset:0;background:rgba(15,17,23,.45);
+            backdrop-filter:blur(4px);animation:fadeIn .25s ease;
+            pointer-events:none;"></div>
+
+    <!-- Panneau -->
+    <div (click)="$event.stopPropagation()" style="position:relative;width:100%;max-width:720px;height:100%;
+                background:linear-gradient(180deg,#f8fafc 0%,#f0f6ff 100%);
+                display:flex;flex-direction:column;
+                box-shadow:-24px 0 60px rgba(0,0,0,.15);
+                animation:slideInRight .3s cubic-bezier(.16,1,.3,1);">
+
+        <!-- ── Header drawer ─────────────────────────────────────── -->
+        <div style="padding:22px 28px 18px;
+                    background:linear-gradient(135deg,#ffffff 0%,#d6e5f5 100%);
+                    border-bottom:1.5px solid #dbe6ff;
+                    display:flex;align-items:center;justify-content:space-between;
+                    flex-shrink:0;">
+            <div>
+                <h2 style="font-size:16px;font-weight:800;color:#0f1117;margin:0 0 4px;
+                           display:flex;align-items:center;gap:10px;letter-spacing:-.02em;">
+                    <span style="width:32px;height:32px;background:#eff4ff;border-radius:9px;
+                                 display:flex;align-items:center;justify-content:center;">
+                        <svg style="width:17px;height:17px;color:#2563eb;" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7
+                                   a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7
+                                   A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                    </span>
+                    Référentiel des Remises
+                </h2>
+                <p style="font-size:11px;color:#8b92a9;margin:0;padding-left:42px;">
+                    {{ remises.length }} remise(s) · {{ getRemisesActifCount() }} active(s)
+                </p>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <button (click)="ouvrirCreerRemise()" style="display:flex;align-items:center;gap:7px;padding:8px 16px;
+                           background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;
+                           border:none;border-radius:10px;font-size:12px;font-weight:700;
+                           cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,.3);
+                           transition:all .2s;">
+                    <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Nouvelle remise
+                </button>
+                <button (click)="fermerRemisesDrawer()" style="width:34px;height:34px;border-radius:9px;
+                           border:1.5px solid #dbe6ff;background:white;
+                           cursor:pointer;display:flex;align-items:center;
+                           justify-content:center;color:#2563eb;transition:all .15s;">
+                    <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Stats rapides ─────────────────────────────────────── -->
+        <div style="display:flex;background:white;border-bottom:1.5px solid #e8eaf0;flex-shrink:0;">
+            <div style="flex:1;display:flex;align-items:center;gap:10px;padding:14px 24px;
+                        border-right:1px solid #f1f3f9;">
+                <div style="width:34px;height:34px;background:#eff4ff;border-radius:9px;
+                            display:flex;align-items:center;justify-content:center;color:#2563eb;">
+                    <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828
+                               l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                </div>
+                <div>
+                    <div style="font-size:20px;font-weight:800;color:#0f1117;line-height:1;">
+                        {{ remises.length }}
+                    </div>
+                    <div style="font-size:10px;font-weight:600;color:#8b92a9;
+                                text-transform:uppercase;letter-spacing:.05em;">Total</div>
+                </div>
+            </div>
+            <div style="flex:1;display:flex;align-items:center;gap:10px;padding:14px 24px;
+                        border-right:1px solid #f1f3f9;">
+                <div style="width:34px;height:34px;background:#f0fdf4;border-radius:9px;
+                            display:flex;align-items:center;justify-content:center;color:#16a34a;">
+                    <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <div style="font-size:20px;font-weight:800;color:#16a34a;line-height:1;">
+                        {{ getRemisesActifCount() }}
+                    </div>
+                    <div style="font-size:10px;font-weight:600;color:#8b92a9;
+                                text-transform:uppercase;letter-spacing:.05em;">Actives</div>
+                </div>
+            </div>
+            <div style="flex:1;display:flex;align-items:center;gap:10px;padding:14px 24px;">
+                <div style="width:34px;height:34px;background:#fffbeb;border-radius:9px;
+                            display:flex;align-items:center;justify-content:center;color:#d97706;">
+                    <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2
+                               m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1
+                               m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <div style="font-size:20px;font-weight:800;color:#d97706;line-height:1;">
+                        {{ getTauxMoyenRemises() }}%
+                    </div>
+                    <div style="font-size:10px;font-weight:600;color:#8b92a9;
+                                text-transform:uppercase;letter-spacing:.05em;">Taux moyen</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Liste scrollable ───────────────────────────────────── -->
+        <div style="flex:1;overflow-y:auto;padding:20px 24px;">
+
+            <!-- Loading -->
+            <div *ngIf="remisesLoading" style="display:flex;align-items:center;justify-content:center;padding:60px;">
+                <div style="width:28px;height:28px;border:3px solid #e8eaf0;
+                            border-top-color:#2563eb;border-radius:50%;
+                            animation:spin .7s linear infinite;"></div>
+            </div>
+
+            <div *ngIf="!remisesLoading" style="display:flex;flex-direction:column;gap:10px;">
+
+                <!-- Empty state -->
+                <div *ngIf="remises.length === 0" style="display:flex;flex-direction:column;align-items:center;
+                            padding:60px 20px;gap:12px;text-align:center;">
+                    <div style="width:56px;height:56px;background:#eff4ff;border-radius:16px;
+                                display:flex;align-items:center;justify-content:center;
+                                color:#2563eb;opacity:.6;">
+                        <svg style="width:28px;height:28px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7
+                                   a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7
+                                   A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                    </div>
+                    <p style="font-size:14px;font-weight:700;color:#64748b;margin:0;">
+                        Aucune remise configurée
+                    </p>
+                    <span style="font-size:12px;color:#94a3b8;">
+                        Cliquez sur "Nouvelle remise" pour commencer
+                    </span>
+                </div>
+
+                <!-- Card par remise -->
+                <div *ngFor="let r of remises; let i = index" style="background:white;border-radius:14px;border:1.5px solid #e8eaf0;
+                            padding:16px 18px;display:flex;align-items:flex-start;gap:14px;
+                            transition:box-shadow .2s;" [style.opacity]="r.actif ? '1' : '0.5'"
+                    onmouseover="this.style.boxShadow='0 4px 20px rgba(37,99,235,.08)'"
+                    onmouseout="this.style.boxShadow='none'">
+
+                    <!-- Avatar -->
+                    <div style="width:40px;height:40px;border-radius:11px;display:flex;
+                                align-items:center;justify-content:center;font-size:15px;
+                                font-weight:900;color:white;flex-shrink:0;" [style.background]="getAvatarColor(i)">
+                        {{ r.motif.charAt(0).toUpperCase() }}
+                    </div>
+
+                    <!-- Infos -->
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:8px;
+                                    margin-bottom:5px;flex-wrap:wrap;">
+                            <span style="font-size:13px;font-weight:700;color:#0f1117;">
+                                {{ r.motif }}
+                            </span>
+                            <span style="padding:3px 10px;background:#fef3c7;color:#92400e;
+                                         border-radius:20px;font-size:12px;font-weight:800;
+                                         border:1px solid #fde68a;">
+                                -{{ r.pourcentage }}%
+                            </span>
+                            <span style="padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;"
+                                [style.background]="r.actif ? '#dcfce7' : '#f1f5f9'"
+                                [style.color]="r.actif ? '#166534' : '#64748b'">
+                                {{ r.actif ? '● Active' : '○ Inactive' }}
+                            </span>
+                        </div>
+                        <p style="font-size:11px;color:#2563eb;margin:0 0 3px;font-weight:500;
+                                  display:flex;align-items:center;gap:5px;">
+                            <svg style="width:11px;height:11px;flex-shrink:0;" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586
+                                       a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                            {{ r.descriptionJustificatif }}
+                        </p>
+                        <p *ngIf="r.exempleJustificatif"
+                            style="font-size:10px;color:#94a3b8;margin:0;font-style:italic;">
+                            ex: {{ r.exempleJustificatif }}
+                        </p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                        <button (click)="ouvrirModifierRemise(r)" style="width:30px;height:30px;border-radius:8px;border:1.5px solid #dbe6ff;
+                                   background:#eff4ff;color:#2563eb;cursor:pointer;display:flex;
+                                   align-items:center;justify-content:center;transition:all .15s;" title="Modifier">
+                            <svg style="width:13px;height:13px;" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793z" />
+                                <path d="M11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                        </button>
+                        <button (click)="toggleRemiseActif(r)" [title]="r.actif ? 'Désactiver' : 'Activer'" style="position:relative;width:42px;height:24px;border-radius:12px;border:none;
+               cursor:pointer;transition:all .3s;flex-shrink:0;padding:0;"
+                            [style.background]="r.actif ? '#16a34a' : '#e2e8f0'">
+                            <span style="position:absolute;top:3px;width:18px;height:18px;
+               background:white;border-radius:50%;transition:all .3s;
+               box-shadow:0 1px 4px rgba(0,0,0,.2);" [style.left]="r.actif ? '21px' : '3px'">
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══ MODAL CRÉER / MODIFIER REMISE ════════════════════════════════════════ -->
+<div *ngIf="showRemiseModal" class="remise-modal-overlay" (click)="fermerRemiseModal()">
+    <!-- ══ MODAL CRÉER / MODIFIER REMISE ════════════════════════════════════════ -->
+    <div *ngIf="showRemiseModal" class="remise-modal-overlay" (click)="fermerRemiseModal()">
+        <div class="remise-modal-shell" (click)="$event.stopPropagation()" style="width:100%;max-width:520px;background:white;border-radius:20px;
+              display:flex;flex-direction:column;max-height:90vh;overflow:hidden;">
+
+            <!-- Header -->
+            <div class="remise-modal-header" style="padding:20px 24px;display:flex;align-items:center;
+                justify-content:space-between;flex-shrink:0;">
+                <div class="remise-modal-header-text">
+                    <h3 style="font-size:15px;font-weight:800;color:#0f1117;margin:0 0 3px;">
+                        {{ remiseEditMode === 'create' ? 'Nouvelle remise' : 'Modifier la remise' }}
+                    </h3>
+                    <p style="font-size:11px;margin:0;">
+                        {{ remiseEditMode === 'create' ? 'Ajouter un type de remise' : 'Mettre à jour les informations'
+                        }}
+                    </p>
+                </div>
+                <button (click)="fermerRemiseModal()" class="remise-modal-close" style="width:32px;height:32px;border-radius:8px;background:white;
+                     cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                    <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body scrollable -->
+            <div class="remise-modal-body" style="flex:1;overflow-y:auto;padding:20px 24px;
+                display:flex;flex-direction:column;gap:16px;">
+
+                <!-- Erreur -->
+                <div *ngIf="remiseFormError" style="padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;
+                  border-radius:10px;color:#dc2626;font-size:12px;font-weight:600;">
+                    ⚠ {{ remiseFormError }}
+                </div>
+
+                <!-- Motif -->
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <label style="font-size:11px;font-weight:800;color:#4a5068;
+                      text-transform:uppercase;letter-spacing:.6px;">
+                        Motif de la remise *
+                    </label>
+                    <input type="text" [(ngModel)]="remiseForm.motif"
+                        placeholder="Ex: Mention Très Bien au Baccalauréat" class="remise-input" style="padding:10px 14px;border:1.5px solid #e8eaf0;border-radius:10px;
+                      font-size:13px;font-weight:500;outline:none;
+                      font-family:'DM Sans',sans-serif;width:100%;box-sizing:border-box;">
+                </div>
+
+                <!-- Pourcentage -->
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <label style="font-size:11px;font-weight:800;color:#4a5068;
+                      text-transform:uppercase;letter-spacing:.6px;">
+                        Pourcentage de réduction *
+                    </label>
+                    <div class="remise-pct-wrap" style="display:flex;align-items:center;gap:0;border:1.5px solid #e8eaf0;
+                    border-radius:10px;overflow:hidden;background:white;">
+                        <input type="number" [(ngModel)]="remiseForm.pourcentage" min="1" max="100" class="remise-input"
+                            style="flex:1;padding:10px 14px;border:none;font-size:20px;
+                        font-weight:800;outline:none;
+                        font-family:'DM Sans',sans-serif;width:100%;box-sizing:border-box;">
+                        <span class="remise-pct-symbol" style="padding:10px 16px;font-size:20px;font-weight:800;
+                       background:#eff4ff;border-left:1.5px solid #dbe6ff;">%</span>
+                    </div>
+                </div>
+
+                <!-- Description justificatif -->
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <label style="font-size:11px;font-weight:800;color:#4a5068;
+                      text-transform:uppercase;letter-spacing:.6px;">
+                        Description du justificatif requis *
+                    </label>
+                    <textarea [(ngModel)]="remiseForm.descriptionJustificatif" rows="3" class="remise-textarea"
+                        placeholder="Ex: Certificat officiel de mention obtenu au Baccalauréat" style="padding:10px 14px;border:1.5px solid #e8eaf0;border-radius:10px;
+                         font-size:13px;font-weight:500;outline:none;resize:vertical;
+                         font-family:'DM Sans',sans-serif;width:100%;box-sizing:border-box;">
+        </textarea>
+                </div>
+
+                <!-- Exemple justificatif -->
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <label style="font-size:11px;font-weight:800;color:#4a5068;
+                      text-transform:uppercase;letter-spacing:.6px;">
+                        Exemple de document (optionnel)
+                    </label>
+                    <input type="text" [(ngModel)]="remiseForm.exempleJustificatif"
+                        placeholder="Ex: Relevé de notes avec mention" class="remise-input" style="padding:10px 14px;border:1.5px solid #e8eaf0;border-radius:10px;
+                      font-size:13px;font-weight:500;outline:none;
+                      font-family:'DM Sans',sans-serif;width:100%;box-sizing:border-box;">
+                </div>
+
+                <!-- Toggle actif -->
+                <div style="display:flex;align-items:center;justify-content:space-between;
+                  padding:12px 16px;background:#f8fafc;border-radius:12px;
+                  border:1.5px solid #e8eaf0;">
+                    <div>
+                        <p style="font-size:13px;font-weight:700;color:#0f1117;margin:0 0 2px;">
+                            Remise active
+                        </p>
+                        <p style="font-size:11px;color:#8b92a9;margin:0;">
+                            Les étudiants pourront sélectionner cette remise
+                        </p>
+                    </div>
+                    <button (click)="remiseForm.actif = !remiseForm.actif" style="width:44px;height:24px;border-radius:12px;border:none;
+                       cursor:pointer;transition:all .2s;position:relative;"
+                        [style.background]="remiseForm.actif ? '#2563eb' : '#e2e8f0'">
+                        <span style="position:absolute;top:3px;width:18px;height:18px;
+                       background:white;border-radius:50%;transition:all .2s;"
+                            [style.left]="remiseForm.actif ? '23px' : '3px'"></span>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div style="padding:16px 24px;border-top:1.5px solid #f1f3f9;
+                display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">
+                <button (click)="fermerRemiseModal()" style="padding:10px 18px;border-radius:10px;border:1.5px solid #e8eaf0;
+                     background:white;font-size:12px;font-weight:700;color:#8b92a9;
+                     cursor:pointer;font-family:'DM Sans',sans-serif;">
+                    Annuler
+                </button>
+                <button (click)="sauvegarderRemise()" class="btn-save-remise" [disabled]="remiseFormLoading" style="padding:10px 22px;border-radius:10px;border:none;color:white;
+                     font-size:12px;font-weight:800;cursor:pointer;
+                     display:flex;align-items:center;gap:8px;
+                     font-family:'DM Sans',sans-serif;opacity:1;transition:all .2s;"
+                    [style.opacity]="remiseFormLoading ? '0.6' : '1'">
+                    <span *ngIf="remiseFormLoading" style="width:13px;height:13px;border:2px solid rgba(255,255,255,.4);
+                     border-top-color:white;border-radius:50%;
+                     animation:spin .7s linear infinite;display:inline-block;"></span>
+                    {{ remiseFormLoading ? 'Enregistrement...' : (remiseEditMode === 'create' ? 'Créer la remise' :
+                    'Enregistrer') }}
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══ CONFIRM DÉSACTIVATION ════════════════════════════════════════════════ -->
+    <div *ngIf="showConfirmDelete" class="remise-modal-overlay" (click)="showConfirmDelete=false" style="z-index:600;">
+        <div (click)="$event.stopPropagation()" style="width:100%;max-width:400px;background:white;border-radius:16px;
+              padding:28px 24px;display:flex;flex-direction:column;gap:16px;
+              box-shadow:0 32px 80px rgba(0,0,0,.22);">
+            <div style="text-align:center;">
+                <div style="width:48px;height:48px;background:#fef2f2;border-radius:14px;
+                  display:flex;align-items:center;justify-content:center;
+                  margin:0 auto 12px;color:#dc2626;">
+                    <svg style="width:24px;height:24px;" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9z
+               M7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <h3 style="font-size:15px;font-weight:800;color:#0f1117;margin:0 0 6px;">
+                    Désactiver cette remise ?
+                </h3>
+                <p style="font-size:12px;color:#8b92a9;margin:0 0 8px;">
+                    La remise suivante sera désactivée :
+                </p>
+                <span class="confirm-delete-motif" style="display:inline-block;padding:4px 14px;border-radius:20px;
+                   font-size:13px;font-weight:700;">
+                    {{ remiseToDelete?.motif }}
+                </span>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button (click)="showConfirmDelete=false" style="padding:10px 20px;border-radius:10px;border:1.5px solid #e8eaf0;
+                     background:white;font-size:12px;font-weight:700;color:#8b92a9;cursor:pointer;">
+                    Annuler
+                </button>
+                <button (click)="confirmerSuppressionRemise()" style="padding:10px 20px;border-radius:10px;border:none;
+                     background:#dc2626;color:white;font-size:12px;
+                     font-weight:800;cursor:pointer;">
+                    Désactiver
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL DÉTAIL
+══════════════════════════════════════════════════════════════════════════ -->
+<div *ngIf="selectedFormulaire" class="modal-backdrop" (click)="closeModal()">
+    <div class="modal-shell" (click)="$event.stopPropagation()" [@modalAnim]>
+
+        <!-- SIDEBAR -->
+        <aside class="modal-sidebar">
+            <div class="sidebar-identity">
+                <div class="identity-avatar" [style.background]="getAvatarColor(0)">
+                    {{ getInitiales(selectedFormulaire) }}
+                    <span class="identity-avatar-ring"></span>
+                </div>
+                <div class="identity-meta">
+                    <span class="dossier-tag">#{{ selectedFormulaire.formulaireId }}</span>
+                    <span class="langue-tag" *ngIf="selectedFormulaire.typePaiement">{{ selectedFormulaire.typePaiement
+                        }}</span>
+                </div>
+                <h2 class="identity-name">
+                    {{ selectedFormulaire.prenomEtudiant }}<br>{{ selectedFormulaire.nomEtudiant }}
+                </h2>
+                <p class="identity-sub">{{ selectedFormulaire.emailEtudiant }}</p>
+            </div>
+
+            <!-- Résumé paiement -->
+            <div class="sidebar-prereq-summary" [class.prereq-global-ok]="selectedFormulaire.statut === 'VALIDE'"
+                [class.prereq-global-ko]="selectedFormulaire.statut !== 'VALIDE'">
+                <div class="prereq-global-icon">
+                    <svg *ngIf="selectedFormulaire.statut === 'VALIDE'" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <svg *ngIf="selectedFormulaire.statut !== 'VALIDE'" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="prereq-global-title">
+                        {{ selectedFormulaire.statut === 'VALIDE' ? 'Dossier validé' :
+                        selectedFormulaire.statut === 'SOUMIS' ? 'En attente de traitement' : 'Dossier refusé' }}
+                    </p>
+                    <p class="prereq-global-sub">Statut : {{ getStatutLabel(selectedFormulaire.statut) }}</p>
+                </div>
+            </div>
+
+            <!-- Workflow Stepper -->
+            <div class="sidebar-stepper mt-4">
+                <p class="stepper-title">Suivi du workflow</p>
+                <div class="stepper-list">
+                    <div class="stepper-step" [class.done]="isStepDone('SCOLARITE')"
+                        [class.active]="isStepActive('SCOLARITE')" [class.failed]="isStepFailed('SCOLARITE')">
+                        <div class="step-dot">
+                            <svg *ngIf="isStepDone('SCOLARITE')" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <div class="step-content">
+                            <span class="step-name">Scolarité</span>
+                            <span class="step-date">{{ isStepDone('SCOLARITE') ? 'Validé' : (isStepFailed('SCOLARITE') ?
+                                'Rejeté' : '—') }}</span>
+                        </div>
+                    </div>
+                    <div class="stepper-connector" [class.done-line]="isStepDone('SCOLARITE')"></div>
+
+                    <div class="stepper-step" [class.done]="isStepDone('DEPARTEMENT')"
+                        [class.active]="isStepActive('DEPARTEMENT')" [class.failed]="isStepFailed('DEPARTEMENT')">
+                        <div class="step-dot">
+                            <svg *ngIf="isStepDone('DEPARTEMENT')" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <div class="step-content">
+                            <span class="step-name">Département</span>
+                            <span class="step-date">{{ isStepDone('DEPARTEMENT') ? 'Validé' :
+                                (isStepFailed('DEPARTEMENT') ? 'Rejeté' : '—') }}</span>
+                        </div>
+                    </div>
+                    <div class="stepper-connector" [class.done-line]="isStepDone('DEPARTEMENT')"></div>
+
+                    <div class="stepper-step" [class.done]="isStepDone('PAIEMENT')"
+                        [class.active]="isStepActive('PAIEMENT')" [class.failed]="isStepFailed('PAIEMENT')">
+                        <div class="step-dot">
+                            <svg *ngIf="isStepDone('PAIEMENT')" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                            <div *ngIf="isStepActive('PAIEMENT')" class="active-pulse"></div>
+                        </div>
+                        <div class="step-content">
+                            <span class="step-name">Paiement</span>
+                            <span class="step-date">{{ isStepDone('PAIEMENT') ? 'Payé' : (isStepFailed('PAIEMENT') ?
+                                'Refusé' : (isStepActive('PAIEMENT') ? 'En cours' : '—')) }}</span>
+                        </div>
+                    </div>
+                    <div class="stepper-connector" [class.done-line]="isStepDone('PAIEMENT')"></div>
+
+                    <div class="stepper-step" [class.done]="isStepDone('INSCRIT')"
+                        [class.active]="isStepActive('INSCRIT')">
+                        <div class="step-dot">
+                            <svg *ngIf="isStepDone('INSCRIT')" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <div class="step-content">
+                            <span class="step-name">Inscrit</span>
+                            <span class="step-date">{{ isStepDone('INSCRIT') ? 'Finalisé' : '—' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-contact">
+                <div class="contact-row">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                    <span>{{ selectedFormulaire.emailEtudiant }}</span>
+                </div>
+                <div class="contact-row" *ngIf="selectedFormulaire.telephone">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                            d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                    <span>{{ selectedFormulaire.telephone }}</span>
+                </div>
+                <div class="contact-row" *ngIf="selectedFormulaire.nomDiplome">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                            d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" />
+                    </svg>
+                    <span>{{ selectedFormulaire.nomDiplome }}</span>
+                </div>
+            </div>
+
+            <button class="sidebar-close" (click)="closeModal()">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="modal-main">
+            <nav class="modal-tabs">
+                <button class="modal-tab" [class.tab-active]="activeTab === 'preferences'"
+                    (click)="activeTab = 'preferences'">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Préférences
+                </button>
+                <button class="modal-tab" [class.tab-active]="activeTab === 'facture'" (click)="activeTab = 'facture'">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Paiements
+                    <span class="tab-badge badge-blue" *ngIf="selectedFormulaire.facture">
+                        {{ selectedFormulaire.facture.montantPaye | number:'1.0-0' }} TND
+                    </span>
+                </button>
+                <button class="modal-tab" [class.tab-active]="activeTab === 'decision'"
+                    (click)="activeTab = 'decision'">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                        <path fill-rule="evenodd"
+                            d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Décision
+                </button>
             </nav>
-        </div>
-    </aside>
 
-    <main class="dashboard-main">
-        <div class="dashboard-header flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Dashboard Utilisateurs</h1>
-            <div class="admin-profile flex items-center gap-4">
-                <div class="tooltip relative cursor-pointer" data-tooltip="3 nouvelles demandes">
-                    <span class="notification-dot"></span>
-                    <span class="text-gray-600">🔔</span>
+            <div class="modal-body">
+
+                <!-- ══ TAB PRÉFÉRENCES ══ -->
+                <!-- ══ TAB PRÉFÉRENCES — Section Remises enrichie ══ -->
+                <div *ngIf="activeTab === 'preferences'">
+
+                    <!-- Bannière résumé -->
+                    <div class="prereq-banner" [class.banner-ok]="selectedFormulaire.statut === 'VALIDE'"
+                        [class.banner-ko]="selectedFormulaire.statut === 'REFUSE'"
+                        [class.banner-pending]="selectedFormulaire.statut === 'SOUMIS'">
+                        <svg viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 flex-shrink-0">
+                            <path fill-rule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <div>
+                            <strong>{{ selectedFormulaire.remisesDemandees.length }} remise(s) demandée(s)</strong>
+                            <p>
+                                Remises demandées : {{ selectedFormulaire.totalRemiseDemandee }}% ·
+                                Remises acceptées : {{ selectedFormulaire.totalRemiseAcceptee }}%
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Infos paiement -->
+                    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+                        <span class="statut-chip chip-blue">{{ selectedFormulaire.typePaiement }}</span>
+                        <span *ngIf="selectedFormulaire.paiementEnLigne" class="statut-chip chip-green">En ligne</span>
+                        <span *ngIf="!selectedFormulaire.paiementEnLigne"
+                            class="statut-chip chip-gray">Présentiel</span>
+                        <span *ngIf="selectedFormulaire.frequenceMois" class="statut-chip chip-purple">
+                            {{ selectedFormulaire.frequenceMois }} mois
+                        </span>
+                    </div>
+
+                    <!-- Remises avec justificatifs -->
+                    <div *ngIf="selectedFormulaire.remisesDemandees.length > 0">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                            Remises demandées
+                        </p>
+
+                        <div style="display:flex;flex-direction:column;gap:12px;">
+                            <div *ngFor="let r of selectedFormulaire.remisesDemandees" style="background:#f8fafc;border:1.5px solid #e8eaf0;border-radius:14px;padding:16px;
+                  border-left:4px solid;" [style.border-left-color]="r.statut === 'ACCEPTEE' ? '#16a34a' :
+                                       r.statut === 'REFUSEE'  ? '#dc2626' : '#d97706'">
+
+                                <!-- Header remise -->
+                                <div
+                                    style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <span style="font-size:13px;font-weight:700;color:#0f1117;">{{ r.motif }}</span>
+                                        <span style="padding:3px 10px;background:#fef3c7;color:#92400e;
+                         border-radius:20px;font-size:12px;font-weight:800;">
+                                            -{{ r.pourcentage }}%
+                                        </span>
+                                    </div>
+                                    <span class="statut-chip" [ngClass]="getRemiseStatutClass(r.statut)">
+                                        {{ getRemiseStatutLabel(r.statut) }}
+                                    </span>
+                                </div>
+
+                                <!-- Justificatif -->
+                                <div *ngIf="r.justificatifPath" style="display:flex;align-items:center;gap:10px;padding:10px 12px;
+                    background:white;border-radius:10px;border:1px solid #e8eaf0;
+                    margin-bottom:10px;">
+                                    <!-- Icône fichier -->
+                                    <div style="width:36px;height:36px;background:#eff4ff;border-radius:8px;
+                      display:flex;align-items:center;justify-content:center;color:#2563eb;flex-shrink:0;">
+                                        <svg style="width:18px;height:18px;" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                        </svg>
+                                    </div>
+                                    <div style="flex:1;min-width:0;">
+                                        <p style="font-size:12px;font-weight:700;color:#0f1117;margin:0;
+                      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                            {{ r.justificatifFileName }}
+                                        </p>
+                                        <p style="font-size:10px;color:#8b92a9;margin:0;">
+                                            {{ r.justificatifFileSize ? (r.justificatifFileSize / 1024 | number:'1.0-0')
+                                            + ' KB' : '' }}
+                                            {{ r.justificatifNote ? '· ' + r.justificatifNote : '' }}
+                                        </p>
+                                    </div>
+                                    <!-- Bouton voir/télécharger -->
+                                    <button (click)="openDocumentViewer(r); $event.stopPropagation()" style="padding:6px 12px;background:#2563eb;color:white;border-radius:8px;
+           font-size:11px;font-weight:700;border:none;cursor:pointer;white-space:nowrap;">
+                                        Voir 👁
+                                    </button>
+                                </div>
+
+                                <div *ngIf="!r.justificatifPath" style="padding:8px 12px;background:#fffbeb;border-radius:8px;
+                    font-size:11px;color:#92400e;margin-bottom:10px;">
+                                    ⚠ Aucun justificatif uploadé
+                                </div>
+
+                                <!-- Commentaire agent si refusée -->
+                                <div *ngIf="r.commentaireAgent" style="padding:8px 12px;background:#fef2f2;border-radius:8px;
+                    font-size:11px;color:#991b1b;margin-bottom:10px;">
+                                    <strong>Commentaire :</strong> {{ r.commentaireAgent }}
+                                </div>
+
+                                <!-- Boutons décision (uniquement si statut EN_ATTENTE et formulaire SOUMIS) -->
+                                <div *ngIf="r.statut === 'EN_ATTENTE' && selectedFormulaire.statut === 'SOUMIS'"
+                                    style="display:flex;gap:8px;justify-content:flex-end;">
+                                    <button (click)="deciderRemise(r, false)" style="padding:7px 14px;border-radius:8px;border:1.5px solid #fecaca;
+                         background:#fef2f2;color:#dc2626;font-size:11px;font-weight:700;
+                         cursor:pointer;">
+                                        ❌ Refuser
+                                    </button>
+                                    <button (click)="deciderRemise(r, true)" style="padding:7px 14px;border-radius:8px;border:none;
+                         background:#16a34a;color:white;font-size:11px;font-weight:700;
+                         cursor:pointer;">
+                                        ✅ Accepter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aucune remise -->
+                    <div *ngIf="!selectedFormulaire.remisesDemandees?.length" class="empty-state"
+                        style="border:1.5px dashed #e8eaf0;border-radius:12px;padding:32px;">
+                        <p>Aucune remise demandée pour ce dossier</p>
+                    </div>
                 </div>
-                <div class="avatar w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-sm font-semibold">AD</div>
+
+                <!-- ══ TAB PAIEMENTS ══ -->
+                <div *ngIf="activeTab === 'facture'">
+
+                    <!-- Recap Facture -->
+                    <div class="facture-recap-grid" *ngIf="selectedFormulaire.facture">
+                        <div class="facture-block block-total">
+                            <span class="facture-block-label">Total</span>
+                            <span class="facture-block-value">{{ selectedFormulaire.facture.montantTotal |
+                                number:'1.2-2' }} DT</span>
+                        </div>
+                        <div class="facture-block block-paye">
+                            <span class="facture-block-label">Payé</span>
+                            <span class="facture-block-value">{{ selectedFormulaire.facture.montantPaye | number:'1.2-2'
+                                }} DT</span>
+                        </div>
+                        <div class="facture-block block-restant">
+                            <span class="facture-block-label">Restant</span>
+                            <span class="facture-block-value">{{ selectedFormulaire.facture.montantRestant |
+                                number:'1.2-2' }} DT</span>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!selectedFormulaire.facture" class="empty-state"
+                        style="border: 1.5px dashed #e8eaf0; border-radius: 12px; padding: 32px;">
+                        <p>La facture sera générée après validation des préférences</p>
+                    </div>
+
+                    <!-- Échéances -->
+                    <div *ngIf="selectedFormulaire.facture?.echeances?.length">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Calendrier de
+                            paiement</p>
+                        <div class="echeance-list">
+                            <div *ngFor="let e of selectedFormulaire.facture?.echeances" class="echeance-item">
+                                <div class="flex items-center gap-12">
+                                    <div class="echeance-num" [ngClass]="getEcheanceClass(e)"
+                                        style="font-size:12px; font-weight:800;">#{{ e.numeroOrdre }}</div>
+                                    <div>
+                                        <p style="font-size:14px; font-weight:800; color:#0f1117; margin:0 0 2px;">
+                                            {{ e.montantAPayer | number:'1.2-2' }} DT
+                                        </p>
+                                        <p style="font-size:10px; color:#8b92a9; margin:0;">
+                                            Échéance le {{ e.dateEcheance | date:'dd/MM/yyyy' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="statut-chip" [ngClass]="getEcheanceClass(e)">
+                                        {{ getEcheanceLabel(e) }}
+                                    </span>
+                                    <button *ngIf="e.statut !== 'PAYE'" (click)="ouvrirPaiement(e)"
+                                        class="action-btn btn-accept" title="Enregistrer paiement">
+                                        <svg viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══ TAB DÉCISION ══ -->
+                <ng-container *ngIf="activeTab === 'decision'">
+
+                    <!-- Dossier déjà traité -->
+                    <div *ngIf="selectedFormulaire.statut !== 'SOUMIS'" class="decision-readonly">
+                        <div class="readonly-icon" [class.bg-green-100]="selectedFormulaire.statut === 'VALIDE'"
+                            [class.bg-red-100]="selectedFormulaire.statut === 'REFUSE'">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                [class.text-green-600]="selectedFormulaire.statut === 'VALIDE'"
+                                [class.text-red-600]="selectedFormulaire.statut === 'REFUSE'">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3>Dossier {{ getStatutLabel(selectedFormulaire.statut) }}</h3>
+                        <p>Ce dossier a déjà été traité.</p>
+                    </div>
+
+                    <!-- Cartes action -->
+                    <div *ngIf="selectedFormulaire.statut === 'SOUMIS' && !showDecisionForm" class="action-selector">
+                        <div class="action-card" (click)="prepareDecision('VALIDER')">
+                            <div class="action-card-icon icon-green">
+                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div class="action-card-body">
+                                <h3>Valider le paiement</h3>
+                                <p>Confirmer les préférences financières → Génère la facture</p>
+                            </div>
+                            <svg class="action-card-arrow" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+
+                        <div class="action-card" (click)="prepareDecision('REFUSER')">
+                            <div class="action-card-icon icon-red">
+                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div class="action-card-body">
+                                <h3>Refuser le dossier</h3>
+                                <p>Notifier l'étudiant d'un problème avec les préférences</p>
+                            </div>
+                            <svg class="action-card-arrow" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Formulaire décision -->
+                    <div *ngIf="selectedFormulaire.statut === 'SOUMIS' && showDecisionForm" class="action-form">
+                        <div class="form-header" [class.form-header-green]="pendingDecision === 'VALIDER'"
+                            [class.form-header-red]="pendingDecision === 'REFUSER'">
+                            <h3>
+                                {{ pendingDecision === 'VALIDER' ? '✅ Confirmer la validation' : '❌ Confirmer le refus'
+                                }}
+                            </h3>
+                            <p>Dossier #{{ selectedFormulaire.formulaireId }} · {{ selectedFormulaire.prenomEtudiant }}
+                                {{ selectedFormulaire.nomEtudiant }}</p>
+                        </div>
+
+                        <div *ngIf="pendingDecision === 'VALIDER'"
+                            style="background:#f0fdf4;border-left:4px solid #16a34a;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;">
+                            <strong>ℹ️</strong> La facture et le calendrier de paiement seront générés automatiquement.
+                        </div>
+                        <div *ngIf="pendingDecision === 'REFUSER'"
+                            style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:8px;padding:10px 14px;font-size:12px;color:#991b1b;">
+                            <strong>ℹ️</strong> L'étudiant recevra un nouveau formulaire pour soumettre des informations
+                            corrigées.
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Message à l'étudiant</label>
+                            <textarea [(ngModel)]="commentaireDecision" class="form-textarea" rows="8"
+                                style="font-family: 'JetBrains Mono', monospace; font-size: 12px;"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="btn-back" (click)="showDecisionForm = false">← Retour</button>
+                            <button class="btn-confirm" [class.btn-confirm-green]="pendingDecision === 'VALIDER'"
+                                [class.btn-confirm-red]="pendingDecision === 'REFUSER'"
+                                [disabled]="actionLoading || !commentaireDecision.trim()" (click)="confirmerDecision()">
+                                <span *ngIf="actionLoading" class="spinner"></span>
+                                {{ actionLoading ? 'Traitement...' :
+                                pendingDecision === 'VALIDER' ? 'Confirmer la validation' : 'Confirmer le refus' }}
+                            </button>
+                        </div>
+                    </div>
+                </ng-container>
+
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- ══ DIALOG PAIEMENT ══════════════════════════════════════════════════════ -->
+<div *ngIf="showPaiementDialog" class="modal-backdrop" (click)="fermerPaiement()" style="z-index: 200;">
+    <div style="width:100%;max-width:400px;background:white;border-radius:20px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.22);"
+        (click)="$event.stopPropagation()">
+
+        <!-- Header -->
+        <div
+            style="padding:20px 24px 16px;background:linear-gradient(135deg,#eff4ff 0%,#dbe6ff 100%);border-bottom:1px solid #dbe6ff;">
+            <h3 style="font-size:15px;font-weight:800;color:#1e293b;margin:0 0 4px;">Encaisser Paiement</h3>
+            <p style="font-size:11px;color:#4a5068;margin:0;">Échéance #{{ selectedEcheance?.numeroOrdre }}</p>
+        </div>
+
+        <!-- Body -->
+        <div style="padding:20px 24px;" class="paiement-dialog-body">
+            <div>
+                <label>Montant (DT)</label>
+                <input type="number" [(ngModel)]="montantPaiement" placeholder="0.00">
+            </div>
+            <div>
+                <label>Mode de paiement</label>
+                <select [(ngModel)]="modePaiementSelectionne">
+                    <option value="EN_PRESENTIEL">Présentiel (Espèces / Chèque)</option>
+                    <option value="EN_LIGNE">Banque / Virement</option>
+                </select>
             </div>
         </div>
 
-        <div class="px-8 py-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="admin-stat-card">
-                    <p class="text-gray-500 text-sm font-medium">Total Comptes</p>
-                    <h2 class="text-2xl font-bold text-gray-900 mt-1">1,284</h2>
+        <!-- Actions -->
+        <div style="padding:0 24px 20px;display:flex;gap:10px;justify-content:flex-end;">
+            <button class="btn-back" (click)="fermerPaiement()">Annuler</button>
+            <button class="btn-confirm btn-confirm-green" (click)="confirmerPaiement()"
+                [disabled]="paiementLoading || !montantPaiement">
+                <span *ngIf="paiementLoading" class="spinner"></span>
+                {{ paiementLoading ? 'Enregistrement...' : 'Valider le paiement' }}
+            </button>
+        </div>
+    </div>
+</div>
+<div *ngIf="showDocumentViewer" class="viewer-backdrop" (click)="closeDocumentViewer()">
+    <div class="viewer-shell" (click)="$event.stopPropagation()">
+        <div class="viewer-header">
+            <div class="viewer-title">
+                <div class="viewer-icon">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                            clip-rule="evenodd" />
+                    </svg>
                 </div>
-                <div class="admin-stat-card">
-                    <p class="text-gray-500 text-sm font-medium">Étudiants Actifs</p>
-                    <h2 class="text-2xl font-bold text-blue-600 mt-1">856</h2>
-                </div>
-                <div class="admin-stat-card">
-                    <p class="text-gray-500 text-sm font-medium">En attente (Workflow)</p>
-                    <h2 class="text-2xl font-bold text-amber-600 mt-1">12</h2>
-                </div>
-                <div class="admin-stat-card">
-                    <p class="text-gray-500 text-sm font-medium">Désactivés</p>
-                    <h2 class="text-2xl font-bold text-red-600 mt-1">4</h2>
+                <div>
+                    <h3>{{ currentDocumentName }}</h3>
+                    <p>Aperçu du document</p>
                 </div>
             </div>
-
-            <section class="dashboard-card p-6">
-                <div class="flex justify-between items-center mb-5">
-                    <h3 class="text-lg font-semibold text-gray-900">Liste des comptes récents</h3>
-                    <button class="px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">+ Créer un compte</button>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full admin-table">
-                        <thead>
-                            <tr>
-                                <th>Utilisateur</th>
-                                <th>Rôle</th>
-                                <th>Statut</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="flex items-center gap-3">
-                                    <div class="avatar w-9 h-9 bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center text-sm font-semibold flex-shrink-0">JD</div>
-                                    <div>
-                                        <div class="font-semibold text-gray-900">Jean Dupont</div>
-                                        <div class="text-xs text-gray-500">jean.dupont&#64;itech.univ.tn</div>
-                                    </div>
-                                </td>
-                                <td><span class="text-gray-600 text-sm">Étudiant</span></td>
-                                <td><span class="badge px-2.5 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Actif</span></td>
-                                <td>
-                                    <button title="Désactiver" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors">🚫</button>
-                                </td>
-                            </tr>
-                            <tr class="user-disabled">
-                                <td class="flex items-center gap-3">
-                                    <div class="avatar w-9 h-9 bg-gray-200 text-gray-600 rounded-lg flex items-center justify-center text-sm font-semibold flex-shrink-0">MK</div>
-                                    <div>
-                                        <div class="font-semibold text-gray-900">Marie Kurie</div>
-                                        <div class="text-xs text-gray-500">marie.k&#64;gmail.com</div>
-                                    </div>
-                                </td>
-                                <td><span class="text-gray-600 text-sm">Finance</span></td>
-                                <td><span class="badge px-2.5 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">Inactif</span></td>
-                                <td>
-                                    <button title="Réactiver" class="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors">✅</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+            <div class="viewer-actions">
+                <a [href]="currentDocumentUrl" [download]="currentDocumentName" class="viewer-btn-dl">
+                    Télécharger
+                </a>
+                <button class="viewer-btn-close" (click)="closeDocumentViewer()">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
         </div>
-    </main>
+        <div class="viewer-body">
+            <iframe [src]="currentDocumentUrl | safe:'resourceUrl'" class="viewer-iframe"
+                *ngIf="currentDocumentUrl && !isImageDocument"></iframe>
+            <div class="viewer-img-container" *ngIf="currentDocumentUrl && isImageDocument">
+                <img [src]="currentDocumentUrl | safe:'url'" class="viewer-img" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ TOAST ════════════════════════════════════════════════════════════════ -->
+<div class="modal-toast" [class.toast-show]="toastVisible" [class.toast-success]="toastType === 'success'"
+    [class.toast-error]="toastType === 'error'">
+    {{ toastMessage }}
 </div>

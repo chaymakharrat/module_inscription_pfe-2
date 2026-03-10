@@ -1,11 +1,14 @@
-/* Modern Pre-Inscription Styles */
+/* ═══════════════════════════════════════════════════════════════════
+   Pre-Inscription — Smart Form Styles
+   ═══════════════════════════════════════════════════════════════════ */
+
 :host {
     display: block;
     position: relative;
     overflow: hidden;
 }
 
-/* Background Decorators */
+/* ── Background ──────────────────────────────────────────────────── */
 .bg-blobs {
     position: absolute;
     top: 0;
@@ -18,7 +21,6 @@
     background: radial-gradient(circle at 0% 0%, #f8fafc 0%, #f1f5f9 100%);
 }
 
-/* Subtle Grid Pattern */
 .bg-blobs::before {
     content: '';
     position: absolute;
@@ -40,7 +42,7 @@
 .blob-1 {
     width: 600px;
     height: 600px;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(96, 165, 250, 0.4) 100%);
+    background: linear-gradient(135deg, rgba(59, 130, 246, .4), rgba(96, 165, 250, .4));
     top: -10%;
     right: -10%;
     animation-duration: 30s;
@@ -49,7 +51,7 @@
 .blob-2 {
     width: 500px;
     height: 500px;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(167, 139, 250, 0.3) 100%);
+    background: linear-gradient(135deg, rgba(139, 92, 246, .3), rgba(167, 139, 250, .3));
     bottom: -10%;
     left: -10%;
     animation-duration: 35s;
@@ -59,7 +61,7 @@
 .blob-3 {
     width: 450px;
     height: 450px;
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(56, 189, 248, 0.2) 100%);
+    background: linear-gradient(135deg, rgba(14, 165, 233, .2), rgba(56, 189, 248, .2));
     top: 30%;
     left: 20%;
     animation-duration: 28s;
@@ -84,7 +86,7 @@
     }
 }
 
-/* Glassmorphism Card */
+/* ── Card ────────────────────────────────────────────────────────── */
 .form-card {
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(16px);
@@ -98,7 +100,7 @@
     box-shadow: 0 30px 60px -12px rgba(59, 130, 246, 0.15);
 }
 
-/* Refined Titles */
+/* ── Step header ─────────────────────────────────────────────────── */
 .step-header {
     border-bottom: 2px solid rgba(59, 130, 246, 0.1);
     padding-bottom: 1.5rem;
@@ -116,9 +118,219 @@
     justify-content: center;
     font-weight: 800;
     box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    flex-shrink: 0;
 }
 
-/* Custom Select Styling */
+/* ── Identification card ─────────────────────────────────────────── */
+.id-verify-card {
+    background: rgba(248, 250, 252, 0.7);
+    border: 2px solid #e2e8f0;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    transition: border-color 0.3s ease;
+}
+
+.id-verify-card:focus-within {
+    border-color: #3b82f6;
+}
+
+.id-verify-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.id-verify-badge {
+    margin-left: auto;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #2563eb;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    border: 1px solid #bfdbfe;
+}
+
+/* ── Verify button ───────────────────────────────────────────────── */
+.verify-btn {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    font-weight: 800;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 0.875rem 1.5rem;
+    border-radius: 1rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    flex-shrink: 0;
+    height: fit-content;
+    align-self: flex-end;
+}
+
+.verify-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+}
+
+.verify-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.spinner-sm {
+    display: inline-block;
+    width: 0.875rem;
+    height: 0.875rem;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Student found / new banners ─────────────────────────────────── */
+.student-found-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    margin-top: 1rem;
+    padding: 1rem 1.25rem;
+    background: #f0fdf4;
+    border: 2px solid #bbf7d0;
+    border-radius: 1rem;
+}
+
+.student-new-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    margin-top: 1rem;
+    padding: 1rem 1.25rem;
+    background: #eff6ff;
+    border: 2px solid #bfdbfe;
+    border-radius: 1rem;
+}
+
+/* ── Scanners section ────────────────────────────────────────────── */
+.scanners-section {
+    background: rgba(248, 250, 252, 0.5);
+    border: 2px solid #e2e8f0;
+    border-radius: 2rem;
+    padding: 1.5rem;
+}
+
+.scanners-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+}
+
+/* ── Scanner cards ───────────────────────────────────────────────── */
+.scanner-card {
+    padding: 1rem;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 1.5rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.scanner-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.scanner-card--amber {
+    border-color: #fde68a;
+    background: rgba(255, 251, 235, 0.5);
+}
+
+.scanner-card--indigo {
+    border-color: #c7d2fe;
+    background: rgba(238, 242, 255, 0.5);
+}
+
+.scanner-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.875rem;
+}
+
+.scanner-card-title--amber {
+    color: #d97706;
+}
+
+.scanner-card-title--indigo {
+    color: #6366f1;
+}
+
+/* ── Verify result banners ───────────────────────────────────────── */
+.verify-result-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    border-width: 2px;
+    border-style: solid;
+}
+
+.verify-result-banner--ok {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.verify-result-banner--ko {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+/* ── Separator ───────────────────────────────────────────────────── */
+.separator-manual {
+    display: flex;
+    align-items: center;
+}
+
+/* ── Empty state pays ────────────────────────────────────────────── */
+.empty-state-pays {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+/* ── Profile summary card (step 3) ──────────────────────────────── */
+.profile-summary-card {
+    background: linear-gradient(135deg, #eff6ff, #f8faff);
+    border: 2px solid #dbeafe;
+    border-radius: 1.25rem;
+    padding: 1.25rem 1.5rem;
+}
+
+/* ── Input states ────────────────────────────────────────────────── */
 select {
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
@@ -127,14 +339,12 @@ select {
     background-size: 1.5em;
 }
 
-/* Modern Input States */
 input:focus,
 select:focus {
     transform: translateY(-1px);
     box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.1);
 }
 
-/* Validation Visual Cues */
 .field-valid {
     border-color: #10b981 !important;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2310b981'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'%3E%3C/path%3E%3C/svg%3E") !important;
@@ -144,7 +354,61 @@ select:focus {
     padding-right: 3rem !important;
 }
 
-/* Document Upload Grid */
+/* ── CIN recap grid (nouveau candidat) ──────────────────────────── */
+.cin-recap-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.cin-recap-item {
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 1rem;
+    padding: 0.625rem 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.cin-recap-item:last-child:nth-child(odd) {
+    grid-column: span 2;
+}
+
+.cin-recap-label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.cin-recap-value {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+/* ── CIN extracted chip ──────────────────────────────────────────── */
+.cin-extracted-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.cin-extracted-chip {
+    display: flex;
+    align-items: center;
+    background: #eff6ff;
+    border: 1.5px solid #bfdbfe;
+    border-radius: 0.875rem;
+    padding: 0.5rem 1rem;
+    flex: 1;
+}
+
+/* ── Upload zone ─────────────────────────────────────────────────── */
 .upload-zone {
     background: rgba(248, 250, 252, 0.5);
     border: 2px dashed #e2e8f0;
@@ -157,7 +421,7 @@ select:focus {
     transform: scale(1.02);
 }
 
-/* Animations */
+/* ── Animations ──────────────────────────────────────────────────── */
 @keyframes slideUp {
     from {
         opacity: 0;
@@ -172,4 +436,66 @@ select:focus {
 
 .animate-slide-up {
     animation: slideUp 0.6s ease-out forwards;
+}
+
+.verify-fill-btn {
+    padding: 1rem 1.5rem;
+    border-radius: 1rem;
+    border: none;
+    font-weight: 900;
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.verify-fill-btn:hover:not(:disabled) {
+    transform: translateY(-1.5px);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
+}
+
+.verify-fill-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Vert si vérification OK */
+.verify-fill-btn.btn-ok {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+}
+
+/* Rouge si KO */
+.verify-fill-btn.btn-ko {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+}
+
+/* ── Progressive Disclosure Summary ──────────────────────────────── */
+@keyframes shine {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.animate-shine {
+    background-image: linear-gradient(110deg,
+            rgba(255, 255, 255, 0) 45%,
+            rgba(255, 255, 255, 0.6) 50%,
+            rgba(255, 255, 255, 0) 55%);
+    background-size: 200% 100%;
+    animation: shine 3s infinite;
+}
+
+.card-summary-entered {
+    border-color: #10b981;
+    box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.1);
 }

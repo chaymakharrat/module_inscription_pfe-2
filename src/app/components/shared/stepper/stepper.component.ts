@@ -250,7 +250,6 @@ export class StepperComponent {
   @Input() steps: Step[] = [
     { id: 1, name: 'Informations personnelles', icon: '👤' },
     { id: 2, name: 'Informations académiques', icon: '🎓' },
-    { id: 3, name: 'Documents requis', icon: '📄' },
   ];
 
   get progressPercentage(): number {

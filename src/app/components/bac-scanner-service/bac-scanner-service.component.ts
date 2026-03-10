@@ -57,6 +57,9 @@ export interface BacResult {
   notes?: NoteItem[];
   rawQr?: string;
   allFields?: Record<string, string>;
+  file?: File | null;      // ✅ AJOUTER
+  isManual?: boolean;
+
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -78,11 +81,13 @@ export class BacScannerServiceComponent implements OnDestroy {
 
   @Output() scanned = new EventEmitter<BacResult>();
 
-  state: 'idle' | 'camera' | 'loading' | 'success' | 'error' = 'idle';
+
+  state: 'idle' | 'camera' | 'loading' | 'success' | 'error' | 'manual' = 'idle';
   result: BacResult | null = null;
   errorMessage = '';
   warningMessage = '';   // ← nouveau : avertissement OCR
   qrDetected = false;
+  private lastFile: File | null = null;
 
   private stream: MediaStream | null = null;
   private scanLoopId: number | null = null;
@@ -141,6 +146,23 @@ export class BacScannerServiceComponent implements OnDestroy {
       });
     }
   }
+  manualFileName = '';
+  // ✅ AJOUTER méthode
+  onManualUpload(e: Event): void {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.lastFile = file;
+    this.manualFileName = file.name;
+    this.state = 'manual';
+
+    this.scanned.emit({
+      success: true,
+      file: file,
+      isManual: true,
+    });
+
+    (e.target as HTMLInputElement).value = '';
+  }
 
   private loadJsQR(): Promise<void> {
     return new Promise(resolve => {
@@ -187,6 +209,7 @@ export class BacScannerServiceComponent implements OnDestroy {
   onFileSelected(e: Event): void {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
+    this.lastFile = file;
     (e.target as HTMLInputElement).value = '';
     this.ngZone.run(() => { this.state = 'loading'; this.warningMessage = ''; });
 
@@ -194,47 +217,90 @@ export class BacScannerServiceComponent implements OnDestroy {
     fd.append('file', file);
 
     // ── Étape 1 : QR 2D-DOC via /bilan-bac (port 5052) ──────────────────
+    // this.http.post<BacResult>('/bilan-bac', fd).subscribe({
+    //   next: res => {
+    //     if (res.success) {
+    //       // QR décodé avec succès
+    //       this.ngZone.run(() => this.handleResult(res));
+    //     } else {
+    //       // QR illisible → fallback OCR via /scan-releve (port 5054)
+    //       this.tryScanReleve(file);
+    //     }
+    //   },
+    //   error: () => {
+    //     // Erreur réseau sur 5052 → tenter quand même 5054
+    //     this.tryScanReleve(file);
+    //   }
+    // });
     this.http.post<BacResult>('/bilan-bac', fd).subscribe({
       next: res => {
         if (res.success) {
-          // QR décodé avec succès
           this.ngZone.run(() => this.handleResult(res));
         } else {
-          // QR illisible → fallback OCR via /scan-releve (port 5054)
-          this.tryScanReleve(file);
+          // ✅ QR illisible → accepter directement en manuel
+          this.ngZone.run(() => {
+            this.result = { success: true, isManual: true };
+            this.state = 'success';
+            this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+          });
         }
       },
-      error: () => {
-        // Erreur réseau sur 5052 → tenter quand même 5054
-        this.tryScanReleve(file);
-      }
+      error: () => this.ngZone.run(() => {
+        // ✅ Erreur réseau → idem, accepter en manuel
+        this.result = { success: true, isManual: true };
+        this.state = 'success';
+        this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+      })
     });
   }
 
   // ── Fallback OCR : /scan-releve (port 5054) ──────────────────────────────
   // Cascade interne : QR → LLaVA → PaddleOCR
 
-  private tryScanReleve(file: File): void {
-    const fd = new FormData();
-    fd.append('file', file);
+  // private tryScanReleve(file: File): void {
+  //   const fd = new FormData();
+  //   fd.append('file', file);
 
-    this.http.post<any>('/scan-releve', fd).subscribe({
-      next: res => this.ngZone.run(() => {
-        if (res.success) {
-          // Ajouter avertissement si données extraites par OCR
-          if (res.strategy?.includes('ocr') || res.strategy?.includes('llava') || res.strategy?.includes('paddle')) {
-            res.warning = res.warning || '⚠️ QR illisible — données extraites par OCR, vérifiez les informations';
-          }
-        }
-        this.handleResult(res);
-      }),
-      error: () => this.ngZone.run(() => {
-        // Les deux services sont down
-        this.errorMessage = 'Service indisponible. Vérifiez votre connexion.';
-        this.state = 'error';
-      })
-    });
-  }
+  //   this.http.post<any>('/scan-releve', fd).subscribe({
+  //     next: res => this.ngZone.run(() => {
+  //       if (res.success) {
+  //         // Ajouter avertissement si données extraites par OCR
+  //         if (res.strategy?.includes('ocr') || res.strategy?.includes('llava') || res.strategy?.includes('paddle')) {
+  //           res.warning = res.warning || '⚠️ QR illisible — données extraites par OCR, vérifiez les informations';
+  //         }
+  //       }
+  //       this.handleResult(res);
+  //     }),
+  //     error: () => this.ngZone.run(() => {
+  //       // Les deux services sont down
+  //       this.errorMessage = 'Service indisponible. Vérifiez votre connexion.';
+  //       this.state = 'error';
+  //     })
+  //   });
+  // }
+  // private tryScanReleve(file: File): void {
+  //   const fd = new FormData();
+  //   fd.append('file', file);
+
+  //   this.http.post<any>('/scan-releve', fd).subscribe({
+  //     next: res => this.ngZone.run(() => {
+  //       if (res.isManual || !res.success) {
+  //         // QR illisible → fichier stocké, pas d'erreur
+  //         this.result = { success: true, isManual: true };
+  //         this.state = 'success';
+  //         this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+  //         return;
+  //       }
+  //       this.handleResult(res);
+  //     }),
+  //     error: () => this.ngZone.run(() => {
+  //       // Erreur réseau → accepter quand même le fichier
+  //       this.result = { success: true, isManual: true };
+  //       this.state = 'success';
+  //       this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+  //     })
+  //   });
+  // }
 
   // ── QR caméra → backend ──────────────────────────────────────────────────
 
@@ -251,7 +317,13 @@ export class BacScannerServiceComponent implements OnDestroy {
           this.ngZone.run(() => this.parseReleveRaw(rawQr));
         }
       },
-      error: () => this.ngZone.run(() => this.parseReleveRaw(rawQr))
+      //error: () => this.ngZone.run(() => this.parseReleveRaw(rawQr))
+      error: () => this.ngZone.run(() => {
+        // Direct manuel au lieu de parseReleveRaw
+        this.result = { success: true, isManual: true };
+        this.state = 'success';
+        this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+      })
     });
   }
 
@@ -284,9 +356,17 @@ export class BacScannerServiceComponent implements OnDestroy {
       this.result = res as BacResult;
       this.warningMessage = res.warning || '';
       this.state = 'success';
+      this.scanned.emit({ ...this.result, file: this.lastFile } as any);
+    } else if (res.isManual) {
+      // QR illisible → fichier accepté quand même
+      this.result = { success: true, isManual: true };
+      this.state = 'success';
+      this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
     } else if (res.fallbackRequired) {
-      this.errorMessage = 'Document illisible. Photographiez le document entier, bonne lumière, image nette.';
-      this.state = 'error';
+      // ✅ Au lieu d'afficher erreur → accepter le fichier
+      this.result = { success: true, isManual: true };
+      this.state = 'success';
+      this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
     } else {
       this.errorMessage = res.errorMessage || 'QR non lisible';
       this.state = 'error';
@@ -297,8 +377,12 @@ export class BacScannerServiceComponent implements OnDestroy {
 
   reset(): void {
     this.stopCamera();
-    this.state = 'idle'; this.result = null;
-    this.errorMessage = ''; this.warningMessage = '';
+    this.state = 'idle';
+    this.result = null;
+    this.errorMessage = '';
+    this.warningMessage = '';
     this.qrDetected = false;
+    this.lastFile = null;  // ✅ AJOUTER
+    this.manualFileName = '';
   }
 }

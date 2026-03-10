@@ -135,13 +135,49 @@
                 </div>
             </div>
 
-            <button type="button" class="btn-confirm" (click)="confirm()">
+            <!-- <button type="button" class="btn-confirm" (click)="confirm()">
                 ✓ UTILISER CES DONNÉES
-            </button>
-
+            </button> -->
+            <div class="flex items-center gap-2 mt-3 p-3 rounded-xl"
+                [ngClass]="result?.isManual ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-200'">
+                <span>{{ result?.isManual ? '⚠️' : '✅' }}</span>
+                <div class="flex-1">
+                    <p class="text-xs font-bold" [ngClass]="result?.isManual ? 'text-amber-700' : 'text-green-700'">
+                        <ng-container *ngIf="!result?.isManual">
+                            Données transmises automatiquement
+                        </ng-container>
+                        <ng-container *ngIf="result?.isManual">
+                            QR illisible — document enregistré pour vérification
+                        </ng-container>
+                    </p>
+                    <p *ngIf="result?.isManual" class="text-xs text-amber-600 mt-0.5">
+                        💡 Pour un meilleur résultat : photographiez le document entier avec bonne lumière, en cadrant
+                        bien le code 2D-DOC.
+                    </p>
+                </div>
+                <button type="button"
+                    class="ml-auto text-xs text-slate-400 hover:text-slate-600 font-bold flex-shrink-0"
+                    (click)="reset()">
+                    ↺ Rescanner
+                </button>
+            </div>
         </div>
     </ng-container>
 
+    <!-- ── ERROR ─────────────────────────────────────────────────── -->
+    <!-- <ng-container *ngIf="state === 'error'">
+        <div class="error-card">
+            <p class="error-title">⚠️ {{ errorMessage }}</p>
+            <p class="error-sub">
+                Conseil : photographiez <strong>le diplôme entier</strong>, pas seulement le QR code.
+                Bonne lumière, image nette.
+            </p>
+            <div class="idle-btns" style="margin-top:10px">
+                <button type="button" class="btn-camera" (click)="startCamera()">📷 Réessayer</button>
+                <button type="button" class="btn-gallery" (click)="reset()">Annuler</button>
+            </div>
+        </div>
+    </ng-container> -->
     <!-- ── ERROR ─────────────────────────────────────────────────── -->
     <ng-container *ngIf="state === 'error'">
         <div class="error-card">
@@ -154,6 +190,28 @@
                 <button type="button" class="btn-camera" (click)="startCamera()">📷 Réessayer</button>
                 <button type="button" class="btn-gallery" (click)="reset()">Annuler</button>
             </div>
+
+            <!-- ✅ AJOUTER : upload manuel si QR illisible -->
+            <div class="manual-upload-box">
+                <p class="manual-title">📎 QR illisible ? Uploadez le fichier directement</p>
+                <p class="manual-sub">Le document sera vérifié par l'administration.</p>
+                <input #manualInput type="file" accept="image/*,application/pdf" class="hidden"
+                    (change)="onManualUpload($event)" />
+                <button type="button" class="btn-manual" (click)="manualInput.click()">
+                    📂 Choisir le fichier
+                </button>
+            </div>
+        </div>
+    </ng-container>
+
+    <!-- ── MANUAL ────────────────────────────────────────────────── -->
+    <ng-container *ngIf="state === 'manual'">
+        <div class="manual-card">
+            <div class="manual-icon">📎</div>
+            <p class="manual-title">Fichier uploadé manuellement</p>
+            <p class="manual-sub">{{ manualFileName }}</p>
+            <p class="manual-note">⚠️ Sera vérifié par l'administration</p>
+            <button type="button" class="btn-restart" (click)="reset()">↺ Recommencer</button>
         </div>
     </ng-container>
 

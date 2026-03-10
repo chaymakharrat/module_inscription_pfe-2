@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule, FormBuilder, FormGroup,
@@ -18,7 +18,7 @@ import { TypeDocument, Student, DemandeInscription } from '../../models/student.
 import { StudentService } from '../../services/student.service';
 import {
   forkJoin, switchMap, map, of, catchError,
-  Observable, debounceTime, Subject, takeUntil
+  Observable, debounceTime, Subject, takeUntil, interval
 } from 'rxjs';
 import { StepperComponent } from '../shared/stepper/stepper.component';
 import { InputComponent } from '../shared/input/input.component';
@@ -31,11 +31,15 @@ import { CinScannerComponent } from '../cin-scanner/cin-scanner.component';
 import { OcrCinResult } from '../../services/ocr.service';
 import { BacScannerComponent, BacResult } from '../bac-scanner/bac-scanner.component';
 import { BacScannerServiceComponent, BacResult as BacServiceResult } from '../bac-scanner-service/bac-scanner-service.component';
-import { BulletinResult, BulletinScannerComponent } from '../bulletin-scanner/bulletin-scanner.component';
+import { BulletinResult } from '../bulletin-scanner/bulletin-scanner.component';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type StudentMode = 'unknown' | 'existing' | 'new';
 type NationalityMode = 'tunisian' | 'foreign' | null;
+interface Stamped<T> {
+  data: T;
+  scannedAt: number;
+}
 
 @Component({
   selector: 'app-pre-inscription',
@@ -52,7 +56,7 @@ type NationalityMode = 'tunisian' | 'foreign' | null;
     CinScannerComponent,
     BacScannerComponent,
     BacScannerServiceComponent,
-    BulletinScannerComponent
+    //BulletinScannerComponent
   ],
   templateUrl: './pre-inscription.component.html',
   styleUrl: './pre-inscription.component.css',
@@ -78,6 +82,14 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   selectedFiles: Map<string, File> = new Map();
   idType: 'cin' | 'passport' = 'cin';
   private destroy$ = new Subject<void>();
+  editMode = false;
+  coherenceChecked = false;   // true après vérification réussie
+  coordonneesValidated = false;
+  etatCivilValidated = false;
+  cursusValidated = false;
+
+
+
 
   // ── Smart Form State ──────────────────────────────────────────────────────
   /** null = pays non encore sélectionné */
@@ -124,10 +136,244 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     return ['LICENCE', 'MASTER', 'MASTERE', 'INGENIEUR'].includes(diplome?.toUpperCase() ?? '');
   }
 
-  // ── Vérification croisée (documents) ────────────────────────────────────
-  cinData: OcrCinResult | null = null;
-  bacDiplomeData: BacResult | null = null;
-  bacReleveData: BacServiceResult | null = null;
+  // ── Session BAC + logique diplôme ─────────────────────────────────────────
+  /** Année de session extraite du scan BAC (QR ou bilan) */
+  sessionBac: number | null = null;
+
+  /**
+   * Règle :
+   *  - session >= 2023 → LIBRE : BAC / Licence / Mastère / Ingénieur
+   *  - session <  2023 → FORCÉ : BACCALAUREAT uniquement
+   *  - null            → session pas encore connue → toutes options disponibles
+   */
+  get isBacForced(): boolean {
+    if (this.sessionBac === null) return false;
+    // Si la session BAC est <= 2023, on considère que c'est le dernier diplôme possible 
+    // (ou que c'est la règle de gestion pour l'automatisme).
+    return this.sessionBac <= 2023;
+  }
+
+  /** Options du select "Dernier Diplôme" selon session */
+  get lastDiplomasFiltered(): string[] {
+    if (this.isBacForced) return ['BACCALAUREAT'];
+    return this.getAvailableDiplomes();
+  }
+
+  get isPersonalInfoFilled(): boolean {
+    const pi = this.inscriptionForm?.get('personalInfo');
+    if (!pi) return false;
+
+    const champsRemplis = ['nom', 'prenom', 'email', 'dateNaissance', 'gendre']
+      .every(f => {
+        const c = pi.get(f);
+        return c && c.value && (c.valid || c.disabled);
+      });
+
+    // ✅ Afficher aussi si les fichiers BAC sont uploadés (même QR illisible)
+    const filesOk = this.selectedFiles.has(TypeDocument.DIPLOME_BAC)
+      || this.selectedFiles.has(TypeDocument.RELEVE_NOTES)
+      || (this.bacDiplomeData !== null)
+      || (this.bacReleveData !== null);
+
+    return champsRemplis || filesOk;
+  }
+
+  // ── Intelligent Progressive Disclosure Getters ──────────────────────────
+  get isEtatCivilReady(): boolean {
+    const pi = this.personalInfo;
+    if (!pi) return false;
+    const champs = ['nom', 'prenom', 'gendre', 'dateNaissance'];
+    if (this.isTunisiaSelected) champs.push('typeBac');
+    const allFilled = champs.every(f => {
+      const c = pi.get(f);
+      return c && c.value && (c.valid || c.disabled);
+    });
+    return allFilled && this.etatCivilValidated;  // ← ajout du flag
+  }
+
+  // get isCoordonneesReady(): boolean {
+  //   const pi = this.personalInfo;
+  //   if (!pi) return false;
+  //   const champs = ['email', 'phone'];
+  //   return champs.every(f => {
+  //     const c = pi.get(f);
+  //     return c && c.value && (c.valid || c.disabled);
+  //   });
+  // }
+  get isCoordonneesReady(): boolean {
+    const pi = this.personalInfo;
+    if (!pi) return false;
+    return ['email', 'phone'].every(f => {
+      const c = pi.get(f);
+      return c && c.value && (c.valid || c.disabled);
+    }) && this.coordonneesValidated;
+  }
+  // ── Nouvelle méthode appelée au blur de l'email ───────────
+  onEmailBlur(): void {
+    const email = this.personalInfo?.get('email');
+    const phone = this.personalInfo?.get('phone');
+    if (email?.valid && phone?.valid && email.value && phone.value) {
+      this.coordonneesValidated = true;
+      this.cdr.detectChanges();
+    }
+  }
+  // ── Blur sur dateNaissance (dernier champ état civil étranger) ──
+  onDateNaissanceBlur(): void {
+    const pi = this.personalInfo;
+    const champs = ['nom', 'prenom', 'gendre', 'dateNaissance'];
+    if (this.isTunisiaSelected) champs.push('typeBac');
+    const allFilled = champs.every(f => {
+      const c = pi?.get(f);
+      return c && c.value && (c.valid || c.disabled);
+    });
+    // Ne pas auto-valider pour les étrangers — laisser le bouton
+    // Pour les tunisiens avec données pré-remplies, auto-valider
+    if (allFilled && this.studentMode === 'existing') {
+      this.etatCivilValidated = true;
+      this.cdr.detectChanges();
+    }
+  }
+
+  get isCursusReady(): boolean {
+    const pi = this.personalInfo;
+    if (!pi) return false;
+    const basic = ['dernierDiplome', 'anneeDernierDiplome'].every(f => {
+      const c = pi.get(f);
+      return c && c.value && (c.valid || c.disabled);
+    });
+    let docsOk = true;
+    if (this.nationalityMode === 'tunisian' && this.studentMode === 'new') {
+      docsOk = (this.selectedFiles.has(TypeDocument.DIPLOME_BAC) || this.bacDiplomeData !== null)
+        && (this.selectedFiles.has(TypeDocument.RELEVE_NOTES) || this.bacReleveData !== null);
+    }
+    if (this.nationalityMode === 'foreign' && this.studentMode === 'new') {
+      docsOk = this.selectedFiles.has(TypeDocument.DIPLOME_BAC)
+        && this.selectedFiles.has(TypeDocument.RELEVE_NOTES)
+        && this.selectedFiles.has(TypeDocument.CARTE_IDENTITE);
+      const diplome = pi.get('dernierDiplome')?.value?.toUpperCase();
+      if (diplome && diplome !== 'BACCALAUREAT') {
+        docsOk = docsOk
+          && this.selectedFiles.has(this.getDiplomeTypeFor(diplome) as any)
+          && this.selectedFiles.has(TypeDocument.RELEVE_NOTES_SUPERIEUR as any);
+      }
+    }
+    return basic && docsOk && this.cursusValidated;  // ← flag ajouté
+  }
+
+  // get isAllStep1Ready(): boolean {
+  //   return this.idCheckDone && this.isEtatCivilReady && this.isCoordonneesReady && this.isCursusReady;
+  // }
+  get isAllStep1Ready(): boolean {
+    return this.idCheckDone
+      && this.isEtatCivilReady
+      && this.isCoordonneesReady
+      && this.isCursusReady
+      && this.etatCivilValidated
+      && this.coordonneesValidated
+      && this.cursusValidated;   // ← ajout
+  }
+  get isForeignDocsComplete(): boolean {
+    if (this.nationalityMode !== 'foreign' || this.studentMode !== 'new') return true;
+    const pi = this.personalInfo;
+    const diplome = pi?.get('dernierDiplome')?.value?.toUpperCase();
+    if (!diplome) return false;
+    const base = this.selectedFiles.has(TypeDocument.DIPLOME_BAC)
+      && this.selectedFiles.has(TypeDocument.RELEVE_NOTES);
+    if (diplome === 'BACCALAUREAT') return base;
+    return base
+      && this.selectedFiles.has(this.getDiplomeTypeFor(diplome) as any)
+      && this.selectedFiles.has(TypeDocument.RELEVE_NOTES_SUPERIEUR as any);
+  }
+  // ── Getter helper : docs tunisien complets ───────────────────────
+  get isTunisianDocsComplete(): boolean {
+    if (this.nationalityMode !== 'tunisian' || this.studentMode !== 'new') return true;
+    return (this.selectedFiles.has(TypeDocument.DIPLOME_BAC) || this.bacDiplomeData !== null)
+      && (this.selectedFiles.has(TypeDocument.RELEVE_NOTES) || this.bacReleveData !== null);
+  }
+
+  // ── Getter : bouton "Valider cursus" visible ? ────────────────────
+  get canValidateCursus(): boolean {
+    const pi = this.personalInfo;
+    if (!pi) return false;
+    const anneeCtrl = pi.get('anneeDernierDiplome');
+    const diplomeOk = pi.get('dernierDiplome')?.valid && pi.get('dernierDiplome')?.value;
+    const anneeOk = anneeCtrl?.disabled
+      ? !!anneeCtrl.value
+      : (anneeCtrl?.valid && !!anneeCtrl?.value);
+    const docsOk = this.isForeignDocsComplete && this.isTunisianDocsComplete;
+    return !!(diplomeOk && anneeOk && docsOk && !this.cursusValidated);
+  }
+
+
+
+  toggleEditMode(): void {
+    this.editMode = !this.editMode;
+    if (this.editMode) {
+      // Optionnel : scroller vers le haut ou focus le 1er champ
+    }
+  }
+
+  // Année minimale autorisée selon nationalité + diplôme
+  get anneeMinDiplome(): number {
+    const diplome = this.inscriptionForm?.get('personalInfo.dernierDiplome')?.value;
+    const dateNaissance = this.inscriptionForm?.get('personalInfo.dateNaissance')?.value;
+    const anneeNaissance = dateNaissance ? new Date(dateNaissance).getFullYear() : null;
+
+    if (this.nationalityMode === 'tunisian') {
+      if (!this.sessionBac) return 1950;
+      if (diplome === 'BACCALAUREAT') return this.sessionBac;
+      if (diplome === 'LICENCE') return this.sessionBac + 3;
+      return this.sessionBac + 5;
+    } else {
+      if (!anneeNaissance) return 1950;
+
+      // ✅ FIX : utiliser getMinAge() au lieu de +17 fixe
+      const paysId = this.inscriptionForm?.get('personalInfo.pays')?.value;
+      const country = this.countries.find(c => c.id == paysId);
+      const minAge = this.getMinAge(country?.nom); // 17 ou 18 selon le pays
+
+      if (diplome === 'BACCALAUREAT') return anneeNaissance + minAge;
+      if (diplome === 'LICENCE') return anneeNaissance + minAge + 3;
+      return anneeNaissance + minAge + 5; // MASTERE / INGENIEUR
+    }
+  }
+  get anneeMaxDiplome(): number {
+    return new Date().getFullYear(); // 2026 au lieu de 2025 hardcodé
+  }
+
+  // Message d'aide affiché sous le champ
+  get anneeHint(): string {
+    const diplome = this.inscriptionForm?.get('personalInfo.dernierDiplome')?.value;
+    if (!diplome) return '';
+    if (this.nationalityMode === 'tunisian') {
+      if (diplome === 'BACCALAUREAT') return this.sessionBac ? `Session ${this.sessionBac} (automatique)` : '';
+      if (diplome === 'LICENCE') return this.sessionBac ? `≥ ${this.sessionBac + 3}` : '';
+      return this.sessionBac ? `≥ ${this.sessionBac + 5}` : '';
+    } else {
+      const min = this.anneeMinDiplome;
+      return min > 1950 ? `≥ ${min}` : '';
+    }
+  }
+
+  // APRÈS
+  private readonly SCAN_TTL_MS = 15 * 60 * 1000;
+  private cinStamped: Stamped<OcrCinResult> | null = null;
+  private bacDiplomeStamped: Stamped<BacResult> | null = null;
+  private bacReleveStamped: Stamped<BacServiceResult> | null = null;
+
+  get cinData(): OcrCinResult | null {
+    return this.isFresh(this.cinStamped) ? this.cinStamped!.data : null;
+  }
+  get bacDiplomeData(): BacResult | null {
+    return this.isFresh(this.bacDiplomeStamped) ? this.bacDiplomeStamped!.data : null;
+  }
+  get bacReleveData(): BacServiceResult | null {
+    return this.isFresh(this.bacReleveStamped) ? this.bacReleveStamped!.data : null;
+  }
+  private isFresh<T>(stamped: Stamped<T> | null): boolean {
+    if (!stamped) return false;
+    return (Date.now() - stamped.scannedAt) < this.SCAN_TTL_MS;
+  }
   verifyMatch: boolean | null = null;
   verifyReason = '';
 
@@ -154,8 +400,9 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   ];
 
   private readonly DRAFT_KEY = 'pre_inscription_draft';
-  private readonly DRAFT_MAX_AGE_MS = 30 * 60 * 1000;
+  private readonly DRAFT_MAX_AGE_MS = 5 * 60 * 1000;
   private draftExpiryTimer: any = null;
+  private lastSelectedCountryId: any = null;
 
   lastDiplomas = ['BACCALAUREAT', 'LICENCE', 'MASTERE', 'INGENIEUR'];
 
@@ -164,24 +411,42 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     const docs: { type: TypeDocument; label: string; required: boolean }[] = [];
 
     if (this.nationalityMode === 'tunisian') {
+      // ── LOGIQUE TUNISIEN ──
       docs.push({ type: TypeDocument.CARTE_IDENTITE, label: "Carte d'identité nationale", required: true });
-    } else {
-      docs.push({ type: TypeDocument.CARTE_IDENTITE, label: 'Passeport', required: true });
-    }
 
-    // Nouveaux étudiants → toujours BAC
-    if (this.studentMode === 'new') {
+      if (this.studentMode === 'new') {
+        docs.push({ type: TypeDocument.DIPLOME_BAC, label: 'Diplôme du Baccalauréat', required: true });
+        docs.push({ type: TypeDocument.RELEVE_NOTES, label: 'Relevé de notes BAC', required: true });
+      }
+      if (this.studentMode === 'existing' && this.needsSuperieurDocs) {
+        docs.push({ type: TypeDocument.RELEVE_NOTES_SUPERIEUR as any, label: 'Relevé de notes supérieur', required: true });
+        const diplome = this.inscriptionForm?.get('personalInfo.dernierDiplome')?.value?.toUpperCase();
+        if (diplome === 'LICENCE') docs.push({ type: TypeDocument.DIPLOME_LICENCE, label: 'Diplôme de Licence', required: true });
+        if (diplome === 'MASTERE' || diplome === 'MASTER') docs.push({ type: TypeDocument.DIPLOME_MASTER, label: 'Diplôme de Master', required: true });
+        if (diplome === 'INGENIEUR') docs.push({ type: TypeDocument.DIPLOME_INGENIEUR as any, label: "Diplôme d'Ingénieur", required: true });
+      }
+    } else {
+      // ── LOGIQUE ÉTRANGER ──
+      const diplome = this.inscriptionForm?.get('personalInfo.dernierDiplome')?.value?.toUpperCase();
+
+      docs.push({ type: TypeDocument.CARTE_IDENTITE, label: 'Passeport', required: true });
+
+      // Documents BAC (Requis pour TOUS les diplômes étrangers, car c'est la base)
       docs.push({ type: TypeDocument.DIPLOME_BAC, label: 'Diplôme du Baccalauréat', required: true });
       docs.push({ type: TypeDocument.RELEVE_NOTES, label: 'Relevé de notes BAC', required: true });
-    }
 
-    // Existants avec diplôme supérieur → relever supérieur
-    if (this.studentMode === 'existing' && this.needsSuperieurDocs) {
-      docs.push({ type: TypeDocument.RELEVE_NOTES_SUPERIEUR as any, label: 'Relevé de notes supérieur', required: true });
-      const diplome = this.inscriptionForm?.get('personalInfo.dernierDiplome')?.value?.toUpperCase();
-      if (diplome === 'LICENCE') docs.push({ type: TypeDocument.DIPLOME_LICENCE, label: 'Diplôme de Licence', required: true });
-      if (diplome === 'MASTERE' || diplome === 'MASTER') docs.push({ type: TypeDocument.DIPLOME_MASTER, label: 'Diplôme de Master', required: true });
-      if (diplome === 'INGENIEUR') docs.push({ type: TypeDocument.DIPLOME_INGENIEUR as any, label: "Diplôme d'Ingénieur", required: true });
+      // Documents du diplôme supérieur (Si le dernier diplôme n'est pas le BACCALAUREAT)
+      if (diplome && diplome !== 'BACCALAUREAT') {
+        docs.push({ type: TypeDocument.RELEVE_NOTES_SUPERIEUR as any, label: 'Relevé de notes supérieur', required: true });
+
+        if (diplome === 'LICENCE') {
+          docs.push({ type: TypeDocument.DIPLOME_LICENCE, label: 'Diplôme de Licence', required: true });
+        } else if (diplome === 'MASTERE' || diplome === 'MASTER') {
+          docs.push({ type: TypeDocument.DIPLOME_MASTER, label: 'Diplôme de Master', required: true });
+        } else if (diplome === 'INGENIEUR') {
+          docs.push({ type: TypeDocument.DIPLOME_INGENIEUR as any, label: "Diplôme d'Ingénieur", required: true });
+        }
+      }
     }
 
     return docs;
@@ -212,8 +477,8 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     // Si BAC → seulement les licences
     if (dernierDiplome === 'BACCALAUREAT') {
       return this.filteredDiplomesResponsables.filter(d =>
-        d.typeNom?.toUpperCase().includes('LICENCE') ||
-        d.nomDiplome?.toUpperCase().includes('LICENCE')
+        d.nomDiplome?.toUpperCase().includes('LICENCE') ||
+        d.typeNom?.toUpperCase().includes('LICENCE')
       );
     }
     // Sinon tout est accessible
@@ -227,13 +492,17 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     private enrollmentService: EnrollmentService,
     private phoneValidationService: PhoneValidationService,
     private studentService: StudentService,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
     this.initForm();
     this.loadInitialData();
     this.startDraftExpiryTimer();
+    interval(60_000).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.checkScanExpiry();
+    });
 
     this.inscriptionForm.get('academicInfo.langueVise')?.valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -261,23 +530,23 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   initForm(): void {
     this.inscriptionForm = this.fb.group({
       personalInfo: this.fb.group({
-        nom: ['', Validators.required],
-        prenom: ['', Validators.required],
+        nom: ['', [Validators.required, Validators.pattern(/^[a-zA-ZÀ-ÿ\u0600-\u06FF '-]*$/)]],
+        prenom: ['', [Validators.required, Validators.pattern(/^[a-zA-ZÀ-ÿ\u0600-\u06FF '-]*$/)]],
         email: ['', [Validators.required, Validators.email]],
         phone: ['', {
           validators: [Validators.required],
-          asyncValidators: [this.phoneAsyncValidator.bind(this)],
-          updateOn: 'blur'
+          asyncValidators: [this.phoneAsyncValidator.bind(this)]
         }],
-        indicatif: ['+216', Validators.required],
+        indicatif: [{ value: '+216', disabled: true }, Validators.required],
         gendre: ['HOMME', Validators.required],
         dateNaissance: ['', [Validators.required, this.ageValidator(18)]],
         pays: ['', Validators.required],
-        adresse: ['', Validators.required],
+        adresse: [''],
         cin: ['', [Validators.pattern('^[0-9]{8}$')]],
         numPassport: [''],
         typeBac: [''],
-        dernierDiplome: ['', Validators.required]
+        dernierDiplome: ['', Validators.required],
+        anneeDernierDiplome: [{ value: '', disabled: false }, Validators.required]
       }),
       academicInfo: this.fb.group({
         typeVise: ['', Validators.required],
@@ -293,6 +562,9 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     this.inscriptionForm.get('personalInfo.pays')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(paysId => {
+        if (this.lastSelectedCountryId === paysId) return;
+        this.lastSelectedCountryId = paysId;
+
         const country = this.countries.find(c => c.id == paysId);
         if (country) {
           this.inscriptionForm.get('personalInfo.indicatif')?.setValue(country.indicatif);
@@ -310,6 +582,10 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
           typeBacControl?.clearValidators();
           typeBacControl?.setValue('');
         }
+        const minAge = this.getMinAge(country?.nom);
+        const dateCtrl = this.inscriptionForm.get('personalInfo.dateNaissance');
+        dateCtrl?.setValidators([Validators.required, this.ageValidator(minAge)]);
+        dateCtrl?.updateValueAndValidity();
         typeBacControl?.updateValueAndValidity();
       });
 
@@ -329,19 +605,120 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     this.inscriptionForm.get('personalInfo.dernierDiplome')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(val => {
-        // Si BAC → filtrer les diplômes visés
+        // 1. Reset tout
         this.inscriptionForm.get('academicInfo.diplomeVise')?.setValue('');
-        this.inscriptionForm.get('academicInfo.typeVise')?.setValue('');
+        const typeViseCtrl = this.inscriptionForm.get('academicInfo.typeVise');
         this.filteredDiplomesResponsables = [];
         this.levels = [];
+
+        // 2. Logique forcée sur le typeVise
+        if (val === 'BACCALAUREAT') {
+          const licenceType = this.typesDiplome.find(t => t.nom?.toUpperCase().includes('LICENCE'));
+          if (licenceType) {
+            typeViseCtrl?.setValue(licenceType.nom);
+            typeViseCtrl?.disable();
+          }
+        } else {
+          typeViseCtrl?.setValue('');
+          typeViseCtrl?.enable();
+        }
+
+        // 3. Règles métier sur l'année d'obtention
+        const anneeCtrl = this.inscriptionForm.get('personalInfo.anneeDernierDiplome');
+        if (!val) {
+          anneeCtrl?.setValue('', { emitEvent: false });
+          anneeCtrl?.clearValidators();
+          anneeCtrl?.updateValueAndValidity({ emitEvent: false });
+          return;
+        }
+
+        if (this.nationalityMode === 'tunisian' && val === 'BACCALAUREAT' && this.sessionBac) {
+          // Auto-rempli = sessionBac, champ désactivé
+          anneeCtrl?.setValue(this.sessionBac, { emitEvent: false });
+          anneeCtrl?.disable({ emitEvent: false });
+          anneeCtrl?.clearValidators();
+        } else {
+          anneeCtrl?.enable({ emitEvent: false });
+          const min = this.anneeMinDiplome;
+          const max = this.anneeMaxDiplome;
+          anneeCtrl?.setValidators([
+            Validators.required,
+            Validators.min(min),
+            Validators.max(max)
+          ]);
+        }
+        anneeCtrl?.updateValueAndValidity({ emitEvent: false });
+        this.cdr.detectChanges();
       });
 
     this.inscriptionForm.valueChanges
       .pipe(debounceTime(2000), takeUntil(this.destroy$))
       .subscribe(val => this.autoSave(val));
+    this.inscriptionForm.get('personalInfo.dateNaissance')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        const current = this.inscriptionForm.get('personalInfo.dernierDiplome')?.value;
+        const available = this.getAvailableDiplomes();
+        if (current && !available.includes(current)) {
+          this.inscriptionForm.get('personalInfo.dernierDiplome')?.setValue('');
+        }
+      });
 
     this.restoreForm();
     this.setIdType('cin');
+  }
+  private getMinAge(nomPays: string | undefined): number {
+    if (!nomPays) return 17;
+
+    const pays18ans = [
+      // Pays arabes et Afrique du Nord
+      'Tunisia', 'Tunisie', 'Algérie', 'Maroc', 'Libye',
+      'Egypt', 'Syria', 'Liban', 'Irak', 'Iran', 'Jordanie',
+      'Saudi Arabia', 'United Arab Emirates', 'Qatar', 'Koweït',
+      'Bahreïn', 'Oman', 'Yemen',
+      // Afrique subsaharienne
+      'Sénégal', 'Cameroun', 'Côte d\'Ivoire', 'Mali', 'Niger',
+      'Burkina Faso', 'Togo', 'Bénin', 'Gabon', 'Congo',
+      'République démocratique du Congo', 'Madagascar', 'Rwanda',
+      'Éthiopie', 'Kenya', 'Tanzanie', 'Ouganda', 'Ghana',
+      'Nigéria', 'Soudan', 'Djibouti', 'Mauritanie', 'Tchad',
+      // Asie centrale
+      'Pakistan', 'Bangladesh', 'Afghanistan'
+    ];
+
+    if (pays18ans.includes(nomPays)) return 18;
+    return 17; // Europe, Amérique, Asie de l'Est → 17 ans
+  }
+  private calculateAge(birthDate: Date): number {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+    return age;
+  }
+
+  getAvailableDiplomes(): string[] {
+    const dateNaissance = this.inscriptionForm.get('personalInfo.dateNaissance')?.value;
+    if (!dateNaissance) return this.lastDiplomas;
+
+    const age = this.calculateAge(new Date(dateNaissance));
+
+    // Récupérer l'âge minimum du pays sélectionné
+    const paysId = this.inscriptionForm.get('personalInfo.pays')?.value;
+    const country = this.countries.find(c => c.id == paysId);
+    const minAge = this.getMinAge(country?.nom); // 17 ou 18 selon le pays
+
+    // < âge minimum BAC → rien du tout (ne devrait pas arriver)
+    if (age < minAge) return ['BACCALAUREAT'];
+
+    // BAC seulement : minAge → minAge+2
+    if (age < minAge + 2) return ['BACCALAUREAT'];
+
+    // LICENCE possible : minAge+2 → minAge+5
+    if (age < minAge + 5) return ['BACCALAUREAT', 'LICENCE'];
+
+    // Tout accessible : minAge+5 et plus
+    return ['BACCALAUREAT', 'LICENCE', 'MASTERE', 'INGENIEUR'];
   }
 
   // ════════════════════════════════════════════════════════════════════════
@@ -354,17 +731,18 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
    */
   onCinScannedForVerify(result: OcrCinResult): void {
     if (!result.success || !result.numeroCin) return;
+    this.cinStamped = { data: result, scannedAt: Date.now() };
     this.cinExtractedValue = result.numeroCin;
     this.cinExtracted = true;
-    this.inscriptionForm.get("personalInfo.cin")?.setValue(result.numeroCin);
-    this.inscriptionForm.get("personalInfo.cin")?.markAsTouched();
-    this.cinData = result;
+    this.inscriptionForm.get('personalInfo.cin')?.setValue(result.numeroCin);
+    this.inscriptionForm.get('personalInfo.cin')?.markAsTouched();
+    //this.cinData = result;
+    //this.tryVerify(); // ← AJOUTER CETTE LIGNE
+    if ((result as any).file) {
+      this.selectedFiles.set(TypeDocument.CARTE_IDENTITE, (result as any).file);
+    }
+    this.verifyIdentifiant();
   }
-
-  /**
-   * Appelé quand le candidat clique "Vérifier" après avoir saisi CIN ou passport.
-   * Recherche l'étudiant dans le backend et charge ses données si trouvé.
-   */
   verifyIdentifiant(): void {
     const paysId = this.inscriptionForm.get('personalInfo.pays')?.value;
     if (!paysId) { this.alertService.error('Veuillez sélectionner votre pays.'); return; }
@@ -391,96 +769,320 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
         this.alertService.error('Veuillez saisir votre numéro de passeport.');
         this.isCheckingId = false; return;
       }
+
+      // ✅ ÉTAPE 1 : chercher le candidat en base
       this.studentService.getStudentByPassport(passport, Number(paysId)).pipe(
         catchError(() => of(null))
-      ).subscribe(student => this.handleStudentLookup(student));
+      ).subscribe(student => {
+
+        // ✅ Candidat existant → on charge ses infos directement
+        if (student) {
+          this.handleStudentLookup(student);
+          return;
+        }
+
+        // ✅ APRÈS — le 400 est bien récupéré
+        this.studentService.validatePassport(passport, Number(paysId)).pipe(
+          catchError((err) => {
+            if (err.status === 400 && err.error) {
+              return of(err.error); // ← body du 400 contient { valide, formatAttendu, message }
+            }
+            return of({ valide: true }); // autre erreur réseau → on laisse passer
+          })
+        ).subscribe(validation => {
+          if (!validation.valide) {
+            this.isCheckingId = false;
+            this.idCheckDone = false;
+            this.alertService.error(
+              `Format de passeport invalide.\nFormat attendu : ${validation.formatAttendu ?? 'inconnu'}`
+            );
+            this.inscriptionForm.get('personalInfo.numPassport')?.setErrors({ passportFormat: true });
+            this.inscriptionForm.get('personalInfo.numPassport')?.markAsTouched();
+            return;
+          }
+          this.handleStudentLookup(null);
+        });
+      });
     }
   }
 
   private handleStudentLookup(student: Student | null): void {
-    this.isCheckingId = false;
-    this.idCheckDone = true;
+    // setTimeout(0) : sort du cycle CD courant pour éviter NG0100
+    setTimeout(() => {
+      this.isCheckingId = false;
+      this.idCheckDone = true;
 
-    if (!student) {
-      // Nouvel étudiant
-      this.studentMode = 'new';
-      return;
-    }
+      if (!student) {
+        this.studentMode = 'new';
+        this.cdr.detectChanges();
+        return;
+      }
 
-    // Étudiant existant → pré-remplir le formulaire
-    this.existingStudent = student;
-    this.studentMode = 'existing';
-    this.prefillFromStudent(student);
+      this.existingStudent = student;
+      this.studentMode = 'existing';
+      this.prefillFromStudent(student);
+      this.cdr.detectChanges();
 
-    // Charger sa dernière demande
-    if (student.id) {
-      this.enrollmentService.getDemandeByEtudiantId(student.id).pipe(
-        catchError(() => of(null))
-      ).subscribe(demande => {
-        this.existingDemande = demande;
-
-        // Si demande < 1 an → désactiver le champ dernierDiplome
-        if (this.isRecentDemande) {
-          this.inscriptionForm.get('personalInfo.dernierDiplome')?.disable();
-        } else {
-          this.inscriptionForm.get('personalInfo.dernierDiplome')?.enable();
-        }
-      });
-    }
+      if (student.id) {
+        this.enrollmentService.getDemandeByEtudiantId(student.id).pipe(
+          catchError(() => of(null))
+        ).subscribe(demande => {
+          setTimeout(() => {
+            this.existingDemande = demande;
+            if (this.isRecentDemande) {
+              this.inscriptionForm.get('personalInfo.dernierDiplome')?.disable({ emitEvent: false });
+              this.inscriptionForm.get('personalInfo.anneeDernierDiplome')?.disable({ emitEvent: false });
+            } else {
+              this.inscriptionForm.get('personalInfo.dernierDiplome')?.enable({ emitEvent: false });
+              this.inscriptionForm.get('personalInfo.anneeDernierDiplome')?.enable({ emitEvent: false });
+            }
+            this.cdr.detectChanges();
+          }, 0);
+        });
+      }
+    }, 0);
   }
 
   private prefillFromStudent(s: Student): void {
     const pi = this.inscriptionForm.get('personalInfo');
     if (!pi) return;
-    if (s.nom) pi.get('nom')?.setValue(s.nom);
-    if (s.prenom) pi.get('prenom')?.setValue(s.prenom);
-    if (s.email) pi.get('email')?.setValue(s.email);
+    const opts = { emitEvent: false };
+    if (s.nom) pi.get('nom')?.setValue(s.nom, opts);
+    if (s.prenom) pi.get('prenom')?.setValue(s.prenom, opts);
+    if (s.email) pi.get('email')?.setValue(s.email, opts);
     if (s.phone) {
-      // Tenter de séparer indicatif et numéro
-      const match = s.phone.match(/^(\+\d{1,4})(.+)$/);
-      if (match) {
-        pi.get('indicatif')?.setValue(match[1]);
-        pi.get('phone')?.setValue(match[2]);
+      // Récupérer l'indicatif exact du pays sélectionné
+      const paysId = pi.get('pays')?.value;
+      const country = this.countries.find(c => c.id == paysId);
+      const countryIndicatif = country?.indicatif ?? '';
+
+      if (countryIndicatif && s.phone.startsWith(countryIndicatif)) {
+        // Le numéro commence déjà par l'indicatif exact du pays → découpage propre
+        pi.get('indicatif')?.setValue(countryIndicatif, opts);
+        pi.get('phone')?.setValue(s.phone.slice(countryIndicatif.length), opts);
+      } else {
+        // Sinon, tentative de découpage générique par regex
+        const match = s.phone.match(/^(\+\d{1,4})(.+)$/);
+        if (match) {
+          pi.get('indicatif')?.setValue(match[1], opts);
+          pi.get('phone')?.setValue(match[2], opts);
+        } else {
+          // Numéro sans indicatif → on met l'indicatif du pays sélectionné
+          if (countryIndicatif) pi.get('indicatif')?.setValue(countryIndicatif, opts);
+          pi.get('phone')?.setValue(s.phone, opts);
+        }
       }
     }
-    if (s.gendre) this.setGender(s.gendre as any);
-    if (s.dateNaissance) pi.get('dateNaissance')?.setValue(s.dateNaissance);
-    if (s.numCarteIdentite) pi.get('cin')?.setValue(s.numCarteIdentite);
-    if (s.numPassport) pi.get('numPassport')?.setValue(s.numPassport);
-    if ((s as any).adresse) pi.get('adresse')?.setValue((s as any).adresse);
-    if ((s as any).dernierDiplome) pi.get('dernierDiplome')?.setValue((s as any).dernierDiplome);
+    if (s.gendre) pi.get('gendre')?.setValue(s.gendre, opts);
+    if (s.dateNaissance) pi.get('dateNaissance')?.setValue(s.dateNaissance, opts);
+    if (s.numCarteIdentite) pi.get('cin')?.setValue(s.numCarteIdentite, opts);
+    if (s.numPassport) pi.get('numPassport')?.setValue(s.numPassport, opts);
+    if ((s as any).dernierDiplome) pi.get('dernierDiplome')?.setValue((s as any).dernierDiplome, opts);
+    if ((s as any).anneeDernierDiplome) pi.get('anneeDernierDiplome')?.setValue((s as any).anneeDernierDiplome, opts);
+    if (s.typeBac) pi.get('typeBac')?.setValue(s.typeBac, opts);
 
-    // Tous les champs identité sont en readonly pour l'étudiant existant
-    ['nom', 'prenom', 'dateNaissance', 'cin', 'numPassport'].forEach(field => {
-      pi.get(field)?.disable();
+    // ✅ Si c'est un BAC, on garde la session pour la validation de l'année
+    if ((s as any).dernierDiplome === 'BACCALAUREAT') {
+      this.sessionBac = (s as any).anneeDernierDiplome;
+    }
+
+    // ✅ Désactiver SANS marquer comme touched
+    ['nom', 'prenom', 'dateNaissance', 'cin', 'numPassport', 'typeBac'].forEach(field => {
+      pi.get(field)?.disable({ emitEvent: false });
+      pi.get(field)?.markAsUntouched(); // ← AJOUTER
+      pi.get(field)?.markAsPristine();  // ← AJOUTER
     });
   }
-
+  private checkScanExpiry(): void {
+    let expired = false;
+    if (this.cinStamped && !this.isFresh(this.cinStamped)) {
+      this.cinStamped = null;
+      this.idCheckDone = false;
+      expired = true;
+    }
+    if (this.bacDiplomeStamped && !this.isFresh(this.bacDiplomeStamped)) {
+      this.bacDiplomeStamped = null;
+      this.verifyMatch = null;
+      expired = true;
+    }
+    if (this.bacReleveStamped && !this.isFresh(this.bacReleveStamped)) {
+      this.bacReleveStamped = null;
+      this.verifyMatch = null;
+      expired = true;
+    }
+    if (expired) {
+      this.alertService.warning('Vos scans ont expiré (15 min). Veuillez rescanner vos documents.');
+      this.cdr.detectChanges();
+    }
+  }
   resetStudentState(): void {
     this.studentMode = 'unknown';
     this.idCheckDone = false;
     this.existingStudent = null;
     this.existingDemande = null;
-    this.cinData = null;
-    this.bacDiplomeData = null;
-    this.bacReleveData = null;
+    this.cinStamped = null;         // ✅ était: this.cinData = null
+    this.bacDiplomeStamped = null;  // ✅ était: this.bacDiplomeData = null
+    this.bacReleveStamped = null;   // ✅ était: this.bacReleveData = null
     this.verifyMatch = null;
     this.verifyReason = '';
     this.cinExtracted = false;
     this.cinExtractedValue = '';
     this.showCinManual = false;
+    if (this.nationalityMode === 'foreign') {
+      this.selectedFiles.delete(TypeDocument.CARTE_IDENTITE);
+      this.selectedFiles.delete(TypeDocument.DIPLOME_BAC);
+      this.selectedFiles.delete(TypeDocument.RELEVE_NOTES);
+      this.selectedFiles.delete(TypeDocument.DIPLOME_LICENCE);
+      this.selectedFiles.delete(TypeDocument.DIPLOME_MASTER);
+      this.selectedFiles.delete(TypeDocument.DIPLOME_INGENIEUR as any);
+      this.selectedFiles.delete(TypeDocument.RELEVE_NOTES_SUPERIEUR as any);
+    }
+    this.sessionBac = null;
     // Réactiver tous les champs
     ['nom', 'prenom', 'dateNaissance', 'cin', 'numPassport', 'dernierDiplome'].forEach(f =>
       this.inscriptionForm.get(`personalInfo.${f}`)?.enable()
     );
+    this.editMode = false;
+    this.coherenceChecked = false;
+    this.coordonneesValidated = false;  // ← ajout
+    this.coordonneesValidated = false;
+    this.cursusValidated = false;    // ← ajout
   }
 
   // ════════════════════════════════════════════════════════════════════════
   // HANDLERS OCR SCANNERS
   // ════════════════════════════════════════════════════════════════════════
+  // ── Propriété ──────────────────────────────────────
+  isVerifying = false;
+
+  // ── Méthode principale ─────────────────────────────
+  verifyAndFillForm(): void {
+    // Il faut le CIN pour vérifier
+    if (!this.cinData) return;
+
+    // Si aucun OCR BAC n'a réussi mais que l'utilisateur clique, on ne peut pas "vérifier" au sens strict
+    // Mais ce bouton ne devrait être cliquable que si au moins un des deux OCR a réussi.
+    if (!this.bacDiplomeData && !this.bacReleveData) return;
+
+    this.isVerifying = true;
+    this.verifyMatch = null;
+    this.verifyReason = '';
+
+    // Simuler délai de vérification
+    setTimeout(() => {
+      this.tryVerify(); // lance la vérification croisée partielle ou totale
+
+      if (this.verifyMatch === true) {
+        this.fillFormFromDocs(); // remplit le formulaire
+      }
+
+      this.isVerifying = false;
+      this.cdr.detectChanges();
+    }, 800);
+  }
+
+  // ── Handler pour remplissage manuel forcé depuis CIN ──
+  fillFromCinOnlyIfScansFailed(): void {
+    if (!this.cinData) {
+      this.alertService.warning("Données CIN non disponibles. Veuillez d'abord scanner votre CIN.");
+      return;
+    }
+
+    // Uniquement autorisé si les 2 OCR ont échoué
+    if (this.bacDiplomeData || this.bacReleveData) {
+      this.alertService.info("Les scans BAC ont réussi, utilisez le bouton de vérification classique.");
+      return;
+    }
+
+    // Et que les fichiers ont bien été sélectionnés manuellement
+    if (!this.selectedFiles.has(TypeDocument.DIPLOME_BAC) || !this.selectedFiles.has(TypeDocument.RELEVE_NOTES)) {
+      this.alertService.error('Veuillez uploader votre Diplôme et Relevé de notes BAC avant de continuer.');
+      return;
+    }
+
+    this.verifyMatch = true; // On simule un match pour débloquer l'étape
+    this.verifyReason = 'Identité remplie via CIN (scans BAC ignorés/illisibles)';
+    this.fillFormFromDocs();
+    this.alertService.success('Formulaire rempli avec succès depuis la CIN.');
+  }
+
+  // ── Mappage Spécialité → Valeur Formulaire ────────
+  private mapSpecialtyToBacType(spec: string): string {
+    if (!spec) return '';
+    const s = spec.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+    if (s.includes('math')) return 'MATHEMATIQUES';           // ✅ "Mathématiques" → "MATHEMATIQUES"
+    if (s.includes('experiment')) return 'SCIENCES_EXPERIMENTALES';
+    if (s.includes('technique')) return 'TECHNIQUE';
+    if (s.includes('econo') || s.includes('gest')) return 'ECONOMIE_GESTION';
+    if (s.includes('informatique')) return 'SCIENCES_INFORMATIQUE';
+    if (s.includes('lettre')) return 'LETTRES';
+    if (s.includes('sport')) return 'SPORT';
+    return 'AUTRE';
+  }
+
+  // ── Remplissage formulaire depuis les 3 docs ───────
+  private fillFormFromDocs(): void {
+    const pi = this.inscriptionForm.get('personalInfo');
+    if (!pi) return;
+
+    // Priorité : CIN pour identité (le plus fiable)
+    if (this.cinData) {
+      if (this.cinData.nom) pi.get('nom')?.setValue(this.cinData.nom);
+      if (this.cinData.prenom) pi.get('prenom')?.setValue(this.cinData.prenom);
+      if (this.cinData.dateNaissance) pi.get('dateNaissance')?.setValue(this.cinData.dateNaissance);
+      if (this.cinData.genre) this.setGender(this.cinData.genre as 'HOMME' | 'FEMME');
+      if (this.cinData.adresse) pi.get('adresse')?.setValue(this.cinData.adresse);
+      if (this.cinData.numeroCin) pi.get('cin')?.setValue(this.cinData.numeroCin);
+    }
+
+    // BAC diplôme → session + spécialité
+    if (this.bacDiplomeData) {
+      if (this.bacDiplomeData.lieuNaissance && !pi.get('adresse')?.value)
+        pi.get('adresse')?.setValue(this.bacDiplomeData.lieuNaissance);
+      this.applySessionBac(
+        (this.bacDiplomeData as any).session ?? (this.bacDiplomeData as any).annee,
+        pi
+      );
+      if (this.bacDiplomeData.specialite) {
+        const mapped = this.mapSpecialtyToBacType(this.bacDiplomeData.specialite);
+        pi.get('typeBac')?.setValue(mapped);
+      }
+    }
+
+    // BAC service → mention si disponible
+    if (this.bacReleveData) {
+      if (this.sessionBac === null) {
+        this.applySessionBac(
+          (this.bacReleveData as any).session ?? (this.bacReleveData as any).annee,
+          pi
+        );
+      }
+      const spec = this.bacReleveData.specialiteFr || (this.bacReleveData as any).specialite;
+      if (spec) {
+        const mapped = this.mapSpecialtyToBacType(spec);
+        pi.get('typeBac')?.setValue(mapped);
+      }
+    }
+
+    // Marquer tous les champs comme touchés pour déclencher la validation
+    ['nom', 'prenom', 'dateNaissance', 'cin', 'adresse'].forEach(field => {
+      pi.get(field)?.markAsTouched();
+      pi.get(field)?.updateValueAndValidity();
+    });
+
+    // ✅ Désactiver les champs provenant du CIN (pour éviter modification manuelle)
+    // même pour les nouveaux étudiants pour garantir la fiabilité de la CIN
+    ['nom', 'prenom', 'dateNaissance', 'gendre'].forEach(field => {
+      pi.get(field)?.disable();
+    });
+
+    this.cdr.detectChanges();
+  }
   onCinScanned(result: OcrCinResult): void {
     if (!result.success) return;
-    this.cinData = result;
+    //this.cinData = result;
+    this.cinStamped = { data: result, scannedAt: Date.now() };
     const pi = this.inscriptionForm.get('personalInfo');
     if (!pi) return;
     if (result.nom) { pi.get('nom')?.setValue(result.nom); pi.get('nom')?.markAsTouched(); }
@@ -490,42 +1092,67 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     if (result.numeroCin) { pi.get('cin')?.setValue(result.numeroCin); pi.get('cin')?.markAsTouched(); }
     const tunisia = this.countries.find(c => c.nom?.toLowerCase().includes('tunis'));
     if (tunisia) pi.get('pays')?.setValue(tunisia.id);
-    this.tryVerify();
+    //this.tryVerify();
   }
 
   onBacScanned(result: BacResult): void {
     if (!result.success) return;
-    this.bacDiplomeData = result;
-    const pi = this.inscriptionForm.get('personalInfo');
-    if (!pi) return;
-    if (result.nom) { pi.get('nom')?.setValue(result.nom); pi.get('nom')?.markAsTouched(); }
-    if (result.prenom) { pi.get('prenom')?.setValue(result.prenom); pi.get('prenom')?.markAsTouched(); }
-    if (result.dateNaissance) { pi.get('dateNaissance')?.setValue(result.dateNaissance); pi.get('dateNaissance')?.markAsTouched(); }
-    if (result.lieuNaissance) { pi.get('adresse')?.setValue(result.lieuNaissance); pi.get('adresse')?.markAsTouched(); }
-    const tunisia = this.countries.find(c => c.nom?.toLowerCase().includes('tunis'));
-    if (tunisia) pi.get('pays')?.setValue(tunisia.id);
-    this.tryVerify();
+    this.bacDiplomeStamped = { data: result, scannedAt: Date.now() };
+    //this.bacDiplomeData = result;
+    this.verifyMatch = null;   // ← reset
+    this.verifyReason = '';    // ← reset
+    // ✅ Stocker le fichier BAC scanné
+    if ((result as any).file) {
+      this.selectedFiles.set(TypeDocument.DIPLOME_BAC, (result as any).file);
+    }
   }
 
   onBacServiceScanned(result: BacServiceResult): void {
     if (!result.success) return;
-    this.bacReleveData = result;
-    const pi = this.inscriptionForm.get('personalInfo');
-    if (!pi) return;
-    if (result.nomComplet) {
-      const parts = result.nomComplet.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        pi.get('prenom')?.setValue(parts[0]); pi.get('prenom')?.markAsTouched();
-        pi.get('nom')?.setValue(parts.slice(1).join(' ')); pi.get('nom')?.markAsTouched();
-      } else {
-        pi.get('nom')?.setValue(result.nomComplet); pi.get('nom')?.markAsTouched();
+    this.bacReleveStamped = { data: result, scannedAt: Date.now() };
+    //this.bacReleveData = result;
+    this.verifyMatch = null;   // ← reset
+    this.verifyReason = '';
+    // ✅ Stocker le fichier relevé scanné
+    if ((result as any).file) {
+      this.selectedFiles.set(TypeDocument.RELEVE_NOTES, (result as any).file);
+    }
+  }
+
+  /**
+   * Applique la session BAC et force BACCALAUREAT si session < 2023.
+   * Si session >= 2023 le candidat choisit librement.
+   */
+  private applySessionBac(rawSession: any, pi: any): void {
+    if (!rawSession) return;
+    const year = parseInt(String(rawSession), 10);
+    if (isNaN(year)) return;
+    this.sessionBac = year;
+
+    const diplomeCtrl = pi.get('dernierDiplome');
+    const anneeCtrl = pi.get('anneeDernierDiplome');
+
+    if (this.isBacForced) {
+      // Cas où on force BACCALAUREAT
+      diplomeCtrl?.setValue('BACCALAUREAT', { emitEvent: false });
+      diplomeCtrl?.disable({ emitEvent: false });
+
+      anneeCtrl?.setValue(year, { emitEvent: false });
+      anneeCtrl?.disable({ emitEvent: false });
+      anneeCtrl?.clearValidators();
+    } else {
+      // Cas où le candidat peut choisir
+      diplomeCtrl?.enable({ emitEvent: false });
+
+      // Si le diplôme est déjà BACCALAUREAT, on pré-remplit l'année
+      if (diplomeCtrl?.value === 'BACCALAUREAT') {
+        anneeCtrl?.setValue(year, { emitEvent: false });
+        anneeCtrl?.disable({ emitEvent: false });
+        anneeCtrl?.clearValidators();
       }
     }
-    if (result.dateNaissance) { pi.get('dateNaissance')?.setValue(result.dateNaissance); pi.get('dateNaissance')?.markAsTouched(); }
-    if (result.lieuNaissance) { pi.get('adresse')?.setValue(result.lieuNaissance); pi.get('adresse')?.markAsTouched(); }
-    const tunisia = this.countries.find(c => c.nom?.toLowerCase().includes('tunis'));
-    if (tunisia) pi.get('pays')?.setValue(tunisia.id);
-    this.tryVerify();
+    anneeCtrl?.updateValueAndValidity({ emitEvent: false });
+    this.cdr.detectChanges();
   }
 
   onBulletinScanned(result: BulletinResult): void {
@@ -546,8 +1173,28 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     if (result.numeroCin) { this.setIdType('cin'); pi.get('cin')?.setValue(result.numeroCin); pi.get('cin')?.markAsTouched(); }
     const tunisia = this.countries.find(c => c.nom?.toLowerCase().includes('tunis'));
     if (tunisia) pi.get('pays')?.setValue(tunisia.id);
-    this.bacReleveData = { success: true, nomComplet: result.nomPrenom, dateNaissance: result.dateNaissance } as any;
+    //this.bacReleveData = { success: true, nomComplet: result.nomPrenom, dateNaissance: result.dateNaissance } as any;
+    this.bacReleveStamped = {
+      data: { success: true, nomComplet: result.nomPrenom, dateNaissance: result.dateNaissance } as any,
+      scannedAt: Date.now()
+    };
     this.tryVerify();
+  }
+
+  onSuperiorBulletinScanned(result: BulletinResult): void {
+    if (result.errorMessage) return;
+    const pi = this.inscriptionForm.get('personalInfo');
+    if (!pi) return;
+    if (!pi.get('nom')?.value && result.nomPrenom) {
+      const parts = result.nomPrenom.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        pi.get('nom')?.setValue(parts[0], { emitEvent: false });
+        pi.get('prenom')?.setValue(parts.slice(1).join(' '), { emitEvent: false });
+      } else {
+        pi.get('nom')?.setValue(result.nomPrenom, { emitEvent: false });
+      }
+    }
+    this.cdr.detectChanges();
   }
 
   // ════════════════════════════════════════════════════════════════════════
@@ -558,7 +1205,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       const normalizeText = (text: any): string => {
         if (!text) return '';
         return String(text)
-          .replace(/[\u064B-\u065F\u0670]/g, '')
+          .replace(/[\u064B-\u065F\u0670\u0640]/g, '') // Suppression des accents + Kashida (ـ)
           .replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
           .replace(/\s+/g, ' ').trim();
       };
@@ -572,6 +1219,10 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
         const n1 = normalizeText(n1Raw); const n2 = normalizeText(n2Raw);
         if (!n1 || !n2) return true;
         if (n1 === n2) return true;
+
+        // ignorance des espaces pour les hallucinations OCR (ex: "الخر اط" vs "الخراط")
+        if (n1.replace(/\s+/g, '') === n2.replace(/\s+/g, '')) return true;
+
         const t1 = new Set(n1.split(' ').filter(Boolean));
         const t2 = new Set(n2.split(' ').filter(Boolean));
         return [...t1].every(t => t2.has(t)) || [...t2].every(t => t1.has(t));
@@ -579,9 +1230,10 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
       const sources: any[] = [];
       if (this.cinData) sources.push({ type: 'CIN', nomPrenom: `${this.cinData.prenom ?? ''} ${this.cinData.nom ?? ''}`, date: normalizeDate(this.cinData.dateNaissance) });
-      if (this.bacDiplomeData) sources.push({ type: 'DIPLOME', nomPrenom: `${this.bacDiplomeData.prenom ?? ''} ${this.bacDiplomeData.nom ?? ''}`, date: normalizeDate(this.bacDiplomeData.dateNaissance), numDossier: String(this.bacDiplomeData.numDossier ?? '').trim() });
-      if (this.bacReleveData) sources.push({ type: 'RELEVE', nomPrenom: (this.bacReleveData as any).nomPrenom ?? this.bacReleveData.nomComplet, date: normalizeDate(this.bacReleveData.dateNaissance), numDossier: String(this.bacReleveData.numDossier ?? '').trim() });
+      if (this.bacDiplomeData) sources.push({ type: 'Bac Scanner', nomPrenom: `${this.bacDiplomeData.prenom ?? ''} ${this.bacDiplomeData.nom ?? ''}`, date: normalizeDate(this.bacDiplomeData.dateNaissance), numDossier: String(this.bacDiplomeData.numDossier ?? '').trim() });
+      if (this.bacReleveData) sources.push({ type: 'Bac Scanner Service', nomPrenom: (this.bacReleveData as any).nomPrenom ?? this.bacReleveData.nomComplet, date: normalizeDate(this.bacReleveData.dateNaissance), numDossier: String(this.bacReleveData.numDossier ?? '').trim() });
 
+      // Il faut au moins la CIN + 1 des deux (Diplôme ou Relevé)
       if (sources.length < 2) return;
 
       let allMatch = true; let reason = 'Tous les documents correspondent parfaitement';
@@ -604,15 +1256,83 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   // ════════════════════════════════════════════════════════════════════════
   get isCurrentStepValid(): boolean {
     if (this.currentStep === 1) {
-      // Étudiant doit être identifié avant de passer
-      if (this.nationalityMode !== null && !this.idCheckDone) return false;
-      return this.personalInfo.valid;
+
+      // ── 1. Pays sélectionné et identité vérifiée ──────────────────────
+      if (this.nationalityMode === null) return false;
+      if (!this.idCheckDone) return false;
+
+      // ── 2. Pas de validation async en cours ───────────────────────────
+      if (this.personalInfo.status === 'PENDING') return false;
+
+      // ── 3. Champs obligatoires de base ────────────────────────────────
+      const pi = this.personalInfo;
+      const champsBase = ['nom', 'prenom', 'email', 'dateNaissance', 'gendre', 'pays', 'dernierDiplome'];
+      const allFilled = champsBase.every(f => {
+        const c = pi.get(f);
+        return c && c.value && (c.valid || c.disabled);
+      });
+      if (!allFilled) return false;
+
+      // ── 4. Année du diplôme obligatoire ───────────────────────────────
+      const anneeCtrl = pi.get('anneeDernierDiplome');
+      if (anneeCtrl && !anneeCtrl.disabled) {
+        if (!anneeCtrl.value || anneeCtrl.invalid) return false;
+      }
+
+      // ── 5. Type de BAC obligatoire pour les Tunisiens ─────────────────
+      if (this.nationalityMode === 'tunisian') {
+        const typeBacCtrl = pi.get('typeBac');
+        if (typeBacCtrl && !typeBacCtrl.disabled && !typeBacCtrl.value) return false;
+      }
+
+      // ── 6. Tunisien NOUVEAU : fichiers BAC requis ─────────────────────
+      if (this.nationalityMode === 'tunisian' && this.studentMode === 'new') {
+        const hasDiplome = this.selectedFiles.has(TypeDocument.DIPLOME_BAC)
+          || this.bacDiplomeData !== null;
+        const hasReleve = this.selectedFiles.has(TypeDocument.RELEVE_NOTES)
+          || this.bacReleveData !== null;
+        if (!hasDiplome || !hasReleve) return false;
+      }
+
+      // ── 7. Tunisien NOUVEAU avec diplôme supérieur : docs supplémentaires
+      if (this.nationalityMode === 'tunisian' && this.studentMode === 'new' && this.needsSuperieurDocs) {
+        const diplome = pi.get('dernierDiplome')?.value?.toUpperCase();
+        const typeSup = this.getDiplomeTypeFor(diplome);
+        if (!this.selectedFiles.has(typeSup as any)) return false;
+        if (!this.selectedFiles.has(TypeDocument.RELEVE_NOTES_SUPERIEUR as any)) return false;
+      }
+
+      // ── 8. Étranger NOUVEAU : passeport + docs BAC + docs supérieurs ──
+      if (this.nationalityMode === 'foreign' && this.studentMode === 'new') {
+        // Passeport obligatoire
+        if (!this.selectedFiles.has(TypeDocument.CARTE_IDENTITE)) return false;
+
+        // Diplôme BAC + Relevé BAC obligatoires
+        if (!this.selectedFiles.has(TypeDocument.DIPLOME_BAC)) return false;
+        if (!this.selectedFiles.has(TypeDocument.RELEVE_NOTES)) return false;
+
+        // Si diplôme supérieur : docs supplémentaires
+        const diplome = pi.get('dernierDiplome')?.value?.toUpperCase();
+        if (diplome && diplome !== 'BACCALAUREAT') {
+          const typeSup = this.getDiplomeTypeFor(diplome);
+          if (!this.selectedFiles.has(typeSup as any)) return false;
+          if (!this.selectedFiles.has(TypeDocument.RELEVE_NOTES_SUPERIEUR as any)) return false;
+        }
+      }
+
+      // ── 9. Étranger NOUVEAU : numéro de passeport saisi ──────────────
+      if (this.nationalityMode === 'foreign') {
+        const ppCtrl = pi.get('numPassport');
+        if (!ppCtrl?.disabled && !ppCtrl?.value) return false;
+      }
+
+      // ── ✅ Tout est bon ───────────────────────────────────────────────
+      return true;
     }
+
+    // ── STEP 2 ────────────────────────────────────────────────────────────
     if (this.currentStep === 2) return this.academicInfo.valid;
-    if (this.currentStep === 3) {
-      const allRequired = this.requiredDocuments.filter(d => d.required);
-      return allRequired.every(doc => this.selectedFiles.has(doc.type));
-    }
+
     return false;
   }
 
@@ -638,21 +1358,34 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
   isFieldValid(group: string, name: string): boolean {
     const c = this.getControl(group, name);
-    return !!(c && c.valid && c.value);
+    if (!c) return false;
+    // Un champ désactivé et rempli est considéré comme "valide" visuellement
+    if (c.disabled) return !!c.value;
+    return !!(c.valid && c.value);
   }
 
   getFieldError(group: string, name: string): string | null {
     const c = this.getControl(group, name);
-    if (!c || !c.touched || c.valid) return null;
+    if (!c || !c.touched || c.valid || c.disabled) return null;
     if (c.hasError('required')) return 'Ce champ est obligatoire';
     if (c.hasError('email')) return 'Email invalide';
     if (c.hasError('pattern')) return 'Format invalide';
-    if (c.hasError('tooYoung')) return 'Age minimum 18 ans';
+    if (c.hasError('min')) {
+      const min = c.getError('min')?.min;
+      return `L'année doit être ≥ ${min}`;
+    }
+    if (c.hasError('max')) return `L'année ne peut pas dépasser ${new Date().getFullYear()}`;
+    if (c.hasError('tooYoung')) {
+      const paysId = this.inscriptionForm.get('personalInfo.pays')?.value;
+      const country = this.countries.find(c => c.id == paysId);
+      const minAge = this.getMinAge(country?.nom);
+      return `Âge minimum requis : ${minAge} ans`;
+    }
     if (c.hasError('invalidPhone')) return 'Numéro de téléphone invalide';
     if (c.hasError('countryMismatch')) return 'Le numéro ne correspond pas au pays';
+    if (c.hasError('passportFormat')) return 'Format de passeport invalide pour ce pays';
     return 'Champ invalide';
   }
-
   onDiplomeResponsableChange(nomDiplome: string): void {
     const selected = this.diplomesResponsables.find(d => d.nomDiplome === nomDiplome);
     if (selected) {
@@ -695,7 +1428,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   // ════════════════════════════════════════════════════════════════════════
   // NAVIGATION
   // ════════════════════════════════════════════════════════════════════════
-  nextStep(): void { if (this.currentStep < 3) this.currentStep++; }
+  nextStep(): void { if (this.currentStep < 2) this.currentStep++; }
   prevStep(): void { if (this.currentStep > 1) this.currentStep--; }
   onFileChange(file: File | null, type: string): void {
     if (file) this.selectedFiles.set(type, file);
@@ -723,14 +1456,6 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
     // Nouvel étudiant → vérifier unicité email puis créer
     const email = fv.personalInfo.email;
-    const cin = fv.personalInfo.cin;
-    const passport = fv.personalInfo.numPassport;
-    const paysId = fv.personalInfo.pays;
-
-    const checks: { [k: string]: Observable<boolean> } = {
-      email: this.studentService.checkEmailExists(email)
-    };
-
     this.studentService.checkEmailExists(email).pipe(
       switchMap(emailExists => {
         if (emailExists) { this.alertService.error('Cet email est déjà associé à un compte.'); this.isSubmitting = false; return of(null); }
@@ -740,17 +1465,19 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
           phone: fv.personalInfo.indicatif + fv.personalInfo.phone,
           gendre: fv.personalInfo.gendre, dateNaissance: fv.personalInfo.dateNaissance,
           dernierDiplome: fv.personalInfo.dernierDiplome,
-          anneeDernierDiplome: new Date().getFullYear(),
-          paysId: fv.personalInfo.pays,
-          numCarteIdentite: fv.personalInfo.cin || undefined,
+          anneeDernierDiplome: fv.personalInfo.anneeDernierDiplome ? Number(fv.personalInfo.anneeDernierDiplome) : new Date().getFullYear(),
+          paysId: Number(fv.personalInfo.pays),
+          numCarteIdentite: fv.personalInfo.cin || this.cinData?.numeroCin || undefined,
           numPassport: fv.personalInfo.numPassport || undefined,
-          typeBac: fv.personalInfo.typeBac || undefined
+          typeBac: fv.personalInfo.typeBac || undefined,
+          //adresse: fv.personalInfo.adresse || undefined,  // ✅ AJOUTER
         };
+        console.log('📤 [SUBMIT] Données étudiant envoyées au backend:', JSON.stringify(studentData, null, 2));
         return this.studentService.createStudent(studentData);
       }),
       switchMap(savedStudent => {
         if (!savedStudent) return of(null);
-        // Upload documents
+        // Upload documents (une seule fois pour les nouveaux étudiants)
         const uploads = Array.from(this.selectedFiles.entries()).map(([type, file]) =>
           this.studentService.uploadDocument(savedStudent.id!, type, file)
         );
@@ -761,7 +1488,8 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
         if (!student) return of(null);
         return of(student).pipe(
           switchMap(s => {
-            this.submitDemande(s.id!, fv);
+            // On passe un Map vide pour éviter le double-upload dans submitDemande
+            this.submitDemande(s.id!, fv, new Map());
             return of(null);
           })
         );
@@ -771,9 +1499,10 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     });
   }
 
-  private submitDemande(studentId: number, fv: any): void {
-    // Upload des documents supplémentaires si étudiant existant
-    const uploads = Array.from(this.selectedFiles.entries()).map(([type, file]) =>
+  private submitDemande(studentId: number, fv: any, filesToUpload?: Map<string, File>): void {
+    // filesToUpload peut être passé vide (Map()) pour éviter le double-upload
+    const files = filesToUpload ?? this.selectedFiles;
+    const uploads = Array.from(files.entries()).map(([type, file]) =>
       this.studentService.uploadDocument(studentId, type, file)
     );
     const uploadObs = uploads.length > 0 ? forkJoin(uploads) : of([]);
@@ -867,11 +1596,11 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       return age >= minAge ? null : { tooYoung: true };
     };
   }
-
   phoneAsyncValidator(control: AbstractControl): any {
     const phone = control.value;
     const indicatif = this.inscriptionForm?.get('personalInfo.indicatif')?.value;
     if (!phone || !indicatif) return of(null);
+
     return this.phoneValidationService.validatePhoneNumber(indicatif + phone).pipe(
       map((r: any) => {
         if (!r.is_valid) return { invalidPhone: true };
@@ -879,7 +1608,15 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
         if (r.components.country_code.toString() !== cc) return { countryMismatch: true };
         return null;
       }),
-      catchError(() => of({ validationError: true }))
+      catchError(() => of(null)) // erreur réseau → on laisse passer
     );
   }
+  getDiplomeTypeFor(diplome: string): string {
+    const d = diplome?.toUpperCase() || '';
+    if (d === 'LICENCE') return TypeDocument.DIPLOME_LICENCE;
+    if (d === 'MASTER' || d === 'MASTERE') return TypeDocument.DIPLOME_MASTER;
+    if (d === 'INGENIEUR') return TypeDocument.DIPLOME_INGENIEUR as any;
+    return TypeDocument.AUTRE;
+  }
+
 }

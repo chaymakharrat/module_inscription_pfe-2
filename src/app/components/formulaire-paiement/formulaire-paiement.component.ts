@@ -16,14 +16,27 @@ export interface RemiseDTO {
   id: number;
   motif: string;
   pourcentage: number;
-  description?: string;
+  descriptionJustificatif: string;  // ← NEW
+  exempleJustificatif?: string;     // ← NEW
+}
+// RemiseSelection — ajouter fichierPret
+export interface RemiseSelection {
+  remiseId: number;
+  justificatifNote: string;
+  justificatifUrl: string;
+  fichier?: File;
+  fichierPret?: boolean;    // ← fichier sélectionné, pas encore uploadé
+  uploadLoading?: boolean;
+  uploadDone?: boolean;     // ← upload HTTP réussi
+  uploadError?: string;
 }
 
 export interface PreferencesRequest {
-  paiementEnLigne: boolean;   // true = en ligne, false = en présentiel
-  typePaiement: string;       // TOTAL | PARTIEL
-  // frequenceMois retiré → paramètre fixe côté backend (1 mois)
+  paiementEnLigne: boolean;
+  typePaiement: string;
   remisesSelectionnees: number[];
+  notesJustificatifs: { [remiseId: number]: string };    // → justificatifNote
+  urlsJustificatifs: { [remiseId: number]: string };     // → justificatifUrl
 }
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
@@ -69,9 +82,11 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
 
   // Préférences saisies
   preferences: PreferencesRequest = {
-    paiementEnLigne: true,
+    paiementEnLigne: false,
     typePaiement: '',
-    remisesSelectionnees: []
+    remisesSelectionnees: [],
+    notesJustificatifs: {},
+    urlsJustificatifs: {}
   };
 
   // Three.js refs
@@ -112,6 +127,36 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
 
   // ─── DATA ─────────────────────────────────────────────────────────────────
 
+  // validateToken(): void {
+  //   this.http.get<boolean>(`${this.financeUrl}/token/${this.token}/valider`).subscribe({
+  //     next: (isValid) => {
+  //       if (!isValid) {
+  //         this.loading = false;
+  //         this.setLinkInvalid();
+  //         return;
+  //       }
+  //       this.loadEnrollmentId();
+  //     },
+  //     error: () => {
+  //       this.loading = false;
+  //       this.setLinkInvalid();
+  //     }
+  //   });
+  // }
+  // loadEnrollmentId(): void {
+  //   this.http.get<number>(`${this.financeUrl}/token/${this.token}/valider`).subscribe({
+  //     next: (enrollmentId) => {
+  //       this.enrollmentId = enrollmentId;
+  //       this.loading = false;
+  //     },
+  //     error: () => {
+  //       this.loading = false;
+  //       this.setLinkInvalid();
+  //     }
+  //   });
+  // }
+  // formulaire-paiement.component.ts
+
   validateToken(): void {
     this.http.get<boolean>(`${this.financeUrl}/token/${this.token}/valider`).subscribe({
       next: (isValid) => {
@@ -120,6 +165,7 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
           this.setLinkInvalid();
           return;
         }
+        // ✅ Si valide → charger l'enrollmentId
         this.loadEnrollmentId();
       },
       error: () => {
@@ -129,8 +175,9 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
     });
   }
 
+  // ✅ FIX — appeler un endpoint dédié
   loadEnrollmentId(): void {
-    this.http.get<number>(`${this.financeUrl}/token/${this.token}/valider`).subscribe({
+    this.http.get<number>(`${this.financeUrl}/token/${this.token}/enrollment-id`).subscribe({
       next: (enrollmentId) => {
         this.enrollmentId = enrollmentId;
         this.loading = false;
@@ -304,6 +351,101 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
     };
     window.addEventListener('resize', onResize);
   }
+  private readonly justificatifsUrl =
+    `${environment.apiUrl}/FINANCE-SERVICE/api/finance/justificatifs`;
+
+  // uploadJustificatif(remiseId: number, event: Event): void {
+  //   const file = (event.target as HTMLInputElement).files?.[0];
+  //   if (!file || !this.enrollmentId) return;
+
+  //   const sel = this.remisesSelections[remiseId];
+  //   if (!sel) return;
+
+  //   // Validation côté client
+  //   const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+  //   if (!allowedTypes.includes(file.type)) {
+  //     sel.uploadError = 'Format non supporté (PDF, JPEG, PNG uniquement)';
+  //     return;
+  //   }
+  //   if (file.size > 5 * 1024 * 1024) {
+  //     sel.uploadError = 'Fichier trop volumineux (max 5 MB)';
+  //     return;
+  //   }
+
+  //   sel.fichier = file;
+  //   sel.uploadLoading = true;
+  //   sel.uploadDone = false;
+  //   sel.uploadError = undefined;
+
+  //   const formData = new FormData();
+  //   formData.append('enrollmentId', this.enrollmentId.toString());
+  //   formData.append('remiseId', remiseId.toString());
+  //   formData.append('file', file);
+
+  //   this.http.post<any>(`${this.justificatifsUrl}/upload`, formData).subscribe({
+  //     next: (res) => {
+  //       sel.justificatifUrl = res.remotePath;
+  //       sel.uploadLoading = false;
+  //       sel.uploadDone = true;
+  //     },
+  //     error: (err) => {
+  //       sel.uploadLoading = false;
+  //       sel.uploadError = err.error?.error || 'Erreur lors de l\'upload';
+  //     }
+  //   });
+  // }
+  // uploadJustificatif(remiseId: number, event: Event): void {
+  //   const file = (event.target as HTMLInputElement).files?.[0];
+  //   if (!file) return;
+
+  //   const sel = this.remisesSelections[remiseId];
+  //   if (!sel) return;
+
+  //   // Validation côté client uniquement
+  //   const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+  //   if (!allowedTypes.includes(file.type)) {
+  //     sel.uploadError = 'Format non supporté (PDF, JPEG, PNG uniquement)';
+  //     return;
+  //   }
+  //   if (file.size > 5 * 1024 * 1024) {
+  //     sel.uploadError = 'Fichier trop volumineux (max 5 MB)';
+  //     return;
+  //   }
+
+  //   // ✅ Juste stocker le fichier — upload réel au moment de soumettre
+  //   sel.fichier = file;
+  //   sel.uploadDone = true;    // ← affiche l'état "fichier prêt"
+  //   sel.uploadError = undefined;
+  //   sel.uploadLoading = false;
+  // }
+  // uploadJustificatif — juste stocker, pas d'HTTP
+  uploadJustificatif(remiseId: number, event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    const sel = this.remisesSelections[remiseId];
+    if (!sel) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      sel.uploadError = 'Format non supporté (PDF, JPEG, PNG uniquement)';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      sel.uploadError = 'Fichier trop volumineux (max 5 MB)';
+      return;
+    }
+
+    sel.fichier = file;
+    sel.fichierPret = true;   // ← prêt à uploader
+    sel.uploadDone = false;   // ← pas encore uploadé vers serveur
+    sel.uploadError = undefined;
+  }
+
+  hasRemiseSansJustificatif(): boolean {
+    return this.preferences.remisesSelectionnees
+      .some(id => !this.remisesSelections[id]?.uploadDone);
+  }
   /** Particules étoiles en arrière-plan */
   private addParticles(scene: any): void {
     const geo = new THREE.BufferGeometry();
@@ -389,14 +531,54 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
 
   selectType(type: string): void { this.preferences.typePaiement = type; }
 
-  toggleRemise(id: number): void {
-    const idx = this.preferences.remisesSelectionnees.indexOf(id);
-    if (idx > -1) this.preferences.remisesSelectionnees.splice(idx, 1);
-    else this.preferences.remisesSelectionnees.push(id);
+  // toggleRemise(id: number): void {
+  //   const idx = this.preferences.remisesSelectionnees.indexOf(id);
+  //   if (idx > -1) this.preferences.remisesSelectionnees.splice(idx, 1);
+  //   else this.preferences.remisesSelectionnees.push(id);
+  // }
+  remisesSelections: { [remiseId: number]: RemiseSelection } = {};
+
+  toggleRemise(remiseId: number): void {
+    if (this.isRemiseSelected(remiseId)) {
+      // Désélectionner
+      delete this.remisesSelections[remiseId];
+      this.preferences.remisesSelectionnees =
+        this.preferences.remisesSelectionnees.filter(id => id !== remiseId);
+    } else {
+      // Sélectionner
+      this.remisesSelections[remiseId] = {
+        remiseId,
+        justificatifNote: '',
+        justificatifUrl: ''
+      };
+      this.preferences.remisesSelectionnees.push(remiseId);
+    }
   }
 
-  isRemiseSelected(id: number): boolean {
-    return this.preferences.remisesSelectionnees.includes(id);
+  // isRemiseSelected(id: number): boolean {
+  //   return this.preferences.remisesSelectionnees.includes(id);
+  // }
+  isRemiseSelected(remiseId: number): boolean {
+    return remiseId in this.remisesSelections;
+  }
+  setNote(remiseId: number, note: string): void {
+    if (this.remisesSelections[remiseId]) {
+      this.remisesSelections[remiseId].justificatifNote = note;
+    }
+  }
+
+  setUrl(remiseId: number, url: string): void {
+    if (this.remisesSelections[remiseId]) {
+      this.remisesSelections[remiseId].justificatifUrl = url;
+    }
+  }
+
+  getNote(remiseId: number): string {
+    return this.remisesSelections[remiseId]?.justificatifNote || '';
+  }
+
+  getUrl(remiseId: number): string {
+    return this.remisesSelections[remiseId]?.justificatifUrl || '';
   }
 
   getRemisesSelectionnees(): RemiseDTO[] {
@@ -409,18 +591,176 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
 
   // ─── SUBMIT ───────────────────────────────────────────────────────────────
 
+  // submitFormulaire(): void {
+  //   if (!this.token || this.submitting) return;
+  //   this.submitting = true;
+
+  //   const body: PreferencesRequest = {
+  //     paiementEnLigne: this.preferences.paiementEnLigne,
+  //     typePaiement: this.preferences.typePaiement,
+  //     remisesSelectionnees: [...this.preferences.remisesSelectionnees]
+  //   };
+
+  //   this.http.post(`${this.financeUrl}/token/${this.token}/soumettre`, body).subscribe({
+  //     next: () => { this.submitting = false; this.submitted = true; },
+  //     error: (err) => {
+  //       console.error('Erreur soumission:', err);
+  //       this.submitting = false;
+  //       alert('Une erreur est survenue. Veuillez réessayer.');
+  //     }
+  //   });
+  // }
+  buildSubmitBody(): PreferencesRequest {
+    const notesJustificatifs: { [key: number]: string } = {};
+    const urlsJustificatifs: { [key: number]: string } = {};
+
+    Object.values(this.remisesSelections).forEach(sel => {
+      if (sel.justificatifNote) notesJustificatifs[sel.remiseId] = sel.justificatifNote;
+      if (sel.justificatifUrl) urlsJustificatifs[sel.remiseId] = sel.justificatifUrl;
+    });
+
+    return {
+      paiementEnLigne: this.preferences.paiementEnLigne,
+      typePaiement: this.preferences.typePaiement,
+      remisesSelectionnees: this.preferences.remisesSelectionnees,
+      notesJustificatifs,
+      urlsJustificatifs
+    };
+  }
+
+  // submitFormulaire(): void {
+  //   const body = this.buildSubmitBody();
+  //   this.http.post(`${this.financeUrl}/token/${this.token}/soumettre`, body)
+  //     .subscribe({
+  //       next: () => { /* succès */ },
+  //       error: (err) => console.error('Erreur soumission:', err)
+  //     });
+  // }
+  // submitFormulaire(): void {
+  //   if (!this.token || this.submitting) return;
+  //   this.submitting = true;
+
+  //   // 1. Collecter les fichiers à uploader
+  //   const uploads = Object.values(this.remisesSelections)
+  //     .filter(sel => sel.fichier && !sel.uploadDone);
+
+  //   if (uploads.length === 0) {
+  //     // Pas de fichiers → soumettre directement
+  //     this.doSubmit();
+  //     return;
+  //   }
+
+  //   // 2. Uploader tous les fichiers en parallèle
+  //   const uploadRequests = uploads.map(sel => {
+  //     const formData = new FormData();
+  //     formData.append('enrollmentId', this.enrollmentId!.toString());
+  //     formData.append('remiseId', sel.remiseId.toString());
+  //     formData.append('file', sel.fichier!);
+  //     return this.http.post<any>(`${this.justificatifsUrl}/upload`, formData);
+  //   });
+
+  //   // 3. Attendre que tous les uploads soient terminés
+  //   import('rxjs').then(({ forkJoin }) => {
+  //     forkJoin(uploadRequests).subscribe({
+  //       next: (results) => {
+  //         // Sauvegarder les URLs retournées
+  //         results.forEach((res, i) => {
+  //           const remiseId = uploads[i].remiseId;
+  //           if (this.remisesSelections[remiseId]) {
+  //             this.remisesSelections[remiseId].justificatifUrl = res.remotePath;
+  //             this.remisesSelections[remiseId].uploadDone = true;
+  //           }
+  //         });
+  //         this.doSubmit();
+  //       },
+  //       error: (err) => {
+  //         console.error('Erreur upload:', err);
+  //         this.submitting = false;
+  //         alert('Erreur lors de l\'upload des justificatifs. Veuillez réessayer.');
+  //       }
+  //     });
+  //   });
+  // }
   submitFormulaire(): void {
     if (!this.token || this.submitting) return;
     this.submitting = true;
 
-    const body: PreferencesRequest = {
-      paiementEnLigne: this.preferences.paiementEnLigne,
-      typePaiement: this.preferences.typePaiement,
-      remisesSelectionnees: [...this.preferences.remisesSelectionnees]
-    };
+    // Fichiers prêts mais pas encore uploadés
+    const aUploader = Object.values(this.remisesSelections)
+      .filter(sel => sel.fichier && sel.fichierPret && !sel.uploadDone);
 
+    if (aUploader.length === 0) {
+      this.doSubmit();
+      return;
+    }
+
+    // Uploader séquentiellement pour éviter les problèmes de concurrence
+    this.uploadSequentiel(aUploader, 0);
+  }
+  private uploadSequentiel(uploads: RemiseSelection[], index: number): void {
+    if (index >= uploads.length) {
+      // Tous uploadés → soumettre
+      this.doSubmit();
+      return;
+    }
+
+    const sel = uploads[index];
+    const formData = new FormData();
+    formData.append('enrollmentId', this.enrollmentId!.toString());
+    formData.append('remiseId', sel.remiseId.toString());
+    formData.append('file', sel.fichier!);
+
+    this.http.post<any>(`${this.justificatifsUrl}/upload`, formData).subscribe({
+      next: (res) => {
+        sel.justificatifUrl = res.remotePath;
+        sel.uploadDone = true;
+        sel.fichierPret = false;
+        // Uploader le suivant
+        this.uploadSequentiel(uploads, index + 1);
+      },
+      error: (err) => {
+        this.submitting = false;
+        const remise = this.remisesDisponibles.find(r => r.id === sel.remiseId);
+        alert(`Erreur upload pour "${remise?.motif || 'remise'}" : ${err.error?.error || 'Erreur inconnue'}`);
+      }
+    });
+  }
+
+  // private doSubmit(): void {
+  //   const body = this.buildSubmitBody();
+  //   this.http.post(`${this.financeUrl}/token/${this.token}/soumettre`, body).subscribe({
+  //     next: () => {
+  //       this.submitting = false;
+  //       this.submitted = true;   // ← affiche la page succès
+  //     },
+  //     error: (err) => {
+  //       console.error('Erreur soumission:', err);
+  //       this.submitting = false;
+  //       alert('Une erreur est survenue. Veuillez réessayer.');
+  //     }
+  //   });
+  // }
+  // private doSubmit(): void {
+  //   const body = this.buildSubmitBody();
+  //   this.http.post(`${this.financeUrl}/token/${this.token}/soumettre`, body).subscribe({
+  //     next: () => {
+  //       this.submitting = false;
+  //       this.submitted = true;   // ← affiche la page succès
+  //     },
+  //     error: (err) => {
+  //       console.error('Erreur soumission:', err);
+  //       this.submitting = false;
+  //       alert('Une erreur est survenue. Veuillez réessayer.');
+  //     }
+  //   });
+  // }
+  private doSubmit(): void {
+    const body = this.buildSubmitBody();
     this.http.post(`${this.financeUrl}/token/${this.token}/soumettre`, body).subscribe({
-      next: () => { this.submitting = false; this.submitted = true; },
+      next: () => {
+        this.submitting = false;
+        this.submitted = true;
+      },
       error: (err) => {
         console.error('Erreur soumission:', err);
         this.submitting = false;
@@ -428,6 +768,7 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
       }
     });
   }
+
 
   // ─── HELPERS ──────────────────────────────────────────────────────────────
 

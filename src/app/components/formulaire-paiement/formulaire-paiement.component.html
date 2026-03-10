@@ -95,36 +95,12 @@
                 <p>Sélectionnez comment vous souhaitez régler vos frais d'inscription.</p>
             </div>
 
-            <div class="mode-grid">
-                <!-- En ligne -->
-                <!-- ✅ CORRIGÉ : paiementEnLigne = true -->
-                <div class="mode-card" [class.mode-selected]="preferences.paiementEnLigne === true"
-                    (click)="selectMode(true)">
-                    <div class="mode-radio">
-                        <div class="radio-dot" *ngIf="preferences.paiementEnLigne === true"></div>
-                    </div>
-                    <div class="mode-icon mode-icon-blue">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253M12 10.5a14.94 14.94 0 01-5.25.975" />
-                        </svg>
-                    </div>
-                    <div class="mode-body">
-                        <h3>Paiement en ligne</h3>
-                        <p>Carte bancaire, virement, ou paiement mobile sécurisé via notre portail.</p>
-                        <div class="mode-badges">
-                            <span class="mode-badge badge-green">Rapide</span>
-                            <span class="mode-badge badge-blue">Sécurisé</span>
-                        </div>
-                    </div>
-                </div>
-
+            <div class="mode-grid single-mode">
                 <!-- En présentiel -->
-                <!-- ✅ CORRIGÉ : paiementEnLigne = false -->
-                <div class="mode-card" [class.mode-selected]="preferences.paiementEnLigne === false"
-                    (click)="selectMode(false)">
+                <!-- ✅ SEULE OPTION DISPONIBLE -->
+                <div class="mode-card mode-selected">
                     <div class="mode-radio">
-                        <div class="radio-dot" *ngIf="preferences.paiementEnLigne === false"></div>
+                        <div class="radio-dot"></div>
                     </div>
                     <div class="mode-icon mode-icon-purple">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -137,6 +113,7 @@
                         <p>Rendez-vous au service financier de l'université muni de votre convocation.</p>
                         <div class="mode-badges">
                             <span class="mode-badge badge-purple">Espèces / Chèque</span>
+                            <span class="mode-badge badge-blue">Recommandé</span>
                         </div>
                     </div>
                 </div>
@@ -145,9 +122,7 @@
             <div class="fp-nav">
                 <div></div>
                 <!-- ✅ CORRIGÉ : disabled si paiementEnLigne est undefined/null -->
-                <button class="btn-next"
-                    [disabled]="preferences.paiementEnLigne === undefined || preferences.paiementEnLigne === null"
-                    (click)="nextStep()">
+                <button class="btn-next" (click)="nextStep()">
                     Suivant
                     <svg viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd"
@@ -248,7 +223,7 @@
                     financier.</p>
             </div>
 
-            <div class="remises-list" *ngIf="remisesDisponibles.length > 0; else noRemises">
+            <!-- <div class="remises-list" *ngIf="remisesDisponibles.length > 0; else noRemises">
                 <div class="remise-item" *ngFor="let remise of remisesDisponibles"
                     [class.remise-selected]="isRemiseSelected(remise.id)" (click)="toggleRemise(remise.id)">
                     <div class="remise-check">
@@ -266,8 +241,106 @@
                         <p class="remise-desc" *ngIf="remise.description">{{ remise.description }}</p>
                     </div>
                 </div>
-            </div>
+            </div> -->
+            <div class="remises-list">
+                <div class="remise-item-wrap" *ngFor="let remise of remisesDisponibles">
 
+                    <!-- Ligne sélection -->
+                    <div class="remise-item" [class.remise-selected]="isRemiseSelected(remise.id)"
+                        (click)="toggleRemise(remise.id)">
+                        <div class="remise-check">
+                            <svg *ngIf="isRemiseSelected(remise.id)" viewBox="0 0 16 16" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M12.354 4.354a.5.5 0 010 .707l-7 7a.5.5 0 01-.708 0l-3.5-3.5a.5.5 0 01.708-.708L5 10.793l6.646-6.647a.5.5 0 01.708 0z" />
+                            </svg>
+                        </div>
+                        <div class="remise-body">
+                            <span class="remise-motif">{{ remise.motif }}</span>
+                            <span class="remise-pct">-{{ remise.pourcentage }}%</span>
+                        </div>
+                    </div>
+
+                    <!-- Justificatifs — visibles si remise cochée -->
+                    <div class="remise-justificatif-box" *ngIf="isRemiseSelected(remise.id)"
+                        (click)="$event.stopPropagation()">
+
+                        <!-- Description de la remise -->
+                        <div class="justificatif-desc" *ngIf="remise.descriptionJustificatif">
+                            <span class="desc-icon">📋</span>
+                            <p>{{ remise.descriptionJustificatif }}</p>
+                        </div>
+
+                        <!-- Exemple de justificatif -->
+                        <div class="justificatif-exemple" *ngIf="remise.exempleJustificatif">
+                            <span class="exemple-icon">💡</span>
+                            <span>Exemple : {{ remise.exempleJustificatif }}</span>
+                        </div>
+
+                        <!-- Zone upload fichier -->
+                        <div class="justificatif-field">
+                            <label class="field-label">
+                                📎 Justificatif requis
+                                <span class="required">*</span>
+                            </label>
+
+                            <!-- État IDLE — pas encore uploadé -->
+                            <label class="upload-zone"
+                                *ngIf="!remisesSelections[remise.id].fichierPret && !remisesSelections[remise.id].uploadDone && !remisesSelections[remise.id].uploadLoading"
+                                [class.upload-error-border]="remisesSelections[remise.id].uploadError">
+                                <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+                                    (change)="uploadJustificatif(remise.id, $event)" />
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                    class="upload-icon">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775
+             5.25 5.25 0 0110.338-2.32 5.25 5.25 0 011.886
+             10.522A48.8 48.8 0 0112 19.5z" />
+                                </svg>
+                                <span class="upload-label">Cliquez pour uploader</span>
+                                <span class="upload-hint">PDF, JPEG ou PNG — max 5 MB</span>
+                            </label>
+
+                            <!-- État LOADING -->
+                            <div class="upload-loading" *ngIf="remisesSelections[remise.id].uploadLoading">
+                                <div class="upload-spinner"></div>
+                                <span>Upload en cours...</span>
+                            </div>
+
+                            <!-- État DONE -->
+                            <div class="upload-done"
+                                *ngIf="remisesSelections[remise.id].fichierPret || remisesSelections[remise.id].uploadDone">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>{{ remisesSelections[remise.id].fichier?.name }}</span>
+                                <label class="reupload-btn">
+                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+                                        (change)="uploadJustificatif(remise.id, $event)" />
+                                    Changer
+                                </label>
+                            </div>
+
+                            <!-- Erreur upload -->
+                            <span class="upload-error-msg" *ngIf="remisesSelections[remise.id].uploadError">
+                                ⚠️ {{ remisesSelections[remise.id].uploadError }}
+                            </span>
+                        </div>
+
+                        <!-- Note optionnelle -->
+                        <div class="justificatif-field">
+                            <label class="field-label">
+                                📝 Note explicative
+                                <span class="optional">(optionnel)</span>
+                            </label>
+                            <textarea class="field-textarea" rows="2"
+                                placeholder="Ex: Mon frère Ahmed Ben Ali est inscrit en L2 Informatique..."
+                                [value]="getNote(remise.id)" (input)="setNote(remise.id, $any($event.target).value)">
+    </textarea>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
             <ng-template #noRemises>
                 <div class="no-remises">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -334,7 +407,7 @@
                         <span class="recap-label">Mode de paiement</span>
                         <!-- ✅ CORRIGÉ : paiementEnLigne boolean -->
                         <span class="recap-value">
-                            {{ preferences.paiementEnLigne ? '🌐 En ligne' : '🏢 En présentiel' }}
+                            🏢 En présentiel (Seule option disponible)
                         </span>
                     </div>
                     <button class="recap-edit" (click)="goToStep(1)">Modifier</button>
@@ -451,8 +524,7 @@
         <div class="success-details">
             <div class="success-detail-row">
                 <span>Mode</span>
-                <!-- ✅ CORRIGÉ : paiementEnLigne boolean -->
-                <strong>{{ preferences.paiementEnLigne ? 'En ligne' : 'En présentiel' }}</strong>
+                <strong>En présentiel</strong>
             </div>
             <div class="success-detail-row">
                 <span>Type</span>

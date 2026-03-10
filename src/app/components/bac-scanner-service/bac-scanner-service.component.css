@@ -671,3 +671,82 @@
 .error-sub strong {
     color: #dc2626;
 }
+
+.manual-upload-box {
+    margin-top: 14px;
+    padding: 14px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+    background: #f8fafc;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-manual {
+    padding: 10px 20px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.btn-manual:hover {
+    border-color: #94a3b8;
+    background: #e2e8f0;
+}
+
+.manual-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 20px;
+    background: #f8fafc;
+    padding: 28px 20px;
+    text-align: center;
+}
+
+.manual-icon {
+    font-size: 32px;
+}
+
+.manual-title {
+    font-weight: 900;
+    font-size: 14px;
+    color: #334155;
+    margin: 0;
+}
+
+.manual-sub {
+    font-size: 11px;
+    color: #3b82f6;
+    font-weight: 700;
+    font-family: monospace;
+    margin: 0;
+}
+
+.manual-note {
+    font-size: 10px;
+    color: #f59e0b;
+    font-weight: 700;
+    margin: 0;
+}
+
+.btn-restart {
+    padding: 6px 14px;
+    background: transparent;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
