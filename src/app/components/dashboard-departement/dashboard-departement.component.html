@@ -185,11 +185,30 @@
                             <span>Inscrits confirmés</span>
                             <strong>{{ cap.inscritsConfirmes }}</strong>
                         </div>
+
                         <div class="detail-item">
                             <span class="detail-dot dot-blue"></span>
-                            <span>En traitement</span>
+                            <span>En cours paiement</span>
                             <strong>{{ cap.enCoursTraitement }}</strong>
                         </div>
+
+                        <div class="detail-item">
+                            <span class="detail-dot dot-amber"></span>
+                            <span>À traiter (dept.)</span>
+                            <strong [class.text-orange-600]="cap.enCoursDepartement > 0">
+                                {{ cap.enCoursDepartement }}
+                            </strong>
+                        </div>
+
+                        <!-- ← Ajoute ce bloc -->
+                        <div class="detail-item">
+                            <span class="detail-dot dot-amber"></span>
+                            <span>Liste d'attente</span>
+                            <strong [class.text-amber-600]="cap.listeAttente > 0">
+                                {{ cap.listeAttente }}
+                            </strong>
+                        </div>
+
                         <div class="detail-item detail-restant">
                             <span>Places restantes</span>
                             <strong [class.text-red]="cap.placesRestantes === 0"

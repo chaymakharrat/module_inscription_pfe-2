@@ -148,6 +148,22 @@ export class BacScannerServiceComponent implements OnDestroy {
   }
   manualFileName = '';
   // ✅ AJOUTER méthode
+  // onManualUpload(e: Event): void {
+  //   const file = (e.target as HTMLInputElement).files?.[0];
+  //   if (!file) return;
+  //   this.lastFile = file;
+  //   this.manualFileName = file.name;
+  //   this.state = 'manual';
+
+  //   this.scanned.emit({
+  //     success: true,
+  //     file: file,
+  //     isManual: true,
+  //   });
+
+  //   (e.target as HTMLInputElement).value = '';
+  // }
+  // onManualUpload
   onManualUpload(e: Event): void {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
@@ -155,15 +171,11 @@ export class BacScannerServiceComponent implements OnDestroy {
     this.manualFileName = file.name;
     this.state = 'manual';
 
-    this.scanned.emit({
-      success: true,
-      file: file,
-      isManual: true,
-    });
+    // ✅ success: false → parent sait que l'OCR a échoué
+    this.scanned.emit({ success: false, file: file, isManual: true });
 
     (e.target as HTMLInputElement).value = '';
   }
-
   private loadJsQR(): Promise<void> {
     return new Promise(resolve => {
       if ((window as any).jsQR) { this.jsQR = (window as any).jsQR; resolve(); return; }
@@ -215,43 +227,53 @@ export class BacScannerServiceComponent implements OnDestroy {
 
     const fd = new FormData();
     fd.append('file', file);
-
-    // ── Étape 1 : QR 2D-DOC via /bilan-bac (port 5052) ──────────────────
     // this.http.post<BacResult>('/bilan-bac', fd).subscribe({
     //   next: res => {
     //     if (res.success) {
-    //       // QR décodé avec succès
     //       this.ngZone.run(() => this.handleResult(res));
     //     } else {
-    //       // QR illisible → fallback OCR via /scan-releve (port 5054)
-    //       this.tryScanReleve(file);
+    //       // ✅ QR illisible → accepter directement en manuel
+    //       this.ngZone.run(() => {
+    //         this.result = { success: true, isManual: true };
+    //         this.state = 'success';
+    //         this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+    //       });
     //     }
     //   },
-    //   error: () => {
-    //     // Erreur réseau sur 5052 → tenter quand même 5054
-    //     this.tryScanReleve(file);
-    //   }
+    //   error: () => this.ngZone.run(() => {
+    //     // ✅ Erreur réseau → idem, accepter en manuel
+    //     this.result = { success: true, isManual: true };
+    //     this.state = 'success';
+    //     this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+    //   })
     // });
     this.http.post<BacResult>('/bilan-bac', fd).subscribe({
       next: res => {
         if (res.success) {
           this.ngZone.run(() => this.handleResult(res));
         } else {
-          // ✅ QR illisible → accepter directement en manuel
           this.ngZone.run(() => {
-            this.result = { success: true, isManual: true };
-            this.state = 'success';
-            this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+            this.result = { success: false, isManual: true };
+            this.state = 'success'; // UI affiche le message "QR illisible"
+            // ✅ success: false → pas d'auto-validation
+            this.scanned.emit({ success: false, file: this.lastFile, isManual: true });
           });
         }
       },
       error: () => this.ngZone.run(() => {
-        // ✅ Erreur réseau → idem, accepter en manuel
-        this.result = { success: true, isManual: true };
+        this.result = { success: false, isManual: true };
         this.state = 'success';
-        this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+        // ✅ success: false
+        this.scanned.emit({ success: false, file: this.lastFile, isManual: true });
       })
     });
+
+    // processRawQr — erreur réseau
+    error: () => this.ngZone.run(() => {
+      this.result = { success: false, isManual: true };
+      this.state = 'success';
+      this.scanned.emit({ success: false, file: this.lastFile, isManual: true });
+    })
   }
 
   // ── Fallback OCR : /scan-releve (port 5054) ──────────────────────────────
@@ -351,22 +373,38 @@ export class BacScannerServiceComponent implements OnDestroy {
 
   // ── Gestion résultat ─────────────────────────────────────────────────────
 
+  // private handleResult(res: any): void {
+  //   if (res.success) {
+  //     this.result = res as BacResult;
+  //     this.warningMessage = res.warning || '';
+  //     this.state = 'success';
+  //     this.scanned.emit({ ...this.result, file: this.lastFile } as any);
+  //   } else if (res.isManual) {
+  //     // QR illisible → fichier accepté quand même
+  //     this.result = { success: true, isManual: true };
+  //     this.state = 'success';
+  //     this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+  //   } else if (res.fallbackRequired) {
+  //     // ✅ Au lieu d'afficher erreur → accepter le fichier
+  //     this.result = { success: true, isManual: true };
+  //     this.state = 'success';
+  //     this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+  //   } else {
+  //     this.errorMessage = res.errorMessage || 'QR non lisible';
+  //     this.state = 'error';
+  //   }
+  // }
   private handleResult(res: any): void {
     if (res.success) {
       this.result = res as BacResult;
       this.warningMessage = res.warning || '';
       this.state = 'success';
       this.scanned.emit({ ...this.result, file: this.lastFile } as any);
-    } else if (res.isManual) {
-      // QR illisible → fichier accepté quand même
-      this.result = { success: true, isManual: true };
+    } else if (res.isManual || res.fallbackRequired) {
+      // ✅ QR illisible → success: false pour bloquer l'auto-validation
+      this.result = { success: false, isManual: true };
       this.state = 'success';
-      this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
-    } else if (res.fallbackRequired) {
-      // ✅ Au lieu d'afficher erreur → accepter le fichier
-      this.result = { success: true, isManual: true };
-      this.state = 'success';
-      this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+      this.scanned.emit({ success: false, file: this.lastFile, isManual: true });
     } else {
       this.errorMessage = res.errorMessage || 'QR non lisible';
       this.state = 'error';

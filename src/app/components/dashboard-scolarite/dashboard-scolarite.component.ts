@@ -10,6 +10,7 @@ import { KeycloakService } from 'keycloak-angular';
 import { KeycloakProfile } from 'keycloak-js';
 import { trigger, style, animate, transition, query, stagger } from '@angular/animations';
 import { StudentService } from '../../services/student.service';
+import { TypeDocument } from '../../models/student.model';
 
 
 
@@ -93,6 +94,7 @@ export class ScolariteDashboardComponent implements OnInit {
   showDocumentViewer = false;
   currentDocumentUrl: string | null = null;
   currentDocumentName: string | null = null;
+  isImage = false;
 
   // Loading states
   loading = false;
@@ -840,6 +842,10 @@ Le Service de Scolarité — ITECH University`;
           URL.revokeObjectURL(this.currentDocumentBlobUrl);
         }
 
+        // Détecter si c'est une image
+        this.isImage = blob.type.startsWith('image/');
+        console.log('📄 Document type:', blob.type, '| isImage:', this.isImage);
+
         // Créer une URL locale pour le Blob
         this.currentDocumentBlobUrl = URL.createObjectURL(blob);
         this.currentDocumentUrl = this.currentDocumentBlobUrl;
@@ -848,7 +854,7 @@ Le Service de Scolarité — ITECH University`;
       },
       error: (err) => {
         console.error('❌ Erreur lors de la récupération du document:', err);
-        alert('Impossible de charger le document. Vérifiez votre connexion ou vos droits.');
+        this.showNotification('Impossible de charger le document.', 'error');
       }
     });
   }

@@ -59,6 +59,10 @@ export class EnrollmentService {
         return this.http.get<Enrollment>(`${this.apiUrl}/etudiant/${etudiantId}`);
     }
 
+    getDemandesByEtudiantId(etudiantId: number): Observable<Enrollment[]> {
+        return this.http.get<Enrollment[]>(`${this.apiUrl}/etudiant/${etudiantId}/all`);
+    }
+
     resubmitDemande(demandeId: number): Observable<void> {
         return this.http.post<void>(`${this.apiUrl}/${demandeId}/resubmit`, {});
     }

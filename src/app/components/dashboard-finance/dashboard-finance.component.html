@@ -806,26 +806,38 @@
             </div>
 
             <!-- Résumé paiement -->
-            <div class="sidebar-prereq-summary" [class.prereq-global-ok]="selectedFormulaire.statut === 'VALIDE'"
-                [class.prereq-global-ko]="selectedFormulaire.statut !== 'VALIDE'">
-                <div class="prereq-global-icon">
-                    <svg *ngIf="selectedFormulaire.statut === 'VALIDE'" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clip-rule="evenodd" />
+            <div class="sidebar-status-card" [ngClass]="{
+                    'status-valide': selectedFormulaire.statut === 'VALIDE',
+                    'status-soumis': selectedFormulaire.statut === 'SOUMIS' || selectedFormulaire.statut === 'EN_ATTENTE',
+                    'status-refuse': selectedFormulaire.statut === 'REFUSE'
+                 }">
+                <div class="status-icon-ring">
+                    <!-- Icon for VALIDE -->
+                    <svg *ngIf="selectedFormulaire.statut === 'VALIDE'" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <svg *ngIf="selectedFormulaire.statut !== 'VALIDE'" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd"
-                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"
-                            clip-rule="evenodd" />
+                    <!-- Icon for SOUMIS & EN ATTENTE -->
+                    <svg *ngIf="selectedFormulaire.statut === 'SOUMIS' || selectedFormulaire.statut === 'EN_ATTENTE'"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <!-- Icon for others (REFUSE) -->
+                    <svg *ngIf="selectedFormulaire.statut === 'REFUSE'" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
-                <div>
-                    <p class="prereq-global-title">
+                <div class="status-card-content">
+                    <p class="status-card-title">
                         {{ selectedFormulaire.statut === 'VALIDE' ? 'Dossier validé' :
-                        selectedFormulaire.statut === 'SOUMIS' ? 'En attente de traitement' : 'Dossier refusé' }}
+                        (selectedFormulaire.statut === 'SOUMIS' || selectedFormulaire.statut === 'EN_ATTENTE') ? 'En
+                        attente de traitement' : 'Dossier refusé' }}
                     </p>
-                    <p class="prereq-global-sub">Statut : {{ getStatutLabel(selectedFormulaire.statut) }}</p>
+                    <p class="status-card-sub">Statut : {{ getStatutLabel(selectedFormulaire.statut) }}</p>
                 </div>
             </div>
 
@@ -933,7 +945,47 @@
 
         <!-- MAIN -->
         <main class="modal-main">
-            <nav class="modal-tabs">
+            <!-- Overlay Modifications non sauvegardées (Design Minimaliste & Élégant) -->
+            <div *ngIf="showUnsavedChangesDialog" class="unsaved-premium-overlay animate-fadeIn">
+                <div class="unsaved-premium-card animate-slideUp">
+                    <div class="unsaved-premium-header">
+                        <div class="unsaved-premium-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <h3 class="unsaved-premium-title">Changements non sauvegardés</h3>
+                        <p class="unsaved-premium-desc">Certaines décisions sur les remises n'ont pas été persistées.
+                            Que souhaitez-vous faire ?</p>
+                    </div>
+
+                    <div class="unsaved-premium-grid">
+                        <button class="unsaved-premium-btn btn-continue" (click)="showUnsavedChangesDialog = false">
+                            <div class="btn-premium-content">
+                                <span class="btn-premium-title">Continuer</span>
+                                <span class="btn-premium-subtitle">Rester sur ce dossier</span>
+                            </div>
+                        </button>
+
+                        <button class="unsaved-premium-btn btn-keep" (click)="forceCloseModal()">
+                            <div class="btn-premium-content">
+                                <span class="btn-premium-title">Quitter et garder</span>
+                                <span class="btn-premium-subtitle">Enregistrer pour plus tard</span>
+                            </div>
+                        </button>
+
+                        <button class="unsaved-premium-btn btn-discard" (click)="discardAndClose()">
+                            <div class="btn-premium-content">
+                                <span class="btn-premium-title">Tout annuler</span>
+                                <span class="btn-premium-subtitle">Supprimer les modifications</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="modal-tabs" *ngIf="!showUnsavedChangesDialog">
                 <button class="modal-tab" [class.tab-active]="activeTab === 'preferences'"
                     (click)="activeTab = 'preferences'">
                     <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -966,7 +1018,7 @@
                 </button>
             </nav>
 
-            <div class="modal-body">
+            <div class="modal-body" *ngIf="!showUnsavedChangesDialog">
 
                 <!-- ══ TAB PRÉFÉRENCES ══ -->
                 <!-- ══ TAB PRÉFÉRENCES — Section Remises enrichie ══ -->
@@ -1177,7 +1229,7 @@
 
                     <!-- Cartes action -->
                     <div *ngIf="selectedFormulaire.statut === 'SOUMIS' && !showDecisionForm" class="action-selector">
-                        <div class="action-card" (click)="prepareDecision('VALIDER')">
+                        <div class="action-card" (click)="prepareDecision('VALIDER')" [class.disabled-action]="!toutesRemisesDecidees()">
                             <div class="action-card-icon icon-green">
                                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -1195,7 +1247,7 @@
                             </svg>
                         </div>
 
-                        <div class="action-card" (click)="prepareDecision('REFUSER')">
+                        <div class="action-card" (click)="prepareDecision('REFUSER')" [class.disabled-action]="!toutesRemisesDecidees()">
                             <div class="action-card-icon icon-red">
                                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -1281,8 +1333,10 @@
             <div>
                 <label>Mode de paiement</label>
                 <select [(ngModel)]="modePaiementSelectionne">
-                    <option value="EN_PRESENTIEL">Présentiel (Espèces / Chèque)</option>
-                    <option value="EN_LIGNE">Banque / Virement</option>
+                    <option value="ESPECES">Espèces</option>
+                    <option value="CHEQUE">Chèque</option>
+                    <option value="CARTE_BANCAIRE">Carte bancaire</option>
+                    <option value="VIREMENT">Virement bancaire</option>
                 </select>
             </div>
         </div>
@@ -1332,6 +1386,65 @@
                 *ngIf="currentDocumentUrl && !isImageDocument"></iframe>
             <div class="viewer-img-container" *ngIf="currentDocumentUrl && isImageDocument">
                 <img [src]="currentDocumentUrl | safe:'url'" class="viewer-img" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL REJET REMISE ════════════════════════════════════════════════ -->
+<div *ngIf="showRejetRemiseModal" class="modal-backdrop-premium animate-fadeIn" style="z-index: 500;">
+    <div class="rejet-modal-shell animate-slideUp">
+        <div class="rejet-modal-header-accent">
+            <div class="rejet-header-content">
+                <div class="rejet-icon-box">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <div class="rejet-header-text">
+                    <h3>Rejeter la remise</h3>
+                    <span class="rejet-badge">{{ selectedRemiseForRejet?.motif }}</span>
+                </div>
+            </div>
+            <button class="rejet-close-btn" (click)="annulerRejetRemise()">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="rejet-modal-body">
+            <div class="rejet-section">
+                <label class="rejet-label">RAISON RAPIDE</label>
+                <div class="quick-motifs-grid">
+                    <button *ngFor="let m of rejetRemiseQuickMotifs" (click)="selectQuickMotifRemise(m)"
+                        [class.active]="rejetRemiseMotif === m" class="quick-motif-btn">
+                        {{ m }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="rejet-section">
+                <label class="rejet-label">MOTIF DU REJET *</label>
+                <div class="rejet-input-wrap">
+                    <textarea [(ngModel)]="rejetRemiseMotif" placeholder="Expliquez la raison du rejet..."
+                        class="rejet-textarea"></textarea>
+                    <span class="char-count">{{ rejetRemiseMotif.length }} / 200</span>
+                </div>
+            </div>
+
+            <div class="rejet-actions">
+                <button class="btn-confirm-rejet" (click)="confirmerRejetRemise()"
+                    [disabled]="!rejetRemiseMotif.trim()">
+                    <span class="btn-icon">✕</span>
+                    Confirmer le rejet
+                </button>
+                <button class="btn-cancel-rejet" (click)="annulerRejetRemise()">
+                    Annuler
+                </button>
             </div>
         </div>
     </div>

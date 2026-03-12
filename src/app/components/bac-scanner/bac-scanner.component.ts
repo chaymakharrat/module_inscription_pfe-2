@@ -154,7 +154,7 @@ export interface BacResult {
   <span>{{ result?.isManual ? '⚠️' : '✅' }}</span>
   <div class="flex-1">
     <p class="text-xs font-bold" [ngClass]="result?.isManual ? 'text-amber-700' : 'text-green-700'">
-      <ng-container *ngIf="!result?.isManual">
+      <ng-container *ngIf="result?.success && !result?.isManual">
         Données transmises automatiquement
       </ng-container>
       <ng-container *ngIf="result?.isManual">
@@ -395,16 +395,9 @@ export class BacScannerComponent implements OnDestroy {
 
     // Émettre directement sans QR — fichier stocké, données vides
     this.state = 'success';
-    this.result = {
-      success: true,
-      errorMessage: undefined
-    };
+    this.result = { success: false, isManual: true };
 
-    this.scanned.emit({
-      success: true,
-      file: file,
-      isManual: true,
-    } as any);
+    this.scanned.emit({ success: false, file: file, isManual: true });
   }
 
   // ── Caméra live ─────────────────────────────────────────────────
@@ -623,17 +616,34 @@ export class BacScannerComponent implements OnDestroy {
   //     this.state = 'error';
   //   }
   // }
+  // private handleResult(res: BacResult): void {
+  //   if (res.success) {
+  //     this.result = { ...res, isManual: false };
+  //     this.state = 'success';
+  //     this.scanned.emit({ ...this.result, file: this.lastFile });
+  //   } else {
+  //     // QR échoué → fichier stocké quand même si disponible
+  //     if (this.lastFile) {
+  //       this.result = { success: true, isManual: true };
+  //       this.state = 'success';
+  //       this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+  //     } else {
+  //       this.errorMessage = res.errorMessage || 'QR non lisible';
+  //       this.state = 'error';
+  //     }
+  //   }
+  // }
   private handleResult(res: BacResult): void {
     if (res.success) {
       this.result = { ...res, isManual: false };
       this.state = 'success';
       this.scanned.emit({ ...this.result, file: this.lastFile });
     } else {
-      // QR échoué → fichier stocké quand même si disponible
+      // ✅ success: false → pas d'auto-validation
       if (this.lastFile) {
-        this.result = { success: true, isManual: true };
+        this.result = { success: false, isManual: true };
         this.state = 'success';
-        this.scanned.emit({ success: true, file: this.lastFile, isManual: true });
+        this.scanned.emit({ success: false, file: this.lastFile, isManual: true });
       } else {
         this.errorMessage = res.errorMessage || 'QR non lisible';
         this.state = 'error';

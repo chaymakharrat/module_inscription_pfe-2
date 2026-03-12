@@ -29,6 +29,15 @@ export class StudentService {
         return this.http.post<Student>(this.apiUrl, student);
     }
 
+    updateStudentActivationCompte(id: number, data: Partial<Student>): Observable<Student> {
+        return this.http.put<Student>(`${this.apiUrl}/${id}`, data);
+    }
+    // Avant — appelait PUT qui déclenchait updateEtudiant complet
+    updateStudent(id: number, data: Partial<Student>): Observable<Student> {
+        return this.http.patch<Student>(`${this.apiUrl}/${id}/contact`, data);
+        // ✅ PATCH /contact au lieu de PUT /{id}
+    }
+
     uploadDocument(studentId: number, type: string, file: File): Observable<any> {
         const formData = new FormData();
         formData.append('file', file);
@@ -79,10 +88,19 @@ export class StudentService {
         );
     }
 
-    acceptDocument(documentId: number): Observable<any> {
+    // acceptDocument(documentId: number): Observable<any> {
+    //     return this.http.put(
+    //         `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/${documentId}/accept`,
+    //         null
+    //     );
+    // }
+    // student.service.ts
+    acceptDocument(documentId: number, commentaire?: string): Observable<any> {
+        const params = commentaire ? { params: { commentaire } } : {};
         return this.http.put(
             `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/${documentId}/accept`,
-            null
+            null,
+            params
         );
     }
     getDocumentsStatus(etudiantId: number): Observable<any[]> {

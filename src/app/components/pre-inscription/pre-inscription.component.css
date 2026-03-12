@@ -88,16 +88,139 @@
 
 /* ── Card ────────────────────────────────────────────────────────── */
 .form-card {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.08), 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 2.5rem;
 }
 
 .form-card:hover {
-    box-shadow: 0 30px 60px -12px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 40px 80px -12px rgba(37, 99, 235, 0.12);
+}
+
+/* ── Section Header (Premium) ──────────────────────────────────── */
+.premium-section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.header-icon-box {
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+
+.header-title-text h3 {
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 0;
+}
+
+/* ── Country Select (Premium) ──────────────────────────────────── */
+.premium-select-wrap {
+    position: relative;
+}
+
+.premium-select {
+    width: 100%;
+    padding: 1.25rem 1.5rem;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1e293b;
+    appearance: none;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.premium-select:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+.premium-select:focus {
+    border-color: #3b82f6;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+}
+
+.select-arrow-premium {
+    position: absolute;
+    right: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #64748b;
+    transition: transform 0.3s;
+}
+
+.premium-select:focus + .select-arrow-premium {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+/* ── Empty State Globe (Premium) ────────────────────────────────── */
+.premium-empty-state {
+    padding: 4rem 2rem;
+    text-align: center;
+    background: rgba(248, 250, 252, 0.5);
+    border-radius: 2rem;
+    border: 2px dashed #e2e8f0;
+    margin-top: 2rem;
+    animation: fadeIn 0.8s ease-out;
+}
+
+.globe-icon-animated {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+    display: inline-block;
+    filter: drop-shadow(0 10px 15px rgba(59, 130, 246, 0.2));
+    animation: float 4s infinite ease-in-out;
+}
+
+.empty-state-text {
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* ── Glassmorphism Utils ────────────────────────────────────────── */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+}
+
+.glass-panel-dark {
+    background: rgba(15, 23, 42, 0.03);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(15, 23, 42, 0.05);
 }
 
 /* ── Step header ─────────────────────────────────────────────────── */
@@ -355,39 +478,142 @@ select:focus {
 }
 
 /* ── CIN recap grid (nouveau candidat) ──────────────────────────── */
-.cin-recap-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+/* ── Identity card (Redesign) ─────────────────────────────────── */
+.identity-card-v2 {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.8));
+    border: 1.5px solid #e2e8f0;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
 }
 
-.cin-recap-item {
+.identity-card-v2:hover {
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+}
+
+.id-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+
+.id-status-badge {
+    background: #dcfce7;
+    color: #166534;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.id-btn-edit {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
     background: white;
     border: 1.5px solid #e2e8f0;
-    border-radius: 1rem;
-    padding: 0.625rem 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.id-btn-edit:hover {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #2563eb;
+}
+
+.id-grid-v2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.id-info-group {
     display: flex;
     flex-direction: column;
-    gap: 0.125rem;
 }
 
-.cin-recap-item:last-child:nth-child(odd) {
-    grid-column: span 2;
-}
-
-.cin-recap-label {
-    font-size: 0.6rem;
+.id-info-label {
+    font-size: 0.65rem;
     font-weight: 800;
     color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
 }
 
-.cin-recap-value {
-    font-size: 0.8rem;
+.id-info-value {
+    font-size: 1rem;
     font-weight: 700;
+    color: #0f172a;
+}
+
+/* ── Helper Boards (Foreign) ────────────────────────────────────── */
+.helper-board {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 1.25rem;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.helper-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+    flex-shrink: 0;
+}
+
+.helper-content h4 {
+    font-size: 0.9rem;
+    font-weight: 800;
     color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.helper-content p {
+    font-size: 0.8rem;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.helper-tips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.helper-tip {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #2563eb;
+    background: #eff6ff;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    cursor: default;
 }
 
 /* ── CIN extracted chip ──────────────────────────────────────────── */

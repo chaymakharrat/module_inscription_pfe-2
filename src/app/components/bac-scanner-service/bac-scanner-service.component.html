@@ -138,7 +138,7 @@
             <!-- <button type="button" class="btn-confirm" (click)="confirm()">
                 ✓ UTILISER CES DONNÉES
             </button> -->
-            <div class="flex items-center gap-2 mt-3 p-3 rounded-xl"
+            <!-- <div class="flex items-center gap-2 mt-3 p-3 rounded-xl"
                 [ngClass]="result?.isManual ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-200'">
                 <span>{{ result?.isManual ? '⚠️' : '✅' }}</span>
                 <div class="flex-1">
@@ -153,6 +153,29 @@
                     <p *ngIf="result?.isManual" class="text-xs text-amber-600 mt-0.5">
                         💡 Pour un meilleur résultat : photographiez le document entier avec bonne lumière, en cadrant
                         bien le code 2D-DOC.
+                    </p>
+                </div>
+                <button type="button"
+                    class="ml-auto text-xs text-slate-400 hover:text-slate-600 font-bold flex-shrink-0"
+                    (click)="reset()">
+                    ↺ Rescanner
+                </button>
+            </div> -->
+            <div class="flex items-center gap-2 mt-3 p-3 rounded-xl"
+                [ngClass]="result?.isManual ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-200'">
+                <span>{{ result?.isManual ? '⚠️' : '✅' }}</span>
+                <div class="flex-1">
+                    <p class="text-xs font-bold" [ngClass]="result?.isManual ? 'text-amber-700' : 'text-green-700'">
+                        <ng-container *ngIf="result?.success && !result?.isManual">
+                            Données transmises automatiquement
+                        </ng-container>
+                        <ng-container *ngIf="result?.isManual">
+                            QR illisible — document enregistré pour vérification manuelle
+                        </ng-container>
+                    </p>
+                    <p *ngIf="result?.isManual" class="text-xs text-amber-600 mt-0.5">
+                        💡 Pour un meilleur résultat : photographiez le document entier
+                        avec bonne lumière, en cadrant bien le code 2D-DOC.
                     </p>
                 </div>
                 <button type="button"

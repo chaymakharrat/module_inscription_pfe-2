@@ -13,243 +13,199 @@ export interface Step {
   standalone: true,
   imports: [CommonModule],
   template: `
-     <div class="w-full py-8">
-      <div class="flex items-center justify-between max-w-3xl mx-auto px-4">
-        <div *ngFor="let step of steps; let i = index" class="step-item">
-
-          <!-- Step circle with gradient border -->
-          <div class="step-node">
-            <div [class]="getStepClass(step)">
+    <div class="stepper-outer">
+      <div class="steps-row">
+        <div *ngFor="let step of steps; let i = index" class="step-wrapper">
+          
+          <div class="step-node" [class.is-active]="isActive(step)" [class.is-completed]="isCompleted(step)">
+            <div class="step-circle" [class.is-rejected]="isRejected(step)">
               <ng-container *ngIf="isCompleted(step); else showIcon">
-                <svg class="checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24" *ngIf="!isRejected(step)">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                <svg *ngIf="!isRejected(step)" class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                <svg class="checkmark text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" *ngIf="isRejected(step)">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 6L6 18M6 6l12 12" />
+                <svg *ngIf="isRejected(step)" class="icon-svg text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </ng-container>
               <ng-template #showIcon>
-                <span class="step-emoji">{{ step.icon }}</span>
+                <div [innerHTML]="getStepSvg(step.id)" class="icon-svg-wrapper"></div>
               </ng-template>
             </div>
-
-            <!-- Step label -->
-            <div [class]="'step-label ' + (isActive(step) ? 'label-active' : 'label-default')">
-              {{ step.name }}
+            
+            <div class="step-content">
+              <span class="step-index">0{{ step.id }}</span>
+              <span class="step-name">{{ step.name }}</span>
             </div>
           </div>
 
-          <!-- Connector line -->
-          <div *ngIf="i < steps.length - 1" class="connector">
-            <div
-              class="connector-fill"
-              [style.width]="isCompleted(step) ? '100%' : '0%'"
-            ></div>
+          <!-- Vertical/Horizontal Connector -->
+          <div *ngIf="i < steps.length - 1" class="step-connector">
+            <div class="connector-line"></div>
           </div>
-
         </div>
       </div>
 
-      <!-- Animated progress bar -->
-      <div class="progress-section">
-        <div class="progress-track">
-          <div
-            class="progress-fill"
-            [style.width]="progressPercentage + '%'"
-          ></div>
+      <!-- Compact Progress indicator -->
+      <div class="progress-mini">
+        <div class="progress-track-bg">
+          <div class="progress-thumb" [style.width.%]="progressPercentage"></div>
         </div>
-        <div class="progress-label">{{ progressPercentage }}%</div>
+        <span class="progress-text">{{ progressPercentage }}% complété</span>
       </div>
     </div>
   `,
   styles: [`
-    /* ---- Wrapper ---- */
-    .stepper-wrapper {
-      width: 100%;
-      padding: 2rem 1.5rem 1.5rem;
-      background: #ffffff;
-      border-radius: 1.25rem;
-      border: 2px solid transparent;
-      background-clip: padding-box;
-      position: relative;
+    :host { display: block; width: 100%; }
+
+    .stepper-outer {
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 2rem;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px -5px rgba(0,0,0,0.03);
     }
 
-    /* Gradient border via pseudo-element */
-    .stepper-wrapper::before {
-      content: '';
-      position: absolute;
-      inset: -2px;
-      border-radius: calc(1.25rem + 2px);
-      background: linear-gradient(135deg, #ffffff 0%, #d6e5f5 50%, #3b82f6 100%);
-      z-index: -1;
-    }
-
-    /* ---- Steps row ---- */
-    .steps-container {
+    .steps-row {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
-      max-width: 640px;
-      margin: 0 auto;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
     }
 
-    .step-item {
+    .step-wrapper {
       display: flex;
-      flex: 1;
       align-items: center;
+      flex: 1;
     }
 
-    /* ---- Step node (circle + label) ---- */
+    .step-wrapper:last-child { flex: none; }
+
     .step-node {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex-shrink: 0;
-    }
-
-    /* Circle base */
-    .step-circle {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      cursor: default;
-    }
-
-    /* Active: gradient border + white fill */
-    .step-circle.active {
-      background: #ffffff;
-      box-shadow:
-        0 0 0 2.5px transparent,
-        0 10px 20px rgba(59, 130, 246, 0.2);
-      /* Gradient border via outline trick */
-      border: 3px solid transparent;
-      background-clip: padding-box;
-    }
-    .step-circle.active::before {
-      content: '';
-      position: absolute;
-      inset: -3px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      z-index: -1;
-    }
-
-    /* Completed: filled gradient */
-    .step-circle.completed {
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      border: none;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-      transform: scale(1.05);
-    }
-
-    /* Inactive */
-    .step-circle.inactive {
-      background: #f8fafc;
-      border: 2px solid #e2e8f0;
-    }
-
-    /* Rejected */
-    .step-circle.rejected {
-      background: #fee2e2;
-      border: 2px solid #ef4444;
-    }
-
-    .step-emoji {
-      font-size: 1.4rem;
-      line-height: 1;
-    }
-
-    .checkmark {
-      width: 26px;
-      height: 26px;
-      color: #ffffff;
-    }
-
-    /* ---- Labels ---- */
-    .step-label {
-      margin-top: 0.8rem;
-      font-size: 0.7rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      text-align: center;
-      max-width: 100px;
-      line-height: 1.3;
-      transition: color 0.3s ease;
-    }
-
-    .label-active {
-      color: #1e293b;
-    }
-
-    .label-default {
-      color: #94a3b8;
-    }
-
-    /* ---- Connector ---- */
-    .connector {
-      flex: 1;
-      height: 2px;
-      margin: 0 0.75rem;
-      margin-bottom: 2.2rem; /* vertically align with circle center */
-      background: #e2e8f0;
-      border-radius: 9999px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .connector-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-      border-radius: 9999px;
-      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* ---- Progress bar ---- */
-    .progress-section {
-      margin-top: 2rem;
       display: flex;
       align-items: center;
       gap: 1rem;
-      max-width: 640px;
-      margin-left: auto;
-      margin-right: auto;
+      position: relative;
     }
 
-    .progress-track {
+    .step-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 1rem;
+      background: #fff;
+      border: 1.5px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .icon-svg { width: 20px; height: 20px; }
+    .icon-svg-wrapper { display: flex; align-items: center; color: #94a3b8; }
+
+    .is-active .step-circle {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      transform: scale(1.1);
+      box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
+    }
+    .is-active .icon-svg-wrapper { color: #2563eb; }
+
+    .is-completed .step-circle {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+
+    .step-circle.is-rejected {
+      background: #fef2f2;
+      border-color: #ef4444;
+    }
+
+    .step-content { display: flex; flex-direction: column; }
+
+    .step-index {
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #94a3b8;
+      letter-spacing: 0.1em;
+      margin-bottom: -2px;
+    }
+
+    .step-name {
+      font-size: 0.8125rem;
+      font-weight: 800;
+      color: #1e293b;
+      white-space: nowrap;
+    }
+
+    .is-active .step-index { color: #3b82f6; }
+    .is-active .step-name { color: #0f172a; }
+
+    /* Connector */
+    .step-connector {
       flex: 1;
-      height: 8px;
+      height: 2px;
+      margin: 0 1.5rem;
       background: #f1f5f9;
-      border-radius: 9999px;
+      border-radius: 99px;
+      position: relative;
+    }
+
+    .connector-line {
+      position: absolute;
+      top: 0; left: 0; height: 100%;
+      background: #3b82f6;
+      width: 0;
+      transition: width 0.6s ease;
+    }
+
+    .is-completed + .step-connector .connector-line { width: 100%; }
+
+    /* Progress mini */
+    .progress-mini {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .progress-track-bg {
+      flex: 1;
+      height: 6px;
+      background: #f1f5f9;
+      border-radius: 99px;
       overflow: hidden;
     }
 
-    .progress-fill {
+    .progress-thumb {
       height: 100%;
-      background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-      border-radius: 9999px;
-      transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+      background: linear-gradient(to right, #3b82f6, #8b5cf6);
+      border-radius: 99px;
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .progress-label {
-      font-size: 0.8rem;
+    .progress-text {
+      font-size: 0.7rem;
       font-weight: 900;
-      color: #2563eb;
-      min-width: 40px;
-      text-align: right;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    @media (max-width: 640px) {
+      .step-name { display: none; }
+      .step-connector { margin: 0 0.5rem; }
     }
   `]
 })
 export class StepperComponent {
   @Input() currentStep: number = 1;
   @Input() steps: Step[] = [
-    { id: 1, name: 'Informations personnelles', icon: '👤' },
-    { id: 2, name: 'Informations académiques', icon: '🎓' },
+    { id: 1, name: 'Identité & Contact', icon: '' },
+    { id: 2, name: 'Parcours Académique', icon: '' },
   ];
 
   get progressPercentage(): number {
@@ -275,5 +231,11 @@ export class StepperComponent {
     if (this.isCompleted(step)) return 'step-circle completed';
     if (this.isActive(step)) return 'step-circle active';
     return 'step-circle inactive';
+  }
+
+  getStepSvg(id: number): string {
+    if (id === 1) return '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    if (id === 2) return '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-graduation-cap"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>';
+    return '';
   }
 }

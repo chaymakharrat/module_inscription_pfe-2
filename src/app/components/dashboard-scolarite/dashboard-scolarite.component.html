@@ -1305,8 +1305,18 @@
             </div>
 
             <div class="viewer-body">
-                <iframe [src]="currentDocumentUrl | safe: 'resourceUrl'" class="viewer-iframe"
-                    *ngIf="currentDocumentUrl"></iframe>
+                <div class="viewer-container" *ngIf="currentDocumentUrl">
+                    <!-- Image Viewer -->
+                    <img [src]="currentDocumentUrl | safe: 'resourceUrl'" 
+                         *ngIf="isImage" 
+                         class="viewer-img" 
+                         [alt]="currentDocumentName">
+                    
+                    <!-- PDF/Document Viewer -->
+                    <iframe [src]="currentDocumentUrl | safe: 'resourceUrl'" 
+                            *ngIf="!isImage" 
+                            class="viewer-iframe"></iframe>
+                </div>
             </div>
         </div>
     </div>

@@ -43,8 +43,9 @@ export interface CapaciteNiveauDTO {
   typeDiplome?: string;
   langue: string;
   capaciteMax: number;
-  inscritsConfirmes: number;
-  enCoursTraitement: number;
+  inscritsConfirmes: number;    // INSCRIT
+  enCoursTraitement: number;    // FORMULAIRE_ENVOYE (paiement en cours)
+  enCoursDepartement: number;   // EN_COURS_DEPARTEMENT (à traiter)
   listeAttente: number;
   placesRestantes: number;
   pourcentageRemplissage: number;
@@ -625,28 +626,22 @@ export class DashboardDepartementComponent implements OnInit {
     const diplome = this.selectedDemande?.nomDiplome || 'votre diplôme';
     const dept = this.dashboard?.nomDepartement || 'le Département';
     const enseignant = this.dashboard?.nomEnseignant || 'Le Responsable';
-    const frontendBaseUrl = 'http://localhost:4200';
     const lienFormulaire = token
-      ? `${frontendBaseUrl}/paiement/formulaire?token=${token}`
+      ? `http://localhost:4200/paiement/formulaire?token=${token}`
       : '[LIEN FORMULAIRE - SERA GÉNÉRÉ AUTOMATIQUEMENT]';
 
-    return `Aperçu de l'email
------------------------------------------
-À : ${this.selectedDemande?.emailEtudiant || ''}
-Objet : ✅ Candidature validée — Prochaine étape : Paiement
-
-Bonjour ${this.selectedDemande?.prenomEtudiant || 'Candidat(e)'},
+    // ✅ Email propre — sans "Aperçu de l'email ---"
+    return `Bonjour ${this.selectedDemande?.prenomEtudiant || 'Candidat(e)'},
 
 Nous avons le plaisir de vous informer que votre candidature pour le diplôme
 "${diplome}" a été validée par ${dept}.
 
 ─────────────────────────────────────────
-📋 ÉTAPE SUIVANTE : Préférences de paiement
+ÉTAPE SUIVANTE : Préférences de paiement
 ─────────────────────────────────────────
 
-Veuillez remplir le formulaire via le lien sécurisé ci-dessous.
+Veuillez remplir le formulaire via le lien sécurisé ci-dessous :
 
-🔗 Lien sécurisé (valable 3 jours) :
 ${lienFormulaire}
 
 ⚠️  Vous avez 3 jours pour remplir ce formulaire.
@@ -702,9 +697,13 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
     if (!this.dashboard?.capacites?.length) return false;
     if (niveau) {
       const cap = this.dashboard.capacites.find(c => c.niveau.toString() === niveau);
-      return cap ? cap.inscritsConfirmes >= cap.capaciteMax : false;
+      return cap
+        ? (cap.inscritsConfirmes + cap.enCoursTraitement) >= cap.capaciteMax
+        : false;
     }
-    return this.dashboard.capacites.some(c => c.inscritsConfirmes >= c.capaciteMax);
+    return this.dashboard.capacites.some(
+      c => (c.inscritsConfirmes + c.enCoursTraitement) >= c.capaciteMax
+    );
   }
 
   getCapaciteText(niveau?: string): string {

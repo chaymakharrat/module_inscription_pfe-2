@@ -9,12 +9,13 @@ import { trigger, style, animate, transition } from '@angular/animations';
 
 // ─── MODELS ───────────────────────────────────────────────────────────────────
 import { SafePipe } from '../../pipes/safe.pipe';
+import { ScolariteService } from '../../services/scolarite.service';
 
 export type StatutFormulaire = 'EN_ATTENTE' | 'SOUMIS' | 'VALIDE' | 'REFUSE';
 export type StatutEcheance = 'EN_ATTENTE' | 'PAYE' | 'IMPAYE';
 export type StatutPaiement = 'EN_ATTENTE' | 'PARTIEL' | 'PAYE';
 export type TypePaiement = 'TOTAL' | 'PARTIEL';
-export type ModePaiement = 'EN_LIGNE' | 'EN_PRESENTIEL';
+export type ModePaiement = 'ESPECES' | 'CARTE_BANCAIRE' | 'VIREMENT' | 'CHEQUE' | 'EN_LIGNE';
 
 export interface DashboardFinanceDTO {
   nomAgent: string;
@@ -73,7 +74,7 @@ export interface FactureSummaryDTO {
   typePaiement: TypePaiement;
   frequenceMois?: number;
   echeances: EcheanceDTO[];
-  remises: RemiseDTO[];
+  remises: RemiseDTO[];   // ← ce champ
 }
 
 export interface FormulaireDashboardDTO {
@@ -192,7 +193,7 @@ export class DashboardFinanceComponent implements OnInit {
   showPaiementDialog = false;
   selectedEcheance: EcheanceDTO | null = null;
   montantPaiement = 0;
-  modePaiementSelectionne: ModePaiement = 'EN_PRESENTIEL';
+  modePaiementSelectionne: ModePaiement = 'ESPECES';
   paiementLoading = false;
 
   showRejetDialog = false;
@@ -214,6 +215,20 @@ export class DashboardFinanceComponent implements OnInit {
   currentDocumentName: string | null = null;
   isImageDocument = false;
 
+  // --- Nouveaux états flux rejet & modification locales ---
+  showUnsavedChangesDialog = false;
+  showRejetRemiseModal = false;
+  selectedRemiseForRejet: RemiseDTO | null = null;
+  rejetRemiseMotif = 'Document illisible ou non conforme';
+  rejetRemiseQuickMotifs = [
+    'Document illisible',
+    'Document expiré',
+    'Mauvais document',
+    'Document incomplet'
+  ];
+  // Stockage local des décisions (remiseId -> décision)
+  pendingRemiseDecisions = new Map<number, { acceptee: boolean, commentaire: string }>();
+
   private readonly avatarColors = [
     '#2563eb', '#059669', '#7c3aed', '#d97706',
     '#dc2626', '#0891b2', '#4f46e5', '#065f46'
@@ -221,7 +236,8 @@ export class DashboardFinanceComponent implements OnInit {
 
   constructor(
     private http: HttpClient,
-    private keycloak: KeycloakService
+    private keycloak: KeycloakService,
+    private scolariteService: ScolariteService
   ) { }
 
   async ngOnInit(): Promise<void> {
@@ -232,6 +248,7 @@ export class DashboardFinanceComponent implements OnInit {
       if (this.emailAgent) {
         this.loadStats();
         this.loadFormulaires();
+        this.loadRemises();
       }
     } catch (e) {
       console.error('Keycloak error:', e);
@@ -319,52 +336,106 @@ export class DashboardFinanceComponent implements OnInit {
   }
 
   closeModal(): void {
+    if (this.pendingRemiseDecisions.size > 0 && !this.showUnsavedChangesDialog) {
+      this.showUnsavedChangesDialog = true;
+      return;
+    }
     this.showModal = false;
     this.selectedFormulaire = null;
     this.showDecisionForm = false;
+    this.showUnsavedChangesDialog = false;
+    // On ne clear pas forcément pendingRemiseDecisions ici si on veut "garder en mémoire"
+    // Mais on le fera lors d'un "Tout annuler" ou d'une validation finale
+  }
+
+  discardAndClose(): void {
+    this.pendingRemiseDecisions.clear();
+    this.showUnsavedChangesDialog = false;
+    this.showModal = false;
+    this.selectedFormulaire = null;
+  }
+
+  forceCloseModal(): void {
+    // "Quitter et garder mes notes" -> On ferme mais on laisse les décisions dans Map
+    this.showUnsavedChangesDialog = false;
+    this.showModal = false;
+    this.selectedFormulaire = null;
   }
 
   prepareDecision(decision: 'VALIDER' | 'REFUSER'): void {
+    if (!this.toutesRemisesDecidees()) {
+      this.showToast('⚠️ Vous devez accepter ou refuser chaque document (remise) soumis avant de prendre une décision finale.', 'error');
+      return;
+    }
+
     this.pendingDecision = decision;
     this.showDecisionForm = true;
     if (decision === 'VALIDER') {
-      this.commentaireDecision = this.buildEmailValidation();
+      this.commentaireDecision = '';
     } else {
       this.commentaireDecision = '';
     }
   }
 
-  confirmerDecision(): void {
-    if (!this.selectedFormulaire) return;
+  async confirmerDecision(): Promise<void> {
+    if (!this.selectedFormulaire || this.actionLoading) return;
     this.actionLoading = true;
 
-    const payload: ValidationRequest = {
-      accepte: this.pendingDecision === 'VALIDER',
-      commentaire: this.commentaireDecision,
-      agentEmail: this.emailAgent
-    };
+    const accepte = this.pendingDecision === 'VALIDER';
 
-    this.http.post(
-      `${this.apiUrl}/formulaires/${this.selectedFormulaire.enrollmentId}/valider`,
-      payload
-    ).subscribe({
-      next: () => {
-        this.actionLoading = false;
-        this.showToast(
-          this.pendingDecision === 'VALIDER'
-            ? '✅ Préférences validées — Facture générée'
-            : '❌ Préférences refusées',
-          'success'
-        );
-        this.closeModal();
-        this.refreshAll();
-      },
-      error: e => {
-        this.actionLoading = false;
-        console.error('Decision error:', e);
-        this.showToast('❌ Erreur lors de la décision', 'error');
+    try {
+      // 1. Persister les décisions sur les remises si nécessaire
+      if (this.pendingRemiseDecisions.size > 0) {
+        for (const [remiseId, decision] of this.pendingRemiseDecisions.entries()) {
+          const payload = {
+            acceptee: decision.acceptee,
+            commentaire: decision.commentaire,
+            agentEmail: this.emailAgent
+          };
+          await this.http.patch(
+            `${this.apiUrl}/formulaires/${this.selectedFormulaire.enrollmentId}/remises/${remiseId}/decision`,
+            payload
+          ).toPromise();
+        }
       }
-    });
+
+      // 2. Récupérer le taskId Camunda
+      const env = (window as any).environment || { workflowServiceUrl: 'http://localhost:8080' }; // Fallback simple si import manquant
+      const tasks = await this.scolariteService.getTasksForEnrollment(this.selectedFormulaire.enrollmentId).toPromise();
+      
+      if (!tasks || tasks.length === 0) {
+        this.actionLoading = false;
+        this.showToast('❌ Aucune tâche Camunda trouvée pour ce dossier', 'error');
+        return;
+      }
+
+      const taskId = tasks[0].id;
+
+      // 3. Compléter la tâche
+      // Note: On utilise direct HTTP car scolariteService.completeTask peut ne pas correspondre au format attendu en Finance
+      await this.http.post(
+        `${environment.workflowServiceUrl}/api/workflow/tasks/${taskId}/complete`,
+        {
+          decision: accepte ? 'ACCEPTE' : 'REJETE',
+          commentaire: this.commentaireDecision,
+          loginUtilisateur: this.emailAgent
+        }
+      ).toPromise();
+
+      this.actionLoading = false;
+      this.showToast(
+        accepte ? '✅ Préférences validées' : '❌ Préférences refusées',
+        'success'
+      );
+      this.pendingRemiseDecisions.clear();
+      this.closeModal();
+      this.refreshAll();
+
+    } catch (error) {
+      this.actionLoading = false;
+      console.error('Validation error:', error);
+      this.showToast('❌ Erreur lors de la validation', 'error');
+    }
   }
 
   confirmerRejet(): void {
@@ -372,7 +443,7 @@ export class DashboardFinanceComponent implements OnInit {
     this.commentaireDecision = this.motifRejet;
     this.showRejetDialog = false;
     this.showDecisionForm = true;
-    this.commentaireDecision = this.buildEmailRejet();
+    this.commentaireDecision = '';
   }
 
   fermerRejet(): void {
@@ -388,7 +459,7 @@ export class DashboardFinanceComponent implements OnInit {
   ouvrirPaiement(echeance: EcheanceDTO): void {
     this.selectedEcheance = echeance;
     this.montantPaiement = echeance.montantAPayer;
-    this.modePaiementSelectionne = 'EN_PRESENTIEL';
+    this.modePaiementSelectionne = 'ESPECES';
     this.showPaiementDialog = true;
   }
 
@@ -398,69 +469,89 @@ export class DashboardFinanceComponent implements OnInit {
     this.montantPaiement = 0;
   }
 
+  // confirmerPaiement(): void {
+  //   if (!this.selectedEcheance || !this.montantPaiement) return;
+  //   this.paiementLoading = true;
+
+  //   const payload: EnregistrerPaiementRequest = {
+  //     montant: this.montantPaiement,
+  //     modePaiement: this.modePaiementSelectionne,
+  //     agentEmail: this.emailAgent
+  //   };
+
+  //   this.http.post(
+  //     `${this.apiUrl}/paiements/echeance/${this.selectedEcheance.id}`,
+  //     payload
+  //   ).subscribe({
+  //     next: () => {
+  //       this.paiementLoading = false;
+  //       this.showToast(`✅ Paiement de ${this.montantPaiement} TND enregistré`, 'success');
+  //       this.fermerPaiement();
+  //       if (this.selectedFormulaire) {
+  //         this.openDetail(this.selectedFormulaire, 'facture');
+  //       }
+  //       this.refreshAll();
+  //     },
+  //     error: e => {
+  //       this.paiementLoading = false;
+  //       console.error('Paiement error:', e);
+  //       this.showToast('❌ Erreur lors de l\'enregistrement du paiement', 'error');
+  //     }
+  //   });
+  // }
   confirmerPaiement(): void {
-    if (!this.selectedEcheance || !this.montantPaiement) return;
+    if (!this.selectedEcheance || !this.montantPaiement || !this.selectedFormulaire) return;
     this.paiementLoading = true;
 
-    const payload: EnregistrerPaiementRequest = {
-      montant: this.montantPaiement,
-      modePaiement: this.modePaiementSelectionne,
-      agentEmail: this.emailAgent
-    };
+    this.scolariteService.getTasksForEnrollment(this.selectedFormulaire.enrollmentId)
+      .subscribe({
+        next: (tasks) => {
+          console.log('🔍 Toutes les tâches:', JSON.stringify(tasks)); // ← DEBUG
 
-    this.http.post(
-      `${this.apiUrl}/paiements/echeance/${this.selectedEcheance.id}`,
-      payload
-    ).subscribe({
-      next: () => {
-        this.paiementLoading = false;
-        this.showToast(`✅ Paiement de ${this.montantPaiement} TND enregistré`, 'success');
-        this.fermerPaiement();
-        if (this.selectedFormulaire) {
-          this.openDetail(this.selectedFormulaire, 'facture');
+          const task = tasks?.find(t =>
+            t.name?.toLowerCase().includes('paiement') ||
+            t.name?.toLowerCase().includes('configurer')
+          ) || tasks?.[0];
+
+          console.log('✅ Tâche sélectionnée:', task); // ← DEBUG
+
+          if (!task) {
+            this.paiementLoading = false;
+            this.showToast('❌ Aucune tâche active trouvée', 'error');
+            return;
+          }
+
+          this.http.post(
+            `${environment.workflowServiceUrl}/api/workflow/tasks/${task.id}/complete/paiement`,
+            {
+              echeanceId: this.selectedEcheance!.id,
+              montantRecu: this.montantPaiement,
+              modePaiementRecu: this.modePaiementSelectionne,
+              agentEmail: this.emailAgent
+            }
+          ).subscribe({
+            next: () => {
+              this.paiementLoading = false;
+              this.showToast(`✅ Paiement de ${this.montantPaiement} TND enregistré`, 'success');
+              this.fermerPaiement();
+              if (this.selectedFormulaire) {
+                this.openDetail(this.selectedFormulaire, 'facture');
+              }
+              this.refreshAll();
+            },
+            error: (e) => {
+              this.paiementLoading = false;
+              console.error('❌ Erreur paiement:', e); // ← DEBUG
+              this.showToast('❌ Erreur lors du paiement', 'error');
+            }
+          });
+        },
+        error: (e) => {
+          this.paiementLoading = false;
+          console.error('❌ Erreur tâches:', e); // ← DEBUG
+          this.showToast('❌ Erreur récupération tâche', 'error');
         }
-        this.refreshAll();
-      },
-      error: e => {
-        this.paiementLoading = false;
-        console.error('Paiement error:', e);
-        this.showToast('❌ Erreur lors de l\'enregistrement du paiement', 'error');
-      }
-    });
-  }
-
-  private buildEmailValidation(): string {
-    const f = this.selectedFormulaire!;
-    const nom = `${f.prenomEtudiant || ''} ${f.nomEtudiant || ''}`.trim();
-    return `Bonjour ${nom},
-
-Votre dossier financier a été validé par le Service Finance.
-
-Votre choix de paiement :
-- Type : ${f.typePaiement === 'TOTAL' ? 'Paiement total' : 'Paiement partiel'}
-${f.frequenceMois ? `- Fréquence : tous les ${f.frequenceMois} mois` : ''}
-- Mode : ${f.paiementEnLigne ? 'En ligne' : 'En présentiel'}
-${f.totalRemiseDemandee > 0 ? `- Remises demandées : ${f.totalRemiseDemandee}% (acceptées : ${f.totalRemiseAcceptee}%)` : ''}
-
-Vous serez contacté(e) pour les modalités de paiement.
-
-Cordialement,
-Service Finance — ITECH University`;
-  }
-
-  private buildEmailRejet(): string {
-    const f = this.selectedFormulaire!;
-    const nom = `${f.prenomEtudiant || ''} ${f.nomEtudiant || ''}`.trim();
-    return `Bonjour ${nom},
-
-Après vérification de votre dossier, le Service Finance n'a pas pu valider vos préférences de paiement.
-
-Motif : ${this.motifRejet}
-
-Vous recevrez un nouveau formulaire pour soumettre des informations corrigées.
-
-Cordialement,
-Service Finance — ITECH University`;
+      });
   }
 
   isActionnable(f: FormulaireDashboardDTO): boolean {
@@ -815,28 +906,110 @@ Service Finance — ITECH University`;
 
   deciderRemise(remise: RemiseDTO, acceptee: boolean): void {
     if (!this.selectedFormulaire) return;
-    const commentaire = acceptee
-      ? `Remise "${remise.motif}" acceptée.`
-      : prompt(`Motif de refus pour "${remise.motif}" :`) || '';
-    if (!acceptee && !commentaire.trim()) return;
+    
+    if (acceptee) {
+      const commentaire = `Remise "${remise.motif}" acceptée.`;
+      // Mise à jour locale immédiate pour le feedback visuel
+      remise.statut = 'ACCEPTEE';
+      remise.commentaireAgent = commentaire;
+      this.pendingRemiseDecisions.set(remise.id, { acceptee: true, commentaire });
+      this.showToast(`✓ Remise "${remise.motif}" acceptée localement`, 'success');
+    } else {
+      this.ouvrirRejetRemise(remise);
+    }
+  }
+
+  // --- Logique Rejet Remise (Nouveau Modal) ---
+  ouvrirRejetRemise(remise: RemiseDTO): void {
+    this.selectedRemiseForRejet = remise;
+    this.rejetRemiseMotif = 'Document illisible ou non conforme';
+    this.showRejetRemiseModal = true;
+  }
+
+  selectQuickMotifRemise(motif: string): void {
+    this.rejetRemiseMotif = motif;
+  }
+
+  annulerRejetRemise(): void {
+    this.showRejetRemiseModal = false;
+    this.selectedRemiseForRejet = null;
+  }
+
+  confirmerRejetRemise(): void {
+    if (!this.selectedRemiseForRejet || !this.rejetRemiseMotif.trim()) return;
+    
+    const remise = this.selectedRemiseForRejet;
+    const commentaire = this.rejetRemiseMotif;
+    
+    // Mise à jour locale
+    remise.statut = 'REFUSEE';
+    remise.commentaireAgent = commentaire;
+    this.pendingRemiseDecisions.set(remise.id, { acceptee: false, commentaire });
+    
+    this.showToast(`✕ Remise "${remise.motif}" refusée localement`, 'success');
+    this.annulerRejetRemise();
+  }
+
+  // NOTE: La persistence réelle en base se fait lors de confirmerDecision() 
+  // en itérant sur pendingRemiseDecisions si on choisit de regrouper, 
+  // OU on peut aussi envoyer les requêtes une par une dès que confirmerRejetRemise() est cliqué.
+  // L'utilisateur dit: "si il clique rejet ou accepte on n'envoie la requête vers la base de données seulement si il prend une décision accepte ou refuse"
+  // Cela signifie probablement que l'envoi vers la DB doit être fait IMMÉDIATEMENT quand l'agent clique sur "Confirmer le rejet" dans le nouveau modal.
+  // Rectifions confirmerRejetRemise() pour envoyer la requête si c'est ce qui est voulu.
+  // "on n'envoie la requête [...] seulement si il prend une décision" -> décision individuelle remise.
+  
+  confirmerRejetRemiseBase(): void {
+    if (!this.selectedRemiseForRejet || !this.selectedFormulaire) return;
+    
+    const remise = this.selectedRemiseForRejet;
+    const commentaire = this.rejetRemiseMotif;
     const payload: RemiseDecisionRequest = {
-      acceptee,
+      acceptee: false,
       commentaire,
       agentEmail: this.emailAgent
     };
+    
+    this.actionLoading = true;
     this.http.patch(
       `${this.apiUrl}/formulaires/${this.selectedFormulaire.enrollmentId}/remises/${remise.id}/decision`,
       payload
     ).subscribe({
       next: () => {
-        remise.statut = acceptee ? 'ACCEPTEE' : 'REFUSEE';
+        remise.statut = 'REFUSEE';
         remise.commentaireAgent = commentaire;
-        this.showToast(
-          acceptee ? `✅ Remise "${remise.motif}" acceptée` : `❌ Remise "${remise.motif}" refusée`,
-          'success'
-        );
+        this.actionLoading = false;
+        this.showToast(`❌ Remise "${remise.motif}" refusée`, 'success');
+        this.annulerRejetRemise();
+        // On retire de pending si c'était là (car c'est maintenant en DB)
+        this.pendingRemiseDecisions.delete(remise.id);
       },
-      error: () => this.showToast('❌ Erreur lors de la décision', 'error')
+      error: () => {
+        this.actionLoading = false;
+        this.showToast('❌ Erreur lors du refus de la remise', 'error');
+      }
+    });
+  }
+
+  accepterRemiseBase(remise: RemiseDTO): void {
+    if (!this.selectedFormulaire) return;
+    const commentaire = `Remise "${remise.motif}" acceptée.`;
+    const payload: RemiseDecisionRequest = {
+      acceptee: true,
+      commentaire,
+      agentEmail: this.emailAgent
+    };
+    
+    this.http.patch(
+      `${this.apiUrl}/formulaires/${this.selectedFormulaire.enrollmentId}/remises/${remise.id}/decision`,
+      payload
+    ).subscribe({
+      next: () => {
+        remise.statut = 'ACCEPTEE';
+        remise.commentaireAgent = commentaire;
+        this.showToast(`✅ Remise "${remise.motif}" acceptée`, 'success');
+        this.pendingRemiseDecisions.delete(remise.id);
+      },
+      error: () => this.showToast('❌ Erreur lors de l\'acceptation', 'error')
     });
   }
 
@@ -863,8 +1036,10 @@ Service Finance — ITECH University`;
   }
 
   toutesRemisesDecidees(): boolean {
-    return this.selectedFormulaire?.remisesDemandees
-      ?.every(r => r.statut !== 'EN_ATTENTE') ?? true;
+    if (!this.selectedFormulaire?.remisesDemandees) return true;
+    return this.selectedFormulaire.remisesDemandees.every(r => 
+      r.statut !== 'EN_ATTENTE' || this.pendingRemiseDecisions.has(r.id)
+    );
   }
 
   openDocumentViewer(remise: RemiseDTO): void {
