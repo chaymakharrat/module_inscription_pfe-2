@@ -6,7 +6,6 @@ import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { environment } from '../../envirements/enviremetns';
-import { Logo3dComponent } from '../logo3d/logo3d.component';
 
 declare const THREE: any;
 

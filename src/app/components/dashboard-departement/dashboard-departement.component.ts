@@ -10,6 +10,7 @@ import { forkJoin } from 'rxjs';
 import { ParametragePrerequisComponent } from '../parametrage-prerequis/parametrage-prerequis.component';
 import { SafePipe } from '../../pipes/safe.pipe';
 import { trigger, style, animate, transition } from '@angular/animations';
+import { StudentService } from '../../services/student.service';
 
 // ─── MODELS ───────────────────────────────────────────────────────────────────
 
@@ -146,14 +147,14 @@ export class DashboardDepartementComponent implements OnInit {
 
   // Pagination
   currentPage = 0;
-  pageSize = 4;
+  pageSize = 10;
   totalElements = 0;
   totalPages = 0;
 
   // Modal détail
   showModal = false;
   selectedDemande: DemandeDeptDTO | null = null;
-  activeTab: 'prerequis' | 'etudiant' | 'decision' = 'prerequis';
+  activeTab: 'prerequis' | 'decision' = 'prerequis';
 
   // Documents
   loadingDocuments = false;
@@ -164,6 +165,8 @@ export class DashboardDepartementComponent implements OnInit {
   currentDocumentName: string | null = null;
   showDocumentViewer = false;
   isImageDocument = false;
+  showPreview = false;
+  activeDocumentId: number | null = null;
 
   // Décision
   showDecisionForm = false;
@@ -178,6 +181,12 @@ export class DashboardDepartementComponent implements OnInit {
   selectedPrerequisToReject: PrerequisDetailDTO | null = null;
   motifRejetPrerequis = '';
   prerequisActionLoading = false;
+  // ── Session Cache : survive la fermeture du modal (vidé après décision ou discard) ──
+  // dossierId -> Map<prerequisId, Partial<PrerequisDetailDTO>>
+  private sessionPrereqCache: Map<number, Map<number, Partial<PrerequisDetailDTO>>> = new Map();
+  // dossierId -> Map<documentId, Partial<DocumentStatusDTO>>
+  private sessionDocCache: Map<number, Map<number, Partial<DocumentStatusDTO>>> = new Map();
+
   quickRejetPrerequis: string[] = [
     'Moyenne insuffisante',
     'Diplôme non reconnu',
@@ -185,6 +194,28 @@ export class DashboardDepartementComponent implements OnInit {
     'Certificat manquant',
     'Expérience insuffisante'
   ];
+
+  showUnsavedChangesDialog = false;
+
+  get pendingPrereqChanges(): Map<number, Partial<PrerequisDetailDTO>> {
+    if (!this.selectedDemande) return new Map();
+    if (!this.sessionPrereqCache.has(this.selectedDemande.id)) {
+      this.sessionPrereqCache.set(this.selectedDemande.id, new Map());
+    }
+    return this.sessionPrereqCache.get(this.selectedDemande.id)!;
+  }
+
+  get pendingDocChanges(): Map<number, Partial<DocumentStatusDTO>> {
+    if (!this.selectedDemande) return new Map();
+    if (!this.sessionDocCache.has(this.selectedDemande.id)) {
+      this.sessionDocCache.set(this.selectedDemande.id, new Map());
+    }
+    return this.sessionDocCache.get(this.selectedDemande.id)!;
+  }
+
+  hasUnsavedChanges(): boolean {
+    return this.pendingPrereqChanges.size > 0 || this.pendingDocChanges.size > 0;
+  }
 
   // Toast
   toastVisible = false;
@@ -203,13 +234,6 @@ export class DashboardDepartementComponent implements OnInit {
     'Sceau manquant'
   ];
 
-  // Analytics
-  bacDistribution = [
-    { label: 'Bac Math', pct: 45, color: '#2563eb' },
-    { label: 'Bac Info', pct: 30, color: '#059669' },
-    { label: 'Bac Sciences', pct: 15, color: '#d97706' },
-    { label: 'Autres', pct: 10, color: '#8b92a9' }
-  ];
 
   private readonly avatarColors = [
     '#2563eb', '#059669', '#7c3aed', '#d97706',
@@ -217,10 +241,57 @@ export class DashboardDepartementComponent implements OnInit {
   ];
   showParametrage = false;
 
+  getBacDistribution(): { label: string, pct: number, color: string }[] {
+    if (!this.dashboard?.demandes || this.dashboard.demandes.length === 0) return [];
+
+    // Filtrer uniquement les inscrits
+    const inscritsDemandes = this.dashboard.demandes.filter(d => d.statut === 'INSCRIT');
+    if (inscritsDemandes.length === 0) return [];
+
+    // Assurer l'unicité par étudiant (un étudiant peut avoir plusieurs demandes)
+    const uniqueStudentsMap = new Map<number, DemandeDeptDTO>();
+    inscritsDemandes.forEach(d => {
+      if (!uniqueStudentsMap.has(d.etudiantId)) {
+        uniqueStudentsMap.set(d.etudiantId, d);
+      }
+    });
+
+    const uniqueInscrits = Array.from(uniqueStudentsMap.values());
+    const counts: Record<string, number> = {};
+
+    uniqueInscrits.forEach(d => {
+      // Normaliser un peu le nom du bac (souvent stocké dans diplomeObtenu ou similaire)
+      let bacName = d.diplomeObtenu ? d.diplomeObtenu.toLowerCase() : 'autre';
+
+      if (bacName.includes('math')) bacName = 'Bac Math';
+      else if (bacName.includes('info')) bacName = 'Bac Info';
+      else if (bacName.includes('science')) bacName = 'Bac Sciences';
+      else bacName = 'Autres';
+
+      counts[bacName] = (counts[bacName] || 0) + 1;
+    });
+
+    const total = uniqueInscrits.length;
+    const colors: Record<string, string> = {
+      'Bac Math': '#2563eb',
+      'Bac Info': '#059669',
+      'Bac Sciences': '#d97706',
+      'Autres': '#8b92a9'
+    };
+
+    return Object.keys(counts).map(key => ({
+      label: key,
+      pct: Math.round((counts[key] / total) * 100),
+      color: colors[key] || '#8b92a9'
+    })).sort((a, b) => b.pct - a.pct);
+  }
+
+
   constructor(
     private http: HttpClient,
     private keycloak: KeycloakService,
-    private scolariteService: ScolariteService
+    private scolariteService: ScolariteService,
+    private studentService: StudentService
   ) { }
 
   async ngOnInit(): Promise<void> {
@@ -372,9 +443,13 @@ export class DashboardDepartementComponent implements OnInit {
 
   openDetail(
     demande: DemandeDeptDTO,
-    tab: 'prerequis' | 'etudiant' | 'decision' = 'prerequis'
+    tab: 'prerequis' | 'decision' = 'prerequis'
   ): void {
-    this.selectedDemande = demande;
+    // Clone demande et ses prérequis pour ne pas muter la liste principale
+    this.selectedDemande = {
+      ...demande,
+      prerequisDetails: demande.prerequisDetails ? demande.prerequisDetails.map(p => ({ ...p })) : []
+    };
     this.activeTab = tab;
     this.showModal = true;
     this.showDecisionForm = false;
@@ -384,6 +459,18 @@ export class DashboardDepartementComponent implements OnInit {
 
     if (demande.etudiantId) {
       this.loadDocumentsEtudiant(demande.etudiantId);
+      this.loadEtudiantInfo(demande.etudiantId);
+    }
+
+    // Appliquer changements en cache (S'ils existent)
+    if (this.pendingPrereqChanges.size > 0) {
+      this.pendingPrereqChanges.forEach((change, pid) => {
+        const p = this.selectedDemande?.prerequisDetails.find(pr => pr.prerequisId === pid);
+        if (p) {
+          Object.assign(p, change);
+        }
+      });
+      this.recalculerPrerequisGlobal();
     }
 
     this.scolariteService.getTasksForEnrollment(demande.id).subscribe({
@@ -397,9 +484,26 @@ export class DashboardDepartementComponent implements OnInit {
   }
 
   closeModal(): void {
+    if (this.hasUnsavedChanges()) {
+      this.showUnsavedChangesDialog = true;
+    } else {
+      this.forceCloseModal();
+    }
+  }
+
+  forceCloseModal(): void {
     this.showModal = false;
     this.selectedDemande = null;
     this.showDecisionForm = false;
+    this.showUnsavedChangesDialog = false;
+  }
+
+  discardAndClose(): void {
+    if (this.selectedDemande) {
+      this.sessionPrereqCache.delete(this.selectedDemande.id);
+      this.sessionDocCache.delete(this.selectedDemande.id);
+    }
+    this.forceCloseModal();
   }
 
   openDecision(demande: DemandeDeptDTO, decision: 'ACCEPTE' | 'LISTE_ATTENTE' | 'REJETE'): void {
@@ -410,41 +514,25 @@ export class DashboardDepartementComponent implements OnInit {
   // ─── CONFIRMATION PRÉREQUIS NIVEAU ────────────────────────────────────────
 
   /**
-   * Confirme directement (✓) un prérequis de niveau
+   * Confirme directement (✓) un prérequis de niveau (Staged localement)
    */
   confirmerPrerequisOk(detail: PrerequisDetailDTO): void {
     if (!this.selectedDemande) return;
-    this.prerequisActionLoading = true;
 
-    const payload: ConfirmPrerequisRequest = {
-      prerequisId: detail.prerequisId,
-      statut: 'CONFIRME',
-      motifRejet: null,
-      agentEmail: this.emailEnseignant
-    };
-    console.log('📤 Payload envoyé:', JSON.stringify(payload));
-    console.log('📧 agentEmail:', this.emailEnseignant);
+    // Mise à jour locale (clone pour UI)
+    detail.statutConfirmation = 'CONFIRME';
+    detail.motifRejet = undefined;
+    detail.confirmedBy = this.emailEnseignant;
 
-    this.http.post(
-      `${this.apiUrl}/demandes/${this.selectedDemande.id}/prerequis/confirm`,
-      payload
-    ).subscribe({
-      next: () => {
-        detail.statutConfirmation = 'CONFIRME';
-        detail.motifRejet = undefined;
-        detail.confirmedBy = this.emailEnseignant;
-        this.prerequisActionLoading = false;
-        this.recalculerPrerequisGlobal();
-        this.showToast('✅ Prérequis confirmé', 'success');
-      },
-      error: (err) => {
-        console.error('Erreur confirmation prérequis:', err);
-        console.error('❌ Status:', err.status);
-        console.error('❌ Error body:', err.error);
-        this.prerequisActionLoading = false;
-        this.showToast('❌ Erreur lors de la confirmation', 'error');
-      }
+    // Mise à jour cache session
+    this.pendingPrereqChanges.set(detail.prerequisId, {
+      statutConfirmation: 'CONFIRME',
+      motifRejet: undefined,
+      confirmedBy: this.emailEnseignant
     });
+
+    this.recalculerPrerequisGlobal();
+    this.showToast('✅ Prérequis marqué comme conforme (non enregistré)', 'success');
   }
 
   /**
@@ -467,38 +555,27 @@ export class DashboardDepartementComponent implements OnInit {
   }
 
   /**
-   * Confirme le rejet d'un prérequis avec motif
+   * Confirme le rejet d'un prérequis avec motif (Staged localement)
    */
   confirmerRejetPrerequis(): void {
     if (!this.selectedDemande || !this.selectedPrerequisToReject || !this.motifRejetPrerequis.trim()) return;
-    this.prerequisActionLoading = true;
 
-    const payload: ConfirmPrerequisRequest = {
-      prerequisId: this.selectedPrerequisToReject.prerequisId,
-      statut: 'REJETE',
-      motifRejet: this.motifRejetPrerequis.trim(),
-      agentEmail: this.emailEnseignant
-    };
+    // Mise à jour locale
+    const detail = this.selectedPrerequisToReject;
+    detail.statutConfirmation = 'REJETE';
+    detail.motifRejet = this.motifRejetPrerequis.trim();
+    detail.confirmedBy = this.emailEnseignant;
 
-    this.http.post(
-      `${this.apiUrl}/demandes/${this.selectedDemande.id}/prerequis/confirm`,
-      payload
-    ).subscribe({
-      next: () => {
-        this.selectedPrerequisToReject!.statutConfirmation = 'REJETE';
-        this.selectedPrerequisToReject!.motifRejet = this.motifRejetPrerequis.trim();
-        this.selectedPrerequisToReject!.confirmedBy = this.emailEnseignant;
-        this.prerequisActionLoading = false;
-        this.recalculerPrerequisGlobal();
-        this.fermerRejetPrerequis();
-        this.showToast('❌ Prérequis rejeté', 'success');
-      },
-      error: (err) => {
-        console.error('Erreur rejet prérequis:', err);
-        this.prerequisActionLoading = false;
-        this.showToast('❌ Erreur lors du rejet', 'error');
-      }
+    // Mise à jour cache session
+    this.pendingPrereqChanges.set(detail.prerequisId, {
+      statutConfirmation: 'REJETE',
+      motifRejet: detail.motifRejet,
+      confirmedBy: this.emailEnseignant
     });
+
+    this.recalculerPrerequisGlobal();
+    this.fermerRejetPrerequis();
+    this.showToast('❌ Prérequis marqué comme rejeté (non enregistré)', 'success');
   }
   /**
    * Recalcule prerequisSatisfaits global en temps réel
@@ -519,12 +596,42 @@ export class DashboardDepartementComponent implements OnInit {
       .every(d => d.statutConfirmation === 'CONFIRME');
 
     this.selectedDemande.prerequisSatisfaits = typeOk && niveauOk;
+  }
 
-    // Mettre à jour aussi dans la liste principale
-    const idx = this.filteredDemandes.findIndex(d => d.id === this.selectedDemande!.id);
-    if (idx !== -1) {
-      this.filteredDemandes[idx].prerequisSatisfaits = this.selectedDemande.prerequisSatisfaits;
+  /**
+   * Retourne l'état global des prérequis pour l'affichage dans le tableau principal.
+   * - 'OK' : Tous les prérequis obligatoires sont CONFIRMÉ
+   * - 'REJETE' : Au moins un prérequis obligatoire est REJETÉ
+   * - 'A_VERIFIER' : Au moins un prérequis obligatoire est EN_ATTENTE ou non traité
+   */
+  getPrerequisStatutGlobal(demande: DemandeDeptDTO): 'OK' | 'REJETE' | 'A_VERIFIER' {
+    if (!demande || !demande.prerequisDetails || demande.prerequisDetails.length === 0) return 'OK';
+
+    const obligatoires = demande.prerequisDetails.filter(d => d.obligatoire);
+    if (obligatoires.length === 0) return 'OK';
+
+    let hasRejete = false;
+    let hasEnAttente = false;
+
+    for (const p of obligatoires) {
+      if (p.source === 'NIVEAU') {
+        if (!p.statutConfirmation || p.statutConfirmation === 'EN_ATTENTE') {
+          hasEnAttente = true;
+        } else if (p.statutConfirmation === 'REJETE') {
+          hasRejete = true;
+        }
+      } else if (p.source === 'TYPE') {
+        if (p.conforme === false) {
+          hasRejete = true;
+        } else if (p.conforme === undefined || p.conforme === null) {
+          hasEnAttente = true;
+        }
+      }
     }
+
+    if (hasRejete) return 'REJETE';
+    if (hasEnAttente) return 'A_VERIFIER';
+    return 'OK'; // Si ni rejeté ni en attente, c'est que tout est OK (confirmé/conforme)
   }
 
   /**
@@ -554,71 +661,106 @@ export class DashboardDepartementComponent implements OnInit {
   }
 
   // ─── DÉCISION ─────────────────────────────────────────────────────────────
-
   prepareDecision(decision: 'ACCEPTE' | 'LISTE_ATTENTE' | 'REJETE'): void {
     this.pendingDecision = decision;
     this.showDecisionForm = true;
+    this.commentaire = ''; // Toujours vide — backend construit l'email
 
     if (decision === 'ACCEPTE') {
       this.loadingToken = true;
-      this.commentaire = '';
-
       this.http.post(
         `${environment.apiUrl}/FINANCE-SERVICE/api/formulaire/token/generate/${this.selectedDemande!.id}`,
-        {},
-        { responseType: 'text' }
+        {}, { responseType: 'text' }
       ).subscribe({
-        next: (token) => {
-          this.tokenFormulaire = token;
-          this.loadingToken = false;
-          this.commentaire = this.buildEmailValidation(token);
-        },
-        error: (err) => {
-          console.error('Erreur génération token:', err);
-          this.loadingToken = false;
-          this.commentaire = this.buildEmailValidation(null);
-        }
+        next: (token) => { this.tokenFormulaire = token; this.loadingToken = false; },
+        error: () => { this.loadingToken = false; }
       });
-
-    } else if (decision === 'LISTE_ATTENTE') {
-      this.commentaire = this.buildEmailListeAttente();
-    } else {
-      this.commentaire = this.buildEmailRejet();
     }
+    // LISTE_ATTENTE et REJETE : commentaire reste vide, formulaire s'affiche
   }
 
   confirmerDecision(): void {
-    if (!this.selectedDemande || !this.pendingDecision || !this.commentaire.trim()) return;
-
-    const taskId = this.selectedDemande.taskId;
-    if (!taskId) {
-      this.showToast('❌ Tâche introuvable dans le workflow', 'error');
-      return;
-    }
+    if (!this.selectedDemande || !this.pendingDecision) return;
 
     this.actionLoading = true;
-    const login = this.userProfile?.email || this.userProfile?.username || 'enseignant_responsable';
+    const login = this.userProfile?.email || 'enseignant_responsable';
 
-    this.scolariteService.completeTask(taskId, this.pendingDecision, this.commentaire, login)
-      .subscribe({
-        next: () => {
-          this.actionLoading = false;
-          this.showToast(
-            this.pendingDecision === 'ACCEPTE' ? '✅ Dossier validé avec succès' :
-              this.pendingDecision === 'LISTE_ATTENTE' ? '🕐 Candidat mis en liste d\'attente' :
-                '❌ Dossier rejeté avec succès',
-            'success'
-          );
-          this.showModal = false;
-          this.refreshAfterDecision();
-        },
-        error: (err) => {
-          this.actionLoading = false;
-          console.error('Erreur décision:', err);
-          this.showToast('❌ Erreur lors du traitement de la décision', 'error');
-        }
+    // 1. Sauvegarder d'abord tous les changements staged (Batch Save)
+    const prereqObservables = Array.from(this.pendingPrereqChanges.entries()).map(([pid, change]) => {
+      return this.http.post(`${this.apiUrl}/demandes/${this.selectedDemande!.id}/prerequis/confirm`, {
+        prerequisId: pid,
+        statut: change.statutConfirmation,
+        motifRejet: change.motifRejet,
+        agentEmail: this.emailEnseignant
       });
+    });
+
+    const docObservables = Array.from(this.pendingDocChanges.entries()).map(([did, change]) => {
+      return this.http.put(`${this.ETUDIANT_SERVICE_URL}/api/documents/${did}/status`, {
+        statut: change.statut,
+        commentaireValidation: change.commentaireValidation,
+        agentEmail: this.emailEnseignant
+      });
+    });
+
+    forkJoin([...prereqObservables, ...docObservables]).subscribe({
+      next: () => {
+        // 2. Ensuite compléter la tâche Camunda
+        const taskId = this.selectedDemande!.taskId;
+        if (!taskId) {
+          this.actionLoading = false;
+          this.showToast('❌ Tâche introuvable', 'error');
+          return;
+        }
+
+        // Construire le payload decision
+        let payloadDecision = '';
+        if (this.pendingDecision === 'REJETE') {
+          const prereqsRejetes = this.selectedDemande!.prerequisDetails
+            .filter(p => p.source === 'NIVEAU' && p.statutConfirmation === 'REJETE')
+            .map(p => `${p.prerequisRequis}||${p.motifRejet || 'Non satisfait'}`)
+            .join(';;');
+
+          payloadDecision = prereqsRejetes.length > 0
+            ? `MOTIF:${this.commentaire.trim()}__PREREQS:${prereqsRejetes}`
+            : this.commentaire.trim();
+        }
+
+        this.scolariteService.completeTask(taskId, this.pendingDecision!, payloadDecision, login)
+          .subscribe({
+            next: () => {
+              this.actionLoading = false;
+              // Vider le cache pour ce dossier
+              this.sessionPrereqCache.delete(this.selectedDemande!.id);
+              this.sessionDocCache.delete(this.selectedDemande!.id);
+
+              this.showToast(
+                this.pendingDecision === 'ACCEPTE' ? '✅ Dossier validé et changements enregistrés' :
+                  this.pendingDecision === 'LISTE_ATTENTE' ? '🕐 Mis en liste d\'attente et changements enregistrés' :
+                    '❌ Dossier rejeté et changements enregistrés', 'success'
+              );
+              this.showModal = false;
+              this.refreshAfterDecision();
+            },
+            error: () => {
+              this.actionLoading = false;
+              this.showToast('❌ Erreur lors de la décision finale', 'error');
+            }
+          });
+      },
+      error: (err) => {
+        console.error('Erreur Batch Save:', err);
+        this.actionLoading = false;
+        this.showToast('❌ Erreur lors de l\'enregistrement des prérequis/documents', 'error');
+      }
+    });
   }
+  getPrerequisRejetes(): PrerequisDetailDTO[] {
+    if (!this.selectedDemande) return [];
+    return this.selectedDemande.prerequisDetails
+      .filter(p => p.source === 'NIVEAU' && p.statutConfirmation === 'REJETE');
+  }
+
 
   // ─── BUILDERS EMAIL ───────────────────────────────────────────────────────
 
@@ -782,6 +924,15 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
     return (first + last).toUpperCase() || this.getInitiales();
   }
 
+  getFilteredDocuments(): DocumentStatusDTO[] {
+    const requestedTypes = [
+      'RELEVE_NOTES',
+      'RELEVE_NOTES_SUPERIEUR',
+      'RELEVE_NOTES_NIVEAU'
+    ];
+    return this.etudiantDocuments.filter(doc => requestedTypes.includes(doc.type));
+  }
+
   getInitialesEtudiant(d: DemandeDeptDTO): string {
     return ((d.prenomEtudiant?.[0] || '') + (d.nomEtudiant?.[0] || '')).toUpperCase();
   }
@@ -834,7 +985,7 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
     const order = [
       'SOUMIS', 'EN_COURS_SCOLARITE', 'EN_ATTENTE_DOCUMENT',
       'SCOLARITE_VALIDEE', 'EN_COURS_DEPARTEMENT', 'DEPARTEMENT_VALIDE',
-      'EN_ATTENTE_PAIEMENT', 'PAIEMENT_VALIDE', 'INSCRIT'
+      'FORMULAIRE_ENVOYE', 'EN_ATTENTE_PAIEMENT', 'PAIEMENT_VALIDE', 'INSCRIT'
     ];
     const stepMap: Record<string, string> = {
       'SCOLARITE': 'SCOLARITE_VALIDEE',
@@ -855,7 +1006,7 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
     const stepMap: Record<string, string[]> = {
       'SCOLARITE': ['SOUMIS', 'EN_COURS_SCOLARITE', 'EN_ATTENTE_DOCUMENT'],
       'DEPARTEMENT': ['EN_COURS_DEPARTEMENT', 'SCOLARITE_VALIDEE'],
-      'PAIEMENT': ['EN_ATTENTE_PAIEMENT', 'DEPARTEMENT_VALIDE'],
+      'PAIEMENT': ['EN_ATTENTE_PAIEMENT', 'FORMULAIRE_ENVOYE', 'DEPARTEMENT_VALIDE'],
       'INSCRIT': ['PAIEMENT_VALIDE'],
     };
     return stepMap[step]?.includes(statut) ?? false;
@@ -900,6 +1051,14 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
     ).length;
   }
 
+  getCountPrerequisTraites(demande: DemandeDeptDTO): number {
+    if (!demande?.prerequisDetails) return 0;
+    return demande.prerequisDetails.filter(p =>
+      p.source === 'TYPE' ? p.conforme !== undefined && p.conforme !== null : 
+      p.statutConfirmation === 'CONFIRME' || p.statutConfirmation === 'REJETE'
+    ).length;
+  }
+
   getCountPrerequisKo(demande: DemandeDeptDTO): number {
     if (!demande?.prerequisDetails) return 0;
     return demande.prerequisDetails.filter(p =>
@@ -935,12 +1094,48 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
         next: (docs) => {
           this.etudiantDocuments = docs;
           this.loadingDocuments = false;
+
+          // Appliquer cache doc
+          if (this.pendingDocChanges.size > 0) {
+            this.pendingDocChanges.forEach((change, did) => {
+              const d = this.etudiantDocuments.find(doc => doc.documentId === did);
+              if (d) Object.assign(d, change);
+            });
+          }
         },
         error: (err) => {
           console.error('❌ Erreur chargement documents:', err);
           this.loadingDocuments = false;
         }
       });
+  }
+
+  loadEtudiantInfo(etudiantId: number): void {
+    this.studentService.getStudentById(etudiantId).subscribe({
+      next: (student) => {
+        if (this.selectedDemande) {
+          // Mapper le modèle Student vers EtudiantInfoDTO compatible
+          this.selectedDemande.etudiantInfo = {
+            id: student.id || 0,
+            nom: student.nom,
+            prenom: student.prenom,
+            matricule: student.matricule || '',
+            email: student.email,
+            telephone: student.phone, // Student.phone -> EtudiantInfoDTO.telephone
+            dateNaissance: student.dateNaissance,
+            numCarteIdentite: student.numCarteIdentite || '',
+            numPassport: student.numPassport || '',
+            paysNom: '',
+            adresse: (student as any).adresse || '',
+            dernierDiplome: student.dernierDiplome,
+            anneeDernierDiplome: student.anneeDernierDiplome,
+            typeBac: student.typeBac,
+            genre: (student as any).gendre || (student as any).genre
+          };
+        }
+      },
+      error: (err) => console.error('❌ Erreur chargement infos étudiant:', err)
+    });
   }
 
   viewDocument(documentId: number, documentName: string | null): void {
@@ -953,14 +1148,23 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
         this.currentDocumentBlobUrl = URL.createObjectURL(blob);
         this.currentDocumentUrl = this.currentDocumentBlobUrl;
         this.currentDocumentName = documentName || 'Document';
-        this.showDocumentViewer = true;
+        this.showPreview = true; // Open split view
+        this.activeDocumentId = documentId;
+        // this.showDocumentViewer = true; 
       },
       error: () => this.showToast('Impossible de charger le document', 'error')
     });
   }
 
+  openDocumentInNewTab(): void {
+    if (this.currentDocumentUrl) {
+      window.open(this.currentDocumentUrl, '_blank');
+    }
+  }
+
   closeDocumentViewer(): void {
     this.showDocumentViewer = false;
+    this.showPreview = false; // Close split view
     if (this.currentDocumentBlobUrl) {
       URL.revokeObjectURL(this.currentDocumentBlobUrl);
       this.currentDocumentBlobUrl = null;
@@ -987,10 +1191,20 @@ ${this.dashboard?.nomDepartement || 'Le Département'} — ITECH University`;
 
   confirmRejectDocument(): void {
     if (!this.selectedDocToReject || !this.rejectionDocComment.trim()) return;
+
+    // Local update
     this.selectedDocToReject.statut = 'REJETE';
     this.selectedDocToReject.isValidated = false;
     this.selectedDocToReject.commentaireValidation = this.rejectionDocComment;
-    this.showToast('Document marqué comme rejeté', 'success');
+
+    // Cache session
+    this.pendingDocChanges.set(this.selectedDocToReject.documentId, {
+      statut: 'REJETE',
+      isValidated: false,
+      commentaireValidation: this.rejectionDocComment
+    });
+
+    this.showToast('Document marqué comme rejeté (non enregistré)', 'success');
     this.closeRejectDocDialog();
   }
 

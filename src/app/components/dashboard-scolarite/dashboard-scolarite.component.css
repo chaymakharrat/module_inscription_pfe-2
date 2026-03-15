@@ -2288,3 +2288,180 @@
     background: #cbd5e1 !important;
     color: #475569 !important;
 }
+
+/* ─── INFOS ÉTUDIANT SECTION ─── */
+.etudiant-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    padding: 24px;
+}
+
+.info-card {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    transition: all .2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.info-card:hover {
+    border-color: var(--blue);
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+
+.info-card h4 {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-card h4 svg {
+    width: 14px;
+    height: 14px;
+    color: var(--blue);
+}
+
+.info-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.info-label {
+    font-size: 10px;
+    color: var(--text-3);
+    font-weight: 600;
+}
+
+.info-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-1);
+}
+
+.info-badge-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.premium-badge {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-2);
+}
+
+.premium-badge-blue {
+    background: var(--blue-light);
+    color: var(--blue);
+    border-color: var(--blue-mid);
+}
+
+/* ─── PÔLE DE VÉRIFICATION — VIEWER SIDEBAR ─── */
+.viewer-body {
+    display: flex;
+    height: calc(100% - 65px); /* Header height approx */
+    overflow: hidden;
+}
+
+.viewer-container {
+    flex: 1;
+    background: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.viewer-info-side {
+    width: 320px;
+    background: #f8fafc;
+    border-left: 1px solid var(--border);
+    padding: 24px;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.viewer-side-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-1);
+    margin: 0 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.3px;
+}
+
+.viewer-side-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--blue-light);
+    color: var(--blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.viewer-info-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.viewer-info-card {
+    padding: 12px 14px;
+    background: white;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.viewer-info-label {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin: 0 0 4px;
+    letter-spacing: 0.5px;
+}
+
+.viewer-info-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-1);
+    margin: 0;
+}
+
+.viewer-info-mono {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--blue);
+    background: var(--blue-light);
+    padding: 3px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    font-weight: 700;
+}

@@ -254,6 +254,9 @@
                                     <span *ngIf="f.totalRemiseDemandee > 0" class="statut-chip chip-amber">
                                         -{{ f.totalRemiseDemandee }}% (acceptées : {{ f.totalRemiseAcceptee }}%)
                                     </span>
+                                    <span *ngIf="f.typePaiement === 'PARTIEL' && getNombreEcheancesImpayees(f.facture) > 0" class="statut-chip chip-red">
+                                        {{ getNombreEcheancesImpayees(f.facture) }} échéance(s) impayée(s)
+                                    </span>
                                 </div>
                             </td>
                             <td>
@@ -272,7 +275,7 @@
                                         </svg>
                                     </button>
                                     <button class="action-btn btn-accept" [disabled]="!isActionnable(f)"
-                                        (click)="openDetail(f, 'decision')" title="Traiter">
+                                        (click)="openDetail(f, 'preferences')" title="Traiter">
                                         <svg viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd"
                                                 d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -325,6 +328,10 @@
                                     <span class="info-label">Paiement</span>
                                     <span class="info-val">{{ f.typePaiement }}</span>
                                 </div>
+                                <div class="info-item" *ngIf="f.typePaiement === 'PARTIEL'">
+                                    <span class="info-label">Échéances restantes</span>
+                                    <span class="info-val text-red-600 font-bold">{{ getNombreEcheancesImpayees(f.facture) }}</span>
+                                </div>
                             </div>
                             <div class="card-prereq" [class.prereq-ok]="f.statut === 'VALIDE'"
                                 [class.prereq-ko]="f.statut === 'REFUSE' || f.statut === 'SOUMIS'">
@@ -335,7 +342,7 @@
                         <div class="card-actions" (click)="$event.stopPropagation()">
                             <button class="card-btn btn-view" (click)="openDetail(f)">Détails</button>
                             <button class="card-btn btn-accept" [disabled]="!isActionnable(f)"
-                                (click)="openDetail(f, 'decision')">Traiter</button>
+                                (click)="openDetail(f, 'preferences')">Traiter</button>
                         </div>
                     </div>
                 </div>
@@ -1006,16 +1013,6 @@
                         {{ selectedFormulaire.facture.montantPaye | number:'1.0-0' }} TND
                     </span>
                 </button>
-                <button class="modal-tab" [class.tab-active]="activeTab === 'decision'"
-                    (click)="activeTab = 'decision'">
-                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                        <path fill-rule="evenodd"
-                            d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clip-rule="evenodd" />
-                    </svg>
-                    Décision
-                </button>
             </nav>
 
             <div class="modal-body" *ngIf="!showUnsavedChangesDialog">
@@ -1140,172 +1137,362 @@
                     </div>
 
                     <!-- Aucune remise -->
-                    <div *ngIf="!selectedFormulaire.remisesDemandees?.length" class="empty-state"
+                    <div *ngIf="!selectedFormulaire.remisesDemandees.length" class="empty-state"
                         style="border:1.5px dashed #e8eaf0;border-radius:12px;padding:32px;">
                         <p>Aucune remise demandée pour ce dossier</p>
                     </div>
-                </div>
 
-                <!-- ══ TAB PAIEMENTS ══ -->
-                <div *ngIf="activeTab === 'facture'">
+                    <!-- ══ SECTION DÉCISION INTÉGRÉE ══ -->
+                    <div class="integrated-decision-section mt-8 pt-6 border-t border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+                            Décision finale
+                        </p>
 
-                    <!-- Recap Facture -->
-                    <div class="facture-recap-grid" *ngIf="selectedFormulaire.facture">
-                        <div class="facture-block block-total">
-                            <span class="facture-block-label">Total</span>
-                            <span class="facture-block-value">{{ selectedFormulaire.facture.montantTotal |
-                                number:'1.2-2' }} DT</span>
-                        </div>
-                        <div class="facture-block block-paye">
-                            <span class="facture-block-label">Payé</span>
-                            <span class="facture-block-value">{{ selectedFormulaire.facture.montantPaye | number:'1.2-2'
-                                }} DT</span>
-                        </div>
-                        <div class="facture-block block-restant">
-                            <span class="facture-block-label">Restant</span>
-                            <span class="facture-block-value">{{ selectedFormulaire.facture.montantRestant |
-                                number:'1.2-2' }} DT</span>
-                        </div>
-                    </div>
-
-                    <div *ngIf="!selectedFormulaire.facture" class="empty-state"
-                        style="border: 1.5px dashed #e8eaf0; border-radius: 12px; padding: 32px;">
-                        <p>La facture sera générée après validation des préférences</p>
-                    </div>
-
-                    <!-- Échéances -->
-                    <div *ngIf="selectedFormulaire.facture?.echeances?.length">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Calendrier de
-                            paiement</p>
-                        <div class="echeance-list">
-                            <div *ngFor="let e of selectedFormulaire.facture?.echeances" class="echeance-item">
-                                <div class="flex items-center gap-12">
-                                    <div class="echeance-num" [ngClass]="getEcheanceClass(e)"
-                                        style="font-size:12px; font-weight:800;">#{{ e.numeroOrdre }}</div>
-                                    <div>
-                                        <p style="font-size:14px; font-weight:800; color:#0f1117; margin:0 0 2px;">
-                                            {{ e.montantAPayer | number:'1.2-2' }} DT
-                                        </p>
-                                        <p style="font-size:10px; color:#8b92a9; margin:0;">
-                                            Échéance le {{ e.dateEcheance | date:'dd/MM/yyyy' }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="statut-chip" [ngClass]="getEcheanceClass(e)">
-                                        {{ getEcheanceLabel(e) }}
-                                    </span>
-                                    <button *ngIf="e.statut !== 'PAYE'" (click)="ouvrirPaiement(e)"
-                                        class="action-btn btn-accept" title="Enregistrer paiement">
-                                        <svg viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ══ TAB DÉCISION ══ -->
-                <ng-container *ngIf="activeTab === 'decision'">
-
-                    <!-- Dossier déjà traité -->
-                    <div *ngIf="selectedFormulaire.statut !== 'SOUMIS'" class="decision-readonly">
-                        <div class="readonly-icon" [class.bg-green-100]="selectedFormulaire.statut === 'VALIDE'"
-                            [class.bg-red-100]="selectedFormulaire.statut === 'REFUSE'">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                [class.text-green-600]="selectedFormulaire.statut === 'VALIDE'"
-                                [class.text-red-600]="selectedFormulaire.statut === 'REFUSE'">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <h3>Dossier {{ getStatutLabel(selectedFormulaire.statut) }}</h3>
-                        <p>Ce dossier a déjà été traité.</p>
-                    </div>
-
-                    <!-- Cartes action -->
-                    <div *ngIf="selectedFormulaire.statut === 'SOUMIS' && !showDecisionForm" class="action-selector">
-                        <div class="action-card" (click)="prepareDecision('VALIDER')" [class.disabled-action]="!toutesRemisesDecidees()">
-                            <div class="action-card-icon icon-green">
-                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
+                        <!-- Dossier déjà traité -->
+                        <div *ngIf="selectedFormulaire.statut !== 'SOUMIS'" class="decision-readonly-compact">
+                            <div class="readonly-banner" [class.banner-ok]="selectedFormulaire.statut === 'VALIDE'"
+                                [class.banner-ko]="selectedFormulaire.statut === 'REFUSE'">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
+                                <span>Dossier {{ getStatutLabel(selectedFormulaire.statut) }}</span>
                             </div>
-                            <div class="action-card-body">
-                                <h3>Valider le paiement</h3>
-                                <p>Confirmer les préférences financières → Génère la facture</p>
-                            </div>
-                            <svg class="action-card-arrow" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                    clip-rule="evenodd" />
-                            </svg>
                         </div>
 
-                        <div class="action-card" (click)="prepareDecision('REFUSER')" [class.disabled-action]="!toutesRemisesDecidees()">
-                            <div class="action-card-icon icon-red">
-                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                        <!-- Cartes action -->
+                        <div *ngIf="selectedFormulaire.statut === 'SOUMIS' && !showDecisionForm"
+                            class="action-grid-modern">
+                            <div class="modern-action-card card-accept" (click)="prepareDecision('VALIDER')"
+                                [class.disabled]="!toutesRemisesDecidees()">
+                                <div class="mac-icon">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <div class="mac-body">
+                                    <h3>Valider</h3>
+                                    <p>Confirmer les préférences</p>
+                                </div>
                             </div>
-                            <div class="action-card-body">
-                                <h3>Refuser le dossier</h3>
-                                <p>Notifier l'étudiant d'un problème avec les préférences</p>
+
+                            <div class="modern-action-card card-reject" (click)="prepareDecision('REFUSER')"
+                                [class.disabled]="!toutesRemisesDecidees()">
+                                <div class="mac-icon">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </div>
+                                <div class="mac-body">
+                                    <h3>Refuser</h3>
+                                    <p>Demander correction</p>
+                                </div>
                             </div>
-                            <svg class="action-card-arrow" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                    clip-rule="evenodd" />
-                            </svg>
+                        </div>
+
+                        <!-- Formulaire décision -->
+                        <div *ngIf="selectedFormulaire.statut === 'SOUMIS' && showDecisionForm"
+                            class="modern-decision-form animate-fadeIn">
+                            <div class="form-context-info" [class.bg-green-50]="pendingDecision === 'VALIDER'"
+                                [class.bg-red-50]="pendingDecision === 'REFUSER'">
+                                <p class="text-xs font-semibold" [class.text-green-700]="pendingDecision === 'VALIDER'"
+                                    [class.text-red-700]="pendingDecision === 'REFUSER'">
+                                    {{ pendingDecision === 'VALIDER' ? '✅ Validation du dossier' : '❌ Refus du dossier'
+                                    }}
+                                </p>
+                            </div>
+
+                            <div class="mt-4">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase mb-2 block">Message à
+                                    l'étudiant</label>
+                                <textarea [(ngModel)]="commentaireDecision" class="modern-textarea" rows="4"
+                                    placeholder="Expliquez votre décision..."></textarea>
+                            </div>
+
+                            <div class="flex gap-3 mt-4">
+                                <button class="modern-btn-secondary flex-1"
+                                    (click)="showDecisionForm = false">Annuler</button>
+                                <button class="modern-btn-primary flex-2"
+                                    [class.btn-green]="pendingDecision === 'VALIDER'"
+                                    [class.btn-red]="pendingDecision === 'REFUSER'"
+                                    [disabled]="actionLoading || !commentaireDecision.trim()"
+                                    (click)="confirmerDecision()">
+                                    <span *ngIf="actionLoading" class="spinner-white mr-2"></span>
+                                    {{ actionLoading ? 'Traitement...' : 'Confirmer' }}
+                                </button>
+                            </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Formulaire décision -->
-                    <div *ngIf="selectedFormulaire.statut === 'SOUMIS' && showDecisionForm" class="action-form">
-                        <div class="form-header" [class.form-header-green]="pendingDecision === 'VALIDER'"
-                            [class.form-header-red]="pendingDecision === 'REFUSER'">
-                            <h3>
-                                {{ pendingDecision === 'VALIDER' ? '✅ Confirmer la validation' : '❌ Confirmer le refus'
-                                }}
-                            </h3>
-                            <p>Dossier #{{ selectedFormulaire.formulaireId }} · {{ selectedFormulaire.prenomEtudiant }}
-                                {{ selectedFormulaire.nomEtudiant }}</p>
-                        </div>
+                <!-- ══ TAB FACTURE (REÇU) ══ -->
+                <div *ngIf="activeTab === 'facture'" style="display:flex;flex-direction:column;gap:20px;">
 
-                        <div *ngIf="pendingDecision === 'VALIDER'"
-                            style="background:#f0fdf4;border-left:4px solid #16a34a;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;">
-                            <strong>ℹ️</strong> La facture et le calendrier de paiement seront générés automatiquement.
-                        </div>
-                        <div *ngIf="pendingDecision === 'REFUSER'"
-                            style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:8px;padding:10px 14px;font-size:12px;color:#991b1b;">
-                            <strong>ℹ️</strong> L'étudiant recevra un nouveau formulaire pour soumettre des informations
-                            corrigées.
-                        </div>
+                    <!-- ── Facture disponible ── -->
+                    <ng-container *ngIf="selectedFormulaire.facture">
 
-                        <div class="form-group">
-                            <label class="form-label">Message à l'étudiant</label>
-                            <textarea [(ngModel)]="commentaireDecision" class="form-textarea" rows="8"
-                                style="font-family: 'JetBrains Mono', monospace; font-size: 12px;"></textarea>
-                        </div>
-
-                        <div class="form-actions">
-                            <button class="btn-back" (click)="showDecisionForm = false">← Retour</button>
-                            <button class="btn-confirm" [class.btn-confirm-green]="pendingDecision === 'VALIDER'"
-                                [class.btn-confirm-red]="pendingDecision === 'REFUSER'"
-                                [disabled]="actionLoading || !commentaireDecision.trim()" (click)="confirmerDecision()">
-                                <span *ngIf="actionLoading" class="spinner"></span>
-                                {{ actionLoading ? 'Traitement...' :
-                                pendingDecision === 'VALIDER' ? 'Confirmer la validation' : 'Confirmer le refus' }}
+                        <!-- Bouton PDF en haut — bien visible -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:14px 20px;background:linear-gradient(135deg,#eff4ff,#dbe6ff);
+                border-radius:14px;border:1.5px solid #c7d7f9;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <div style="width:40px;height:40px;background:#2563eb;border-radius:10px;
+                    display:flex;align-items:center;justify-content:center;">
+                                    <svg style="width:20px;height:20px;color:white;" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2
+                     h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707
+                     V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p style="font-size:13px;font-weight:800;color:#1e40af;margin:0;">
+                                        {{ selectedFormulaire.facture.numeroFacture }}
+                                    </p>
+                                    <p style="font-size:11px;color:#3b82f6;margin:0;">
+                                        Générée le {{ today | date:'dd/MM/yyyy' }}
+                                    </p>
+                                </div>
+                            </div>
+                            <button (click)="downloadFacturePdf(selectedFormulaire.facture.id)" [disabled]="pdfLoading"
+                                style="display:inline-flex;align-items:center;gap:8px;
+                     padding:10px 20px;
+                     background:linear-gradient(135deg,#2563eb,#1d4ed8);
+                     color:white;border:none;border-radius:10px;
+                     font-size:12px;font-weight:700;cursor:pointer;
+                     box-shadow:0 4px 12px rgba(37,99,235,.35);
+                     transition:all .2s;opacity:1;" [style.opacity]="pdfLoading ? '0.7' : '1'">
+                                <span *ngIf="pdfLoading" style="width:13px;height:13px;border:2px solid rgba(255,255,255,.4);
+                     border-top-color:white;border-radius:50%;
+                     animation:spin .7s linear infinite;display:inline-block;">
+                                </span>
+                                <svg *ngIf="!pdfLoading" style="width:15px;height:15px;" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5
+                   a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414
+                   a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                {{ pdfLoading ? 'Génération...' : 'Télécharger PDF' }}
                             </button>
                         </div>
+
+                        <!-- Récapitulatif financier -->
+                        <div style="background:white;border:1.5px solid #e8eaf0;border-radius:16px;
+                overflow:hidden;">
+
+                            <!-- Header récap -->
+                            <div style="padding:16px 20px;background:#f8fafc;border-bottom:1.5px solid #e8eaf0;
+                  display:flex;align-items:center;justify-content:space-between;">
+                                <span style="font-size:11px;font-weight:800;color:#8b92a9;
+                     text-transform:uppercase;letter-spacing:.6px;">
+                                    Récapitulatif financier
+                                </span>
+                                <span style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;"
+                                    [style.background]="selectedFormulaire.facture.statusPaiement === 'PAYE' ? '#dcfce7' :
+                                  selectedFormulaire.facture.statusPaiement === 'PARTIEL' ? '#eff4ff' : '#fffbeb'"
+                                    [style.color]="selectedFormulaire.facture.statusPaiement === 'PAYE' ? '#166534' :
+                             selectedFormulaire.facture.statusPaiement === 'PARTIEL' ? '#2563eb' : '#92400e'">
+                                    {{ selectedFormulaire.facture.statusPaiement === 'PAYE' ? '✓ Soldé' :
+                                    selectedFormulaire.facture.statusPaiement === 'PARTIEL' ? '⏳ Partiel' : '⏳ En
+                                    attente' }}
+                                </span>
+                            </div>
+
+                            <!-- Lignes montants -->
+                            <div style="padding:8px 0;">
+
+                                <!-- Frais bruts -->
+                                <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding:10px 20px;">
+                                    <span style="font-size:13px;color:#6b7280;">Frais de scolarité</span>
+                                    <span style="font-size:13px;font-weight:700;color:#0f1117;">
+                                        {{ selectedFormulaire.facture.montantBrut | number:'1.2-2' }} TND
+                                    </span>
+                                </div>
+
+                                <!-- Remises appliquées -->
+                                <div *ngFor="let rem of selectedFormulaire.facture.remises" style="display:flex;justify-content:space-between;align-items:center;
+                    padding:8px 20px;background:#f0fdf4;">
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <span style="font-size:14px;">✨</span>
+                                        <span style="font-size:12px;color:#15803d;font-weight:600;">
+                                            Remise — {{ rem.motif }}
+                                        </span>
+                                        <span style="padding:2px 8px;background:#dcfce7;color:#166534;
+                         border-radius:20px;font-size:10px;font-weight:800;">
+                                            -{{ rem.pourcentage }}%
+                                        </span>
+                                    </div>
+                                    <span style="font-size:13px;font-weight:700;color:#16a34a;">
+                                        -{{ (selectedFormulaire.facture.montantBrut * rem.pourcentage / 100) |
+                                        number:'1.2-2' }} TND
+                                    </span>
+                                </div>
+
+                                <!-- Séparateur -->
+                                <div style="height:1px;background:#e8eaf0;margin:4px 20px;"></div>
+
+                                <!-- Total net -->
+                                <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding:12px 20px;background:linear-gradient(135deg,#eff4ff,#f0f9ff);">
+                                    <span style="font-size:13px;font-weight:800;color:#1e40af;">Total net à payer</span>
+                                    <span style="font-size:18px;font-weight:900;color:#2563eb;">
+                                        {{ selectedFormulaire.facture.montantTotal | number:'1.2-2' }} TND
+                                    </span>
+                                </div>
+
+                            </div>
+
+                            <!-- Stats recouvrement -->
+                            <div style="display:grid;grid-template-columns:1fr 1px 1fr;
+                  border-top:1.5px solid #e8eaf0;">
+                                <div style="padding:14px 20px;text-align:center;">
+                                    <p style="font-size:11px;font-weight:700;color:#8b92a9;
+                    text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px;">
+                                        Déjà encaissé
+                                    </p>
+                                    <p style="font-size:18px;font-weight:900;color:#16a34a;margin:0;">
+                                        {{ selectedFormulaire.facture.montantPaye | number:'1.2-2' }} TND
+                                    </p>
+                                </div>
+                                <div style="background:#e8eaf0;"></div>
+                                <div style="padding:14px 20px;text-align:center;">
+                                    <p style="font-size:11px;font-weight:700;color:#8b92a9;
+                    text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px;">
+                                        Reste à payer
+                                    </p>
+                                    <p style="font-size:18px;font-weight:900;margin:0;"
+                                        [style.color]="selectedFormulaire.facture.montantRestant > 0 ? '#f59e0b' : '#16a34a'">
+                                        {{ selectedFormulaire.facture.montantRestant | number:'1.2-2' }} TND
+                                    </p>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Barre progression paiement -->
+                        <div *ngIf="selectedFormulaire.facture.montantTotal > 0"
+                            style="background:white;border:1.5px solid #e8eaf0;border-radius:14px;padding:16px 20px;">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <span style="font-size:11px;font-weight:700;color:#8b92a9;
+                     text-transform:uppercase;letter-spacing:.5px;">
+                                    Progression du paiement
+                                </span>
+                                <span style="font-size:12px;font-weight:800;color:#2563eb;">
+                                    {{ ((selectedFormulaire.facture.montantPaye /
+                                    selectedFormulaire.facture.montantTotal) * 100)
+                                    | number:'1.0-0' }}%
+                                </span>
+                            </div>
+                            <div style="height:8px;background:#e8eaf0;border-radius:10px;overflow:hidden;">
+                                <div style="height:100%;border-radius:10px;
+                    background:linear-gradient(90deg,#2563eb,#059669);
+                    transition:width .4s ease;"
+                                    [style.width.%]="(selectedFormulaire.facture.montantPaye / selectedFormulaire.facture.montantTotal) * 100">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Échéancier -->
+                        <div *ngIf="selectedFormulaire.facture && selectedFormulaire.facture.echeances && selectedFormulaire.facture.echeances.length"
+                            style="background:white;border:1.5px solid #e8eaf0;border-radius:16px;overflow:hidden;">
+
+                            <div style="padding:14px 20px;background:#f8fafc;border-bottom:1.5px solid #e8eaf0;">
+                                <span style="font-size:11px;font-weight:800;color:#8b92a9;
+                     text-transform:uppercase;letter-spacing:.6px;">
+                                    📅 Échéancier de paiement
+                                </span>
+                            </div>
+
+                            <div style="display:flex;flex-direction:column;gap:0;">
+                                <div *ngFor="let e of selectedFormulaire.facture.echeances; let last = last" style="display:flex;align-items:center;justify-content:space-between;
+                    padding:14px 20px;transition:background .15s;"
+                                    [style.border-bottom]="!last ? '1px solid #f1f3f9' : 'none'"
+                                    [style.background]="e.statut === 'PAYE' ? '#f0fdf4' : 'white'">
+
+                                    <div style="display:flex;align-items:center;gap:12px;">
+                                        <!-- Numéro -->
+                                        <div style="width:32px;height:32px;border-radius:8px;display:flex;
+                        align-items:center;justify-content:center;font-size:12px;font-weight:800;"
+                                            [style.background]="e.statut === 'PAYE' ? '#dcfce7' : '#eff4ff'"
+                                            [style.color]="e.statut === 'PAYE' ? '#166534' : '#2563eb'">
+                                            {{ e.numeroOrdre }}
+                                        </div>
+                                        <div>
+                                            <p style="font-size:13px;font-weight:700;color:#0f1117;margin:0;">
+                                                {{ e.montantAPayer | number:'1.2-2' }} TND
+                                            </p>
+                                            <p style="font-size:11px;color:#8b92a9;margin:0;">
+                                                Échéance du {{ e.dateEcheance | date:'dd MMM yyyy' }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <!-- Statut badge -->
+                                        <div style="display:flex;align-items:center;gap:8px;">
+                                            <span
+                                                style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;"
+                                                [style.background]="e.statut === 'PAYE' ? '#dcfce7' : (e.enRetard ? '#fef2f2' : '#eff4ff')"
+                                                [style.color]="e.statut === 'PAYE' ? '#166534' : (e.enRetard ? '#dc2626' : '#2563eb')">
+                                                {{ e.statut === 'PAYE' ? '✓ Payée' : (e.enRetard ? '⚠ En retard' : '⏳ En
+                                                attente') }}
+                                            </span>
+                                            <button *ngIf="e.statut === 'PAYE'" (click)="downloadRecuPaiement(e.id)"
+                                                [disabled]="recuPdfLoadingMap[e.id]"
+                                                style="display:flex;align-items:center;gap:6px;padding:5px 10px;
+                                                       background:#eff4ff;color:#2563eb;border:1px solid #dbe6ff;
+                                                       border-radius:20px;font-size:10px;font-weight:800;cursor:pointer;">
+                                                <span *ngIf="recuPdfLoadingMap[e.id]" class="spinner"
+                                                    style="width:10px;height:10px;"></span>
+                                                <svg *ngIf="!recuPdfLoadingMap[e.id]" style="width:12px;height:12px;"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5"
+                                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                Reçu PDF
+                                            </button>
+                                        </div>
+                                        <!-- Bouton encaisser -->
+                                        <button *ngIf="e.statut !== 'PAYE'" (click)="ouvrirPaiement(e)" style="display:inline-flex;align-items:center;gap:6px;
+                           padding:7px 14px;background:#059669;color:white;
+                           border:none;border-radius:8px;font-size:11px;
+                           font-weight:700;cursor:pointer;transition:all .2s;">
+                                            <svg style="width:13px;height:13px;" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2
+                         m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1
+                         m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Encaisser
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </ng-container>
+
+                    <!-- ── Pas encore de facture ── -->
+                    <div *ngIf="!selectedFormulaire.facture" style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+              padding:60px 20px;background:#f8fafc;border-radius:16px;
+              border:2px dashed #e8eaf0;text-align:center;">
+                        <div style="width:64px;height:64px;background:#eff4ff;border-radius:16px;
+                display:flex;align-items:center;justify-content:center;
+                font-size:28px;margin-bottom:16px;">📄</div>
+                        <p style="font-size:15px;font-weight:800;color:#374151;margin:0 0 8px;">
+                            Facture non disponible
+                        </p>
+                        <p style="font-size:13px;color:#8b92a9;margin:0;max-width:300px;line-height:1.6;">
+                            La facture sera générée automatiquement dès que les préférences auront été validées.
+                        </p>
                     </div>
-                </ng-container>
+
+                </div>
+
+
+
 
             </div>
         </main>
@@ -1326,8 +1513,19 @@
 
         <!-- Body -->
         <div style="padding:20px 24px;" class="paiement-dialog-body">
+            <div *ngIf="selectedFormulaire?.totalRemiseAcceptee"
+                style="margin-bottom:15px; padding:10px; background:#f0fdf4; border-radius:10px; border:1px solid #bbf7d0;">
+                <p style="font-size:11px; color:#166534; margin:0; font-weight:700;">
+                    ✨ Réduction de {{ selectedFormulaire?.totalRemiseAcceptee }}% appliquée
+                </p>
+                <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:12px;">
+                    <span style="text-decoration:line-through; color:#94a3b8;">{{ selectedEcheance?.montantAPayer }}
+                        DT</span>
+                    <span style="font-weight:800; color:#16a34a;">{{ montantPaiement }} DT</span>
+                </div>
+            </div>
             <div>
-                <label>Montant (DT)</label>
+                <label>Montant à encaisser (DT)</label>
                 <input type="number" [(ngModel)]="montantPaiement" placeholder="0.00">
             </div>
             <div>

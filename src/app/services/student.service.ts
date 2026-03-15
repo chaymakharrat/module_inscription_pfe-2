@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpBackend } from '@angular/common/http';
 import { Observable, map, catchError, of } from 'rxjs';
 import { Student } from '../models/student.model';
 import { environment } from '../envirements/enviremetns';
@@ -9,17 +9,41 @@ import { environment } from '../envirements/enviremetns';
 })
 export class StudentService {
     private apiUrl = `${environment.apiUrl}/ETUDIANT-SERVICE/api/etudiants`;
+    private httpNoAuth: HttpClient; // ← bypass intercepteur Keycloak
 
-
-    constructor(private http: HttpClient) { }
-
-    getStudentById(id: number): Observable<Student> {
-        return this.http.get<Student>(`${this.apiUrl}/${id}`);
+    constructor(
+        private http: HttpClient,
+        private httpBackend: HttpBackend  // ← ajouter
+    ) {
+        this.httpNoAuth = new HttpClient(httpBackend);
     }
 
-    /**
-     * Récupérer un étudiant par email (utilisé après connexion pour charger le profil étudiant).
-     */
+    // ✅ PUBLIC — appelé depuis mon-dossier sans login
+    getStudentById(id: number): Observable<Student> {
+        return this.httpNoAuth.get<Student>(`${this.apiUrl}/${id}`);
+    }
+
+    // ✅ PUBLIC — appelé depuis mon-dossier sans login
+    getDocumentsStatus(etudiantId: number): Observable<any[]> {
+        return this.httpNoAuth.get<any[]>(
+            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}/status`
+        );
+    }
+
+    // ✅ PUBLIC — upload depuis mon-dossier sans login
+    uploadDocumentRelance(studentId: number, type: string, file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+        formData.append('etudiantId', studentId.toString());
+        return this.httpNoAuth.post(
+            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/upload-relance`,
+            formData
+        );
+    }
+
+    // ── Méthodes protégées (inchangées) ──────────────────
+
     getStudentByEmail(email: string): Observable<Student> {
         const encodedEmail = encodeURIComponent(email);
         return this.http.get<Student>(`${this.apiUrl}/email/${encodedEmail}`);
@@ -32,10 +56,9 @@ export class StudentService {
     updateStudentActivationCompte(id: number, data: Partial<Student>): Observable<Student> {
         return this.http.put<Student>(`${this.apiUrl}/${id}`, data);
     }
-    // Avant — appelait PUT qui déclenchait updateEtudiant complet
+
     updateStudent(id: number, data: Partial<Student>): Observable<Student> {
         return this.http.patch<Student>(`${this.apiUrl}/${id}/contact`, data);
-        // ✅ PATCH /contact au lieu de PUT /{id}
     }
 
     uploadDocument(studentId: number, type: string, file: File): Observable<any> {
@@ -43,20 +66,17 @@ export class StudentService {
         formData.append('file', file);
         formData.append('type', type);
         formData.append('etudiantId', studentId.toString());
-        return this.http.post(`${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/upload`, formData);
-    }
-    uploadDocumentRelance(studentId: number, type: string, file: File): Observable<any> {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('type', type);
-        formData.append('etudiantId', studentId.toString());
-        return this.http.post(`${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/upload-relance`, formData);
+        return this.http.post(
+            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/upload`,
+            formData
+        );
     }
 
     getDocumentsByEtudiant(etudiantId: number): Observable<any[]> {
-        return this.http.get<any[]>(`${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}`);
+        return this.http.get<any[]>(
+            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}`
+        );
     }
-
 
     checkEmailExists(email: string): Observable<boolean> {
         return this.http.get<any>(`${this.apiUrl}/email/${email}`).pipe(
@@ -80,6 +100,7 @@ export class StudentService {
             catchError(() => of(false))
         );
     }
+
     rejectDocument(documentId: number, commentaire: string): Observable<any> {
         return this.http.put(
             `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/${documentId}/reject`,
@@ -88,13 +109,6 @@ export class StudentService {
         );
     }
 
-    // acceptDocument(documentId: number): Observable<any> {
-    //     return this.http.put(
-    //         `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/${documentId}/accept`,
-    //         null
-    //     );
-    // }
-    // student.service.ts
     acceptDocument(documentId: number, commentaire?: string): Observable<any> {
         const params = commentaire ? { params: { commentaire } } : {};
         return this.http.put(
@@ -103,22 +117,17 @@ export class StudentService {
             params
         );
     }
-    getDocumentsStatus(etudiantId: number): Observable<any[]> {
-        return this.http.get<any[]>(
-            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}/status`
-        );
-    }
-    // Retourne l'étudiant complet par CIN (pour le smart form)
+
     getStudentByCin(cin: string): Observable<Student> {
         return this.http.get<Student>(`${this.apiUrl}/numCarteIdentite/${cin}`);
     }
 
-    // Retourne l'étudiant complet par passeport + pays (pour le smart form)
     getStudentByPassport(numPassport: string, paysId: number): Observable<Student> {
         return this.http.get<Student>(`${this.apiUrl}/passportAndPays`, {
             params: { numPassport, paysId: paysId.toString() }
         });
     }
+
     validatePassport(numPassport: string, paysId: number): Observable<any> {
         return this.http.get<any>(
             `${this.apiUrl}/passport/validate`,

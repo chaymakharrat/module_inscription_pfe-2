@@ -60,6 +60,7 @@ export class StudentDossierComponent implements OnInit, OnDestroy, AfterViewInit
         'SCOLARITE_VALIDEE',
         'EN_COURS_DEPARTEMENT',
         'DEPARTEMENT_VALIDE',
+        'FORMULAIRE_ENVOYE',
         'EN_ATTENTE_PAIEMENT',
         'PAIEMENT_VALIDE',
         'INSCRIT'
@@ -124,27 +125,85 @@ export class StudentDossierComponent implements OnInit, OnDestroy, AfterViewInit
     // DATA LOADING
     // ════════════════════════════════════════════════════════
 
+    // loadDossierByToken(token: string) {
+    //     this.enrollmentService.getDemandeByToken(token).pipe(
+    //         switchMap(enrollment => {
+    //             this.enrollment = enrollment;
+    //             const studentId = enrollment.etudiantId || enrollment.studentId;
+    //             if (!studentId) return of(null);
+    //             return forkJoin({
+    //                 student: this.studentService.getStudentById(studentId).pipe(catchError(() => of(null))),
+    //                 documents: this.studentService.getDocumentsStatus(studentId).pipe(catchError(() => of([])))
+    //             });
+    //         })
+    //     ).subscribe({
+    //         next: (data) => {
+    //             if (data) {
+    //                 this.student = data.student;
+    //                 this.documents = this.deduplicateDocuments(data.documents);
+    //             }
+    //             this.loading = false;
+    //         },
+    //         error: (err) => {
+    //             console.error('Error loading by token:', err);
+    //             this.loading = false;
+    //             this.setLinkInvalid();
+    //         }
+    //     });
+    // }
     loadDossierByToken(token: string) {
+        console.log('🔍 Token reçu:', token);
+
         this.enrollmentService.getDemandeByToken(token).pipe(
             switchMap(enrollment => {
+                console.log('✅ Enrollment reçu:', JSON.stringify(enrollment));
+
                 this.enrollment = enrollment;
-                const studentId = enrollment.etudiantId || enrollment.studentId;
-                if (!studentId) return of(null);
+
+                const studentId = (enrollment as any).etudiantId
+                    || (enrollment as any).studentId
+                    || (enrollment as any).etudiant_id
+                    || (enrollment as any).idEtudiant
+                    || (enrollment as any).student?.id;
+
+                console.log('🔍 studentId résolu:', studentId);
+
+                if (!studentId) {
+                    console.error('❌ studentId introuvable! Champs disponibles:',
+                        Object.keys(enrollment as any));
+                    return of(null);
+                }
+
                 return forkJoin({
-                    student: this.studentService.getStudentById(studentId).pipe(catchError(() => of(null))),
-                    documents: this.studentService.getDocumentsStatus(studentId).pipe(catchError(() => of([])))
+                    student: this.studentService.getStudentById(studentId).pipe(
+                        catchError(e => {
+                            console.error('❌ Erreur getStudentById:', e.status, e.message);
+                            return of(null);
+                        })
+                    ),
+                    documents: this.studentService.getDocumentsStatus(studentId).pipe(
+                        catchError(e => {
+                            console.error('❌ Erreur getDocumentsStatus:', e.status, e.message);
+                            return of([]);
+                        })
+                    )
                 });
             })
         ).subscribe({
             next: (data) => {
+                console.log('✅ Data finale:', JSON.stringify(data));
                 if (data) {
                     this.student = data.student;
                     this.documents = this.deduplicateDocuments(data.documents);
+                    console.log('✅ Student:', this.student);
+                    console.log('✅ Documents:', this.documents);
+                } else {
+                    console.error('❌ data est null');
                 }
                 this.loading = false;
             },
             error: (err) => {
-                console.error('Error loading by token:', err);
+                console.error('❌ Erreur globale:', err.status, err.message);
                 this.loading = false;
                 this.setLinkInvalid();
             }
@@ -560,6 +619,7 @@ export class StudentDossierComponent implements OnInit, OnDestroy, AfterViewInit
             case 'SCOLARITE_VALIDEE': return 'Scolarité validée';
             case 'EN_COURS_DEPARTEMENT': return 'En cours — Département';
             case 'DEPARTEMENT_VALIDE': return 'Département validé';
+            case 'FORMULAIRE_ENVOYE': return 'Formulaire envoyé';
             case 'EN_ATTENTE_PAIEMENT': return 'En attente paiement';
             case 'PAIEMENT_VALIDE': return 'Paiement validé';
             case 'REJETE_SCOLARITE': return 'Dossier rejeté';

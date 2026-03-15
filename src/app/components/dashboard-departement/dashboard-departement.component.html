@@ -252,9 +252,13 @@
                         <span class="attente-name">{{ d.prenomEtudiant }} {{ d.nomEtudiant }}</span>
                         <span class="attente-date">Soumis le {{ d.dateCreation | date:'dd/MM/yyyy' }}</span>
                     </div>
-                    <span class="prereq-badge" [class.prereq-ok]="d.prerequisSatisfaits"
-                        [class.prereq-ko]="!d.prerequisSatisfaits">
-                        {{ d.prerequisSatisfaits ? '✓ Prérequis OK' : '⚠ À vérifier' }}
+                    <span class="prereq-badge" [ngClass]="{
+                        'prereq-ok': getPrerequisStatutGlobal(d) === 'OK',
+                        'prereq-ko': getPrerequisStatutGlobal(d) === 'A_VERIFIER',
+                        'bg-red-100 text-red-700 border-red-200': getPrerequisStatutGlobal(d) === 'REJETE'
+                    }">
+                        {{ getPrerequisStatutGlobal(d) === 'OK' ? '✓ OK' :
+                        getPrerequisStatutGlobal(d) === 'REJETE' ? '✗ Rejeté' : '⚠ À vérifier' }}
                     </span>
                 </div>
             </div>
@@ -375,9 +379,13 @@
                                 <span class="date-ago">{{ getTempsEcoule(demande.dateCreation) }}</span>
                             </td>
                             <td>
-                                <span class="prereq-icon-badge" [class.prereq-ok]="demande.prerequisSatisfaits"
-                                    [class.prereq-ko]="!demande.prerequisSatisfaits">
-                                    {{ demande.prerequisSatisfaits ? '✅ OK' : '⚠️ À vérifier' }}
+                                <span class="prereq-icon-badge" [ngClass]="{
+                                    'prereq-ok': getPrerequisStatutGlobal(demande) === 'OK',
+                                    'prereq-ko': getPrerequisStatutGlobal(demande) === 'A_VERIFIER',
+                                    'bg-red-50 text-red-600': getPrerequisStatutGlobal(demande) === 'REJETE'
+                                }">
+                                    {{ getPrerequisStatutGlobal(demande) === 'OK' ? '✅ OK' :
+                                    getPrerequisStatutGlobal(demande) === 'REJETE' ? '❌ Rejeté' : '⚠️ À vérifier' }}
                                 </span>
                             </td>
                             <td>
@@ -393,39 +401,16 @@
                             </td>
                             <td class="text-right">
                                 <div class="actions-cell" (click)="$event.stopPropagation()">
-                                    <button class="action-btn btn-view" (click)="openDetail(demande)"
-                                        title="Voir détails">
-                                        <svg viewBox="0 0 20 20" fill="currentColor">
+                                    <button class="action-btn btn-view"
+                                        style="width: 100%; border-radius: 8px; justify-content: center; gap: 6px; padding: 6px 12px; background: #eff4ff; color: #2563eb; border: 1px solid #dbe6ff; font-weight: 600;"
+                                        (click)="openDetail(demande)" title="Traiter le dossier">
+                                        <svg viewBox="0 0 20 20" fill="currentColor" style="width: 16px; height: 16px;">
                                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                                             <path fill-rule="evenodd"
                                                 d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
                                                 clip-rule="evenodd" />
                                         </svg>
-                                    </button>
-                                    <button class="action-btn btn-accept" [disabled]="!isActionnable(demande)"
-                                        (click)="openDecision(demande, 'ACCEPTE')">
-                                        <svg viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <button class="action-btn btn-attente"
-                                        [disabled]="!isActionnable(demande) || !isCapaciteAtteinte(demande.niveauChoisi)"
-                                        (click)="openDecision(demande, 'LISTE_ATTENTE')">
-                                        <svg viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <button class="action-btn btn-reject" [disabled]="!isActionnable(demande)"
-                                        (click)="openDecision(demande, 'REJETE')">
-                                        <svg viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                                clip-rule="evenodd" />
-                                        </svg>
+                                        <span>Traiter</span>
                                     </button>
                                 </div>
                             </td>
@@ -468,20 +453,28 @@
                                     <span class="info-val">Niveau {{ demande.niveauChoisi || '—' }}</span>
                                 </div>
                             </div>
-                            <div class="card-prereq" [class.prereq-ok]="demande.prerequisSatisfaits"
-                                [class.prereq-ko]="!demande.prerequisSatisfaits">
-                                {{ demande.prerequisSatisfaits ? '✓ Prérequis validés' : '⚠ Prérequis à vérifier' }}
+                            <div class="card-prereq" [ngClass]="{
+                                'prereq-ok': getPrerequisStatutGlobal(demande) === 'OK',
+                                'prereq-ko': getPrerequisStatutGlobal(demande) === 'A_VERIFIER',
+                                'bg-red-50 text-red-600 border border-red-200': getPrerequisStatutGlobal(demande) === 'REJETE'
+                            }">
+                                {{ getPrerequisStatutGlobal(demande) === 'OK' ? '✓ Prérequis validés' :
+                                getPrerequisStatutGlobal(demande) === 'REJETE' ? '✗ Prérequis rejetés' : '⚠ Prérequis à
+                                vérifier' }}
                             </div>
                         </div>
                         <div class="card-actions" (click)="$event.stopPropagation()">
-                            <button class="card-btn btn-view" (click)="openDetail(demande)">Détails</button>
-                            <button class="card-btn btn-accept" [disabled]="!isActionnable(demande)"
-                                (click)="openDecision(demande, 'ACCEPTE')">Valider</button>
-                            <button class="card-btn btn-attente"
-                                [disabled]="!isActionnable(demande) || !isCapaciteAtteinte(demande.niveauChoisi)"
-                                (click)="openDecision(demande, 'LISTE_ATTENTE')">Attente</button>
-                            <button class="card-btn btn-reject" [disabled]="!isActionnable(demande)"
-                                (click)="openDecision(demande, 'REJETE')">Refuser</button>
+                            <button class="card-btn btn-view"
+                                style="width: 100%; border-radius: 8px; justify-content: center; gap: 6px; background: #eff4ff; color: #2563eb; border: 1px solid #dbe6ff;"
+                                (click)="openDetail(demande)">
+                                <svg viewBox="0 0 20 20" fill="currentColor" style="width: 16px; height: 16px;">
+                                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                    <path fill-rule="evenodd"
+                                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                Traiter le dossier
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -526,10 +519,6 @@
                 <div class="modal-parametrage-container">
                     <div class="modal-parametrage-header">
                         <h2 class="section-title">Paramétrage des Prérequis</h2>
-                        <button (click)="openAddPrereq()"
-                            class="flex items-center gap-2 px-3 py-1.5 bg-[#2563eb] text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-xs">
-                            + Nouveau prérequis
-                        </button>
                         <button class="btn-close-section" (click)="showParametrage = false">Fermer</button>
                     </div>
                     <div class="modal-parametrage-body">
@@ -553,15 +542,23 @@
         </div>
         <div class="analytics-grid">
             <div class="analytics-card">
-                <p class="analytics-title">Répartition par série de bac</p>
-                <div *ngFor="let item of bacDistribution" class="bac-row">
-                    <span class="bac-label">{{ item.label }}</span>
-                    <div class="bac-bar-track">
-                        <div class="bac-bar-fill" [style.width.%]="item.pct" [style.background]="item.color">
+                <p class="analytics-title">Répartition par série de bac (Inscrits)</p>
+                <ng-container *ngIf="getBacDistribution().length > 0; else noBacData">
+                    <div *ngFor="let item of getBacDistribution()" class="bac-row">
+                        <span class="bac-label">{{ item.label }}</span>
+                        <div class="bac-bar-track">
+                            <div class="bac-bar-fill" [style.width.%]="item.pct" [style.background]="item.color">
+                            </div>
                         </div>
+                        <span class="bac-pct">{{ item.pct }}%</span>
                     </div>
-                    <span class="bac-pct">{{ item.pct }}%</span>
-                </div>
+                </ng-container>
+                <ng-template #noBacData>
+                    <div class="flex flex-col items-center justify-center p-4 h-full text-center">
+                        <p class="text-xs text-gray-400">Aucune donnée sur les types de bac pour les inscrits actuels.
+                        </p>
+                    </div>
+                </ng-template>
             </div>
             <div class="analytics-card">
                 <p class="analytics-title">Taux d'acceptation</p>
@@ -596,39 +593,32 @@
                 <p class="identity-sub">{{ selectedDemande.emailEtudiant }}</p>
             </div>
 
-            <!-- Résumé prérequis -->
-            <div class="sidebar-prereq-summary" [class.prereq-global-ok]="selectedDemande.prerequisSatisfaits"
-                [class.prereq-global-ko]="!selectedDemande.prerequisSatisfaits">
+            <!-- Résumé prérequis Premium V2 -->
+            <div class="sidebar-prereq-summary" [class.sidebar-alert-premium]="tousPrerequisNiveauTraites()"
+                [class.sidebar-alert-warning]="!tousPrerequisNiveauTraites()">
                 <div class="prereq-global-icon">
-                    <svg *ngIf="selectedDemande.prerequisSatisfaits" viewBox="0 0 20 20" fill="currentColor">
+                    <svg *ngIf="tousPrerequisNiveauTraites()" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd"
                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                             clip-rule="evenodd" />
                     </svg>
-                    <svg *ngIf="!selectedDemande.prerequisSatisfaits" viewBox="0 0 20 20" fill="currentColor">
+                    <svg *ngIf="!tousPrerequisNiveauTraites()" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd"
                             d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"
                             clip-rule="evenodd" />
                     </svg>
                 </div>
-                <div>
-                    <p class="prereq-global-title">{{ selectedDemande.prerequisSatisfaits ? 'Prérequis satisfaits' :
-                        'Prérequis insuffisants' }}</p>
-                    <p class="prereq-global-sub">{{ getCountPrerequisOk(selectedDemande) }}/{{
-                        selectedDemande.prerequisDetails.length || 0 }} conformes</p>
+                <div class="prereq-meta">
+                    <p style="margin:0; font-size:12px; font-weight:800">{{ tousPrerequisNiveauTraites() ?
+                        'Vérification terminée' : 'Vérification requise' }}</p>
+                    <p style="margin:0; font-size:10px; opacity:0.8">{{ getCountPrerequisTraites(selectedDemande) }}/{{
+                        selectedDemande.prerequisDetails.length || 0 }} traités</p>
                 </div>
             </div>
 
-            <!-- Alerte prérequis en attente -->
-            <div *ngIf="getNombrePrerequisEnAttente() > 0 && isActionnable(selectedDemande)"
-                style="margin:12px 0;padding:10px 12px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;">
-                <svg style="width:14px;height:14px;flex-shrink:0" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                        clip-rule="evenodd" />
-                </svg>
-                <strong>{{ getNombrePrerequisEnAttente() }} prérequis</strong>&nbsp;à confirmer avant décision
-            </div>
+            <!-- Alerte actions en attente Premium V2 -->
+            <!-- Alerte actions en attente — version minimaliste -->
+
 
             <!-- Workflow Stepper -->
             <div class="sidebar-stepper mt-6">
@@ -703,30 +693,6 @@
                 </div>
             </div>
 
-            <div class="sidebar-contact">
-                <div class="contact-row">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                    </svg>
-                    <span>{{ selectedDemande.emailEtudiant }}</span>
-                </div>
-                <div class="contact-row">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                        <path
-                            d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" />
-                    </svg>
-                    <span>{{ selectedDemande.nomDiplome }}</span>
-                </div>
-                <div class="contact-row" *ngIf="selectedDemande.diplomeObtenu">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                        <path
-                            d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
-                    </svg>
-                    <span>{{ selectedDemande.diplomeObtenu }}</span>
-                </div>
-            </div>
-
             <button class="sidebar-close" (click)="closeModal()">
                 <svg viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd"
@@ -752,17 +718,7 @@
                         {{ selectedDemande.prerequisSatisfaits ? '✓ OK' : '⚠ KO' }}
                     </span>
                 </button>
-                <button class="modal-tab" [class.tab-active]="activeTab === 'etudiant'"
-                    (click)="activeTab = 'etudiant'">
-                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                            clip-rule="evenodd" />
-                    </svg>
-                    Étudiant & Documents
-                    <span class="tab-badge badge-blue" *ngIf="etudiantDocuments.length > 0">
-                        {{ getDocumentsValides() }}/{{ etudiantDocuments.length }}
-                    </span>
-                </button>
+                <!-- Étudiant & Documents tab removed -->
                 <button class="modal-tab" [class.tab-active]="activeTab === 'decision'"
                     (click)="activeTab = 'decision'">
                     <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -783,333 +739,290 @@
             <div class="modal-body">
 
                 <!-- ══ TAB PRÉREQUIS ══════════════════════════════════════════════ -->
-                <div *ngIf="activeTab === 'prerequis'">
+                <!-- ══ TAB PRÉREQUIS ══════════════════════════════════════════════ -->
+                <div *ngIf="activeTab === 'prerequis'" class="prereq-split-layout" [class.show-preview]="showPreview">
 
-                    <!-- Bannière résultat global -->
-                    <div class="prereq-banner" [class.banner-ok]="selectedDemande.prerequisSatisfaits"
-                        [class.banner-ko]="!selectedDemande.prerequisSatisfaits">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path *ngIf="selectedDemande.prerequisSatisfaits" fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clip-rule="evenodd" />
-                            <path *ngIf="!selectedDemande.prerequisSatisfaits" fill-rule="evenodd"
-                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <div>
-                            <strong>{{ selectedDemande.prerequisSatisfaits ? 'Tous les prérequis sont satisfaits' :
-                                'Prérequis non satisfaits' }}</strong>
-                            <p>{{ selectedDemande.prerequisDetails.length }} critère(s) · {{
-                                getCountPrerequisOk(selectedDemande) }} confirmé(s)</p>
-                        </div>
-                    </div>
+                    <div class="prereq-list-pane">
+                        <!-- Résumé Étudiant (Intégré) -->
+                        <div class="prereq-student-summary animate-fadeIn" *ngIf="selectedDemande">
+                            <div class="summary-details">
+                                <!-- Identité -->
+                                <div class="detail-pill" *ngIf="selectedDemande.etudiantInfo?.numCarteIdentite">
+                                    <span class="pill-label">CIN:</span>
+                                    <span class="pill-val">{{ selectedDemande.etudiantInfo?.numCarteIdentite }}</span>
+                                </div>
+                                <div class="detail-pill"
+                                    *ngIf="!selectedDemande.etudiantInfo?.numCarteIdentite && selectedDemande.etudiantInfo?.numPassport">
+                                    <span class="pill-label">Passeport:</span>
+                                    <span class="pill-val">{{ selectedDemande.etudiantInfo?.numPassport }}</span>
+                                </div>
 
-                    <!-- ── SECTION A : Prérequis TYPE → automatique ──────────────── -->
-                    <ng-container *ngIf="getPrerequisBySource(selectedDemande, 'TYPE') as prereqsType">
-                        <div class="prereq-section" *ngIf="prereqsType.length > 0">
-                            <div class="prereq-section-header">
-                                <div class="prereq-section-icon icon-purple">
-                                    <svg viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                <!-- Contact -->
+                                <div class="detail-pill" *ngIf="selectedDemande.etudiantInfo?.telephone">
+                                    <span class="pill-label">Tél:</span>
+                                    <span class="pill-val">{{ selectedDemande.etudiantInfo?.telephone }}</span>
                                 </div>
-                                <div>
-                                    <h4>Prérequis du programme</h4>
-                                    <p>Vérification automatique selon le type de diplôme</p>
+                                <div class="detail-pill" *ngIf="selectedDemande.diplomeObtenu">
+                                    <span class="pill-label">Diplôme:</span>
+                                    <span class="pill-val">{{ selectedDemande.diplomeObtenu }}</span>
                                 </div>
-                                <span class="prereq-count-badge" [class.count-ok]="allConform(prereqsType)"
-                                    [class.count-ko]="!allConform(prereqsType)">
-                                    {{ conformCount(prereqsType) }}/{{ prereqsType.length }} conformes
-                                </span>
                             </div>
+                        </div>
 
-                            <div class="prereq-table-wrap">
-                                <table class="prereq-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Prérequis</th>
-                                            <th>Diplôme candidat</th>
-                                            <th class="text-center">Résultat automatique</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr *ngFor="let detail of prereqsType" [class.row-ok]="detail.conforme"
-                                            [class.row-ko]="!detail.conforme">
-                                            <td class="prereq-name">
+                        <!-- NOUVEAU : Navigateur de documents horizontal -->
+                        <div class="prereq-doc-navigator" *ngIf="getFilteredDocuments().length > 0">
+                            <span class="navigator-title">Vérification Documents :</span>
+                            <div class="navigator-pills">
+                                <button *ngFor="let doc of getFilteredDocuments()" class="doc-pill"
+                                    [class.active]="activeDocumentId === doc.documentId"
+                                    (click)="viewDocument(doc.documentId, documentTypeLabel(doc.type))">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    {{ documentTypeLabel(doc.type) }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Bannière résultat global -->
+                        <div class="prereq-banner" [ngClass]="{
+                                'banner-ok': getPrerequisStatutGlobal(selectedDemande) === 'OK',
+                                'banner-ko': getPrerequisStatutGlobal(selectedDemande) === 'REJETE',
+                                'banner-pending': getPrerequisStatutGlobal(selectedDemande) === 'A_VERIFIER'
+                            }">
+
+                            <!-- Icon OK -->
+                            <svg *ngIf="getPrerequisStatutGlobal(selectedDemande) === 'OK'" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clip-rule="evenodd" />
+                            </svg>
+
+                            <!-- Icon REJETE -->
+                            <svg *ngIf="getPrerequisStatutGlobal(selectedDemande) === 'REJETE'" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clip-rule="evenodd" />
+                            </svg>
+
+                            <!-- Icon A_VERIFIER -->
+                            <svg *ngIf="getPrerequisStatutGlobal(selectedDemande) === 'A_VERIFIER'" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                    clip-rule="evenodd" />
+                            </svg>
+
+                            <div>
+                                <strong>
+                                    {{ getPrerequisStatutGlobal(selectedDemande) === 'OK' ? 'Tous les prérequis sont
+                                    satisfaits' :
+                                    getPrerequisStatutGlobal(selectedDemande) === 'REJETE' ? 'Alerte : Prérequis rejeté'
+                                    :
+                                    'Vérification en cours' }}
+                                </strong>
+                                <p>{{ selectedDemande.prerequisDetails.length }} critère(s) · {{
+                                    getCountPrerequisOk(selectedDemande) }} confirmé(s)</p>
+                            </div>
+                        </div>
+
+                        <!-- ── SECTION A : Prérequis TYPE → automatique ──────────────── -->
+                        <ng-container *ngIf="getPrerequisBySource(selectedDemande, 'TYPE') as prereqsType">
+                            <div class="prereq-section" *ngIf="prereqsType.length > 0">
+                                <div class="prereq-section-header">
+                                    <div class="prereq-section-icon icon-purple">
+                                        <svg viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4>Prérequis du programme</h4>
+                                        <p>Vérification automatique selon le type de diplôme</p>
+                                    </div>
+                                    <span class="prereq-count-badge" [class.count-ok]="allConform(prereqsType)"
+                                        [class.count-ko]="!allConform(prereqsType)">
+                                        {{ conformCount(prereqsType) }}/{{ prereqsType.length }} conformes
+                                    </span>
+                                </div>
+
+                                <div class="prereq-cards-list">
+                                    <div *ngFor="let detail of prereqsType" class="prereq-card-row"
+                                        [class.prereq-card-ok]="detail.conforme"
+                                        [class.prereq-card-ko]="!detail.conforme">
+
+                                        <div class="prereq-card-main">
+                                            <div class="prereq-card-title-area">
                                                 <span *ngIf="detail.obligatoire"
                                                     class="obligatoire-badge">Obligatoire</span>
-                                                {{ detail.prerequisRequis }}
-                                            </td>
-                                            <td class="prereq-val">{{ detail.valeurCandidat || '—' }}</td>
-                                            <td class="text-center">
-                                                <span class="conform-badge" [class.badge-conform]="detail.conforme"
-                                                    [class.badge-nonconform]="!detail.conforme">
-                                                    {{ detail.conforme ? '✓ Conforme' : '✗ Non conforme' }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </ng-container>
+                                                <strong class="prereq-card-title">{{ detail.prerequisRequis }}</strong>
+                                            </div>
+                                        </div>
 
-                    <!-- ── SECTION B : Prérequis NIVEAU → confirmation manuelle ───── -->
-                    <ng-container *ngIf="getPrerequisBySource(selectedDemande, 'NIVEAU') as prereqsNiveau">
-                        <div class="prereq-section" *ngIf="prereqsNiveau.length > 0">
-                            <div class="prereq-section-header">
-                                <div class="prereq-section-icon icon-blue">
-                                    <svg viewBox="0 0 20 20" fill="currentColor">
-                                        <path
-                                            d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" />
+                                        <div class="prereq-card-value">
+                                            <span class="prereq-val-label">Résultat Candidat :</span>
+                                            <span class="prereq-val-text">{{ detail.valeurCandidat || '—' }}</span>
+                                        </div>
+
+                                        <div class="prereq-card-status">
+                                            <span class="conform-badge" [class.badge-conform]="detail.conforme"
+                                                [class.badge-nonconform]="!detail.conforme">
+                                                {{ detail.conforme ? '✓ Conforme' : '✗ Non conforme' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </ng-container>
+
+                        <!-- ── SECTION B : Prérequis NIVEAU → confirmation manuelle ───── -->
+                        <ng-container *ngIf="getPrerequisBySource(selectedDemande, 'NIVEAU') as prereqsNiveau">
+                            <div class="prereq-section" *ngIf="prereqsNiveau.length > 0">
+                                <div class="prereq-section-header">
+                                    <div class="prereq-section-icon icon-blue">
+                                        <svg viewBox="0 0 20 20" fill="currentColor">
+                                            <path
+                                                d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4>Prérequis du niveau {{ selectedDemande.niveauChoisi }}</h4>
+                                        <p>
+                                            <strong style="color:#2563eb">Confirmation manuelle requise</strong>
+                                            — vérifiez les documents et cochez chaque prérequis
+                                        </p>
+                                    </div>
+                                    <span class="prereq-count-badge" [class.count-ok]="allConform(prereqsNiveau)"
+                                        [class.count-ko]="!allConform(prereqsNiveau)">
+                                        {{ conformCount(prereqsNiveau) }}/{{ prereqsNiveau.length }} confirmés
+                                    </span>
+                                </div>
+
+                                <div class="prereq-cards-list">
+                                    <div *ngFor="let detail of prereqsNiveau" class="prereq-card-row"
+                                        [class.prereq-card-ok]="detail.statutConfirmation === 'CONFIRME'"
+                                        [class.prereq-card-ko]="detail.statutConfirmation === 'REJETE'"
+                                        [class.prereq-card-pending]="!detail.statutConfirmation || detail.statutConfirmation === 'EN_ATTENTE'">
+
+                                        <!-- Description du prérequis -->
+                                        <div class="prereq-card-main">
+                                            <div class="prereq-card-title-area">
+                                                <span *ngIf="detail.obligatoire"
+                                                    class="obligatoire-badge">Obligatoire</span>
+                                                <span *ngIf="!detail.obligatoire"
+                                                    class="facultatif-badge">Facultatif</span>
+                                                <strong class="prereq-card-title">{{ detail.prerequisRequis }}</strong>
+                                            </div>
+                                            <!-- Motif de rejet affiché si rejeté -->
+                                            <div *ngIf="detail.statutConfirmation === 'REJETE' && detail.motifRejet"
+                                                class="prereq-rejet-reason"
+                                                style="margin-top: 6px; font-size: 11px; color: #dc2626; background: #fef2f2; padding: 6px 10px; border-radius: 6px; border: 1px solid #fecaca; display: inline-block;">
+                                                <strong>Motif :</strong> {{ detail.motifRejet }}
+                                            </div>
+                                        </div>
+
+                                        <!-- Badge statut confirmation -->
+                                        <div class="prereq-card-status">
+                                            <span class="conform-badge"
+                                                [ngClass]="getStatutConfirmationClass(detail.statutConfirmation)">
+                                                {{ getStatutConfirmationLabel(detail.statutConfirmation) }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Boutons action (seulement si demande EN_COURS) -->
+                                        <div class="prereq-card-actions" *ngIf="isActionnable(selectedDemande)">
+                                            <div class="prereq-action-btns">
+                                                <button class="prereq-btn-compact btn-prereq-ok"
+                                                    [class.btn-prereq-active]="detail.statutConfirmation === 'CONFIRME'"
+                                                    [disabled]="prerequisActionLoading"
+                                                    (click)="confirmerPrerequisOk(detail)" title="Confirmer">
+                                                    <svg viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd"
+                                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                </button>
+                                                <button class="prereq-btn-compact btn-prereq-ko"
+                                                    [class.btn-prereq-active-ko]="detail.statutConfirmation === 'REJETE'"
+                                                    [disabled]="prerequisActionLoading"
+                                                    (click)="ouvrirRejetPrerequis(detail)" title="Rejeter">
+                                                    <svg viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd"
+                                                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </ng-container>
+
+                        <!-- Empty state -->
+                        <div class="empty-state" *ngIf="!selectedDemande.prerequisDetails.length">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p>Aucun prérequis configuré pour ce diplôme</p>
+                        </div>
+                    </div>
+
+                    <!-- PREVIEW PANE (Dynamic) -->
+                    <div class="prereq-preview-pane" *ngIf="showPreview">
+                        <div class="preview-header">
+                            <div class="flex items-center gap-3">
+                                <button (click)="closeDocumentViewer()"
+                                    class="p-1 hover:bg-gray-100 rounded-full text-gray-400" title="Fermer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
                                     </svg>
-                                </div>
-                                <div>
-                                    <h4>Prérequis du niveau {{ selectedDemande.niveauChoisi }}</h4>
-                                    <p>
-                                        <strong style="color:#2563eb">Confirmation manuelle requise</strong>
-                                        — vérifiez les documents et cochez chaque prérequis
-                                    </p>
-                                </div>
-                                <span class="prereq-count-badge" [class.count-ok]="allConform(prereqsNiveau)"
-                                    [class.count-ko]="!allConform(prereqsNiveau)">
-                                    {{ conformCount(prereqsNiveau) }}/{{ prereqsNiveau.length }} confirmés
-                                </span>
+                                </button>
+                                <span class="preview-title">Aperçu document</span>
                             </div>
-
-                            <div class="prereq-table-wrap">
-                                <table class="prereq-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Prérequis à vérifier</th>
-                                            <th class="text-center">Statut</th>
-                                            <th class="text-center" *ngIf="isActionnable(selectedDemande)">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr *ngFor="let detail of prereqsNiveau"
-                                            [class.row-ok]="detail.statutConfirmation === 'CONFIRME'"
-                                            [class.row-ko]="detail.statutConfirmation === 'REJETE'"
-                                            [class.row-pending]="!detail.statutConfirmation || detail.statutConfirmation === 'EN_ATTENTE'">
-
-                                            <!-- Description du prérequis -->
-                                            <td class="prereq-name">
-                                                <div class="prereq-name-header">
-                                                    <span *ngIf="detail.obligatoire"
-                                                        class="obligatoire-badge">Obligatoire</span>
-                                                    <span *ngIf="!detail.obligatoire"
-                                                        class="facultatif-badge">Facultatif</span>
-                                                    <strong>{{ detail.prerequisRequis }}</strong>
-                                                </div>
-                                                <!-- Motif de rejet affiché si rejeté -->
-                                                <div *ngIf="detail.statutConfirmation === 'REJETE' && detail.motifRejet"
-                                                    class="prereq-rejet-reason">
-                                                    <strong>Motif :</strong> {{ detail.motifRejet }}
-                                                </div>
-                                                <!-- Confirmé par -->
-                                                <div *ngIf="detail.confirmedBy && detail.statutConfirmation !== 'EN_ATTENTE'"
-                                                    class="prereq-confirmed-by">
-                                                    Par {{ detail.confirmedBy }}
-                                                </div>
-                                            </td>
-
-                                            <!-- Badge statut confirmation -->
-                                            <td class="text-center">
-                                                <span class="conform-badge"
-                                                    [ngClass]="getStatutConfirmationClass(detail.statutConfirmation)">
-                                                    {{ getStatutConfirmationLabel(detail.statutConfirmation) }}
-                                                </span>
-                                            </td>
-
-                                            <!-- Boutons action (seulement si demande EN_COURS) -->
-                                            <td class="text-center" *ngIf="isActionnable(selectedDemande)">
-                                                <div class="prereq-action-btns">
-
-                                                    <!-- Bouton CONFIRMER -->
-                                                    <button class="prereq-action-btn btn-prereq-ok"
-                                                        [class.btn-prereq-active]="detail.statutConfirmation === 'CONFIRME'"
-                                                        [disabled]="prerequisActionLoading"
-                                                        (click)="confirmerPrerequisOk(detail)"
-                                                        title="Confirmer ce prérequis">
-                                                        <svg viewBox="0 0 20 20" fill="currentColor">
-                                                            <path fill-rule="evenodd"
-                                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                                clip-rule="evenodd" />
-                                                        </svg>
-                                                        Confirmer
-                                                    </button>
-
-                                                    <!-- Bouton REJETER -->
-                                                    <button class="prereq-action-btn btn-prereq-ko"
-                                                        [class.btn-prereq-active-ko]="detail.statutConfirmation === 'REJETE'"
-                                                        [disabled]="prerequisActionLoading"
-                                                        (click)="ouvrirRejetPrerequis(detail)"
-                                                        title="Rejeter ce prérequis">
-                                                        <svg viewBox="0 0 20 20" fill="currentColor">
-                                                            <path fill-rule="evenodd"
-                                                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                                                clip-rule="evenodd" />
-                                                        </svg>
-                                                        Rejeter
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <!-- Info si prérequis en attente -->
-                            <div *ngIf="getNombrePrerequisEnAttente() > 0" class="prereq-info-banner">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <div>
-                                    Vérifiez les documents de l'étudiant dans l'onglet <strong>Étudiant &
-                                        Documents</strong>
-                                    avant de confirmer chaque prérequis.
-                                </div>
-                            </div>
-                        </div>
-                    </ng-container>
-
-                    <!-- Empty state -->
-                    <div class="empty-state" *ngIf="!selectedDemande.prerequisDetails.length">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p>Aucun prérequis configuré pour ce diplôme</p>
-                    </div>
-                </div>
-
-                <!-- ══ TAB ÉTUDIANT & DOCUMENTS ══════════════════════════════════ -->
-                <div *ngIf="activeTab === 'etudiant'">
-                    <div class="student-info-grid">
-                        <div class="info-group">
-                            <p class="info-label">Nom complet</p>
-                            <p class="info-value">{{ selectedDemande.prenomEtudiant }} {{ selectedDemande.nomEtudiant }}
-                            </p>
-                        </div>
-                        <div class="info-group" *ngIf="selectedDemande.etudiantInfo?.matricule">
-                            <p class="info-label">Matricule</p>
-                            <p class="info-value font-mono">{{ selectedDemande.etudiantInfo?.matricule }}</p>
-                        </div>
-                        <div class="info-group">
-                            <p class="info-label">Email</p>
-                            <p class="info-value">{{ selectedDemande.emailEtudiant }}</p>
-                        </div>
-                        <div class="info-group" *ngIf="selectedDemande.etudiantInfo?.telephone">
-                            <p class="info-label">Téléphone</p>
-                            <p class="info-value">{{ selectedDemande.etudiantInfo?.telephone }}</p>
-                        </div>
-                        <div class="info-group" *ngIf="selectedDemande.etudiantInfo?.dateNaissance">
-                            <p class="info-label">Date de naissance</p>
-                            <p class="info-value">{{ selectedDemande.etudiantInfo?.dateNaissance | date:'dd/MM/yyyy' }}
-                            </p>
-                        </div>
-                        <div class="info-group" *ngIf="selectedDemande.etudiantInfo?.numCarteIdentite">
-                            <p class="info-label">N° CIN</p>
-                            <p class="info-value font-mono">{{ selectedDemande.etudiantInfo?.numCarteIdentite }}</p>
-                        </div>
-                        <div class="info-group" *ngIf="selectedDemande.etudiantInfo?.typeBac">
-                            <p class="info-label">Type Bac</p>
-                            <p class="info-value">{{ selectedDemande.etudiantInfo?.typeBac }}</p>
-                        </div>
-                        <div class="info-group" *ngIf="selectedDemande.diplomeObtenu">
-                            <p class="info-label">Dernier diplôme</p>
-                            <p class="info-value font-semibold text-indigo-700">{{ selectedDemande.diplomeObtenu }}</p>
-                        </div>
-                        <div class="info-group" *ngIf="selectedDemande.etudiantInfo?.anneeDernierDiplome">
-                            <p class="info-label">Année obtention</p>
-                            <p class="info-value">{{ selectedDemande.etudiantInfo?.anneeDernierDiplome }}</p>
-                        </div>
-                        <div class="info-group">
-                            <p class="info-label">Niveau demandé</p>
-                            <p class="info-value font-bold text-blue-600 uppercase">{{ selectedDemande.niveauChoisi }}
-                            </p>
-                        </div>
-                        <div class="info-group">
-                            <p class="info-label">Formation</p>
-                            <p class="info-value">{{ selectedDemande.nomDiplome }}</p>
-                        </div>
-                    </div>
-
-                    <div class="section-divider"><span>Documents soumis</span></div>
-
-                    <div class="doc-loading" *ngIf="loadingDocuments">
-                        <div class="spinner"></div>
-                        <p>Chargement des documents...</p>
-                    </div>
-
-                    <div class="doc-list" *ngIf="!loadingDocuments">
-                        <div class="empty-state" *ngIf="etudiantDocuments.length === 0">
-                            <p>Aucun document soumis par cet étudiant</p>
-                        </div>
-
-                        <div class="doc-summary-bar" *ngIf="etudiantDocuments.length > 0">
-                            <span class="doc-summary-item"><span class="dot dot-green"></span>{{ getDocumentsValides()
-                                }} validé(s)</span>
-                            <span class="doc-summary-item"><span class="dot dot-red"></span>{{ getDocumentsManquants()
-                                }} rejeté(s)/manquant(s)</span>
-                            <span class="doc-summary-item"><span class="dot dot-blue"></span>{{ etudiantDocuments.length
-                                - getDocumentsValides() - getDocumentsManquants() }} en attente</span>
-                        </div>
-
-                        <div class="doc-item-v2" *ngFor="let doc of etudiantDocuments; let i = index"
-                            [class.doc-ok]="doc.statut === 'VALIDE' || doc.statut === 'SOUMIS' || doc.statut === 'RELANCE'"
-                            [class.doc-ko]="doc.statut === 'REJETE' || doc.statut === 'MANQUANTE'"
-                            [style.animation-delay]="i * 0.05 + 's'">
-                            <div class="doc-icon-wrap" [class.icon-ok]="doc.statut === 'VALIDE'"
-                                [class.icon-pending]="doc.statut === 'SOUMIS' || doc.statut === 'RELANCE'"
-                                [class.icon-ko]="doc.statut === 'REJETE' || doc.statut === 'MANQUANTE'">
-                                <svg *ngIf="doc.statut === 'VALIDE'" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                                <svg *ngIf="doc.statut === 'SOUMIS' || doc.statut === 'RELANCE'" viewBox="0 0 20 20"
-                                    fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                                <svg *ngIf="doc.statut === 'REJETE' || doc.statut === 'MANQUANTE'" viewBox="0 0 20 20"
-                                    fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="doc-info">
-                                <p class="doc-type">{{ documentTypeLabel(doc.type) }}</p>
-                                <p class="doc-filename" *ngIf="doc.nomFichier">{{ doc.nomFichier }}</p>
-                                <p class="doc-missing" *ngIf="doc.statut === 'MANQUANTE'">Non soumis par l'étudiant</p>
-                                <p class="doc-rejection-reason"
-                                    *ngIf="doc.statut === 'REJETE' && doc.commentaireValidation">
-                                    <strong>Motif :</strong> {{ doc.commentaireValidation }}
-                                </p>
-                            </div>
-                            <span class="doc-status-pill" [ngClass]="getDocumentStatutClass(doc.statut)">
-                                {{ getDocumentStatutLabel(doc.statut) }}
-                            </span>
-                            <div class="doc-actions" *ngIf="doc.statut !== 'MANQUANTE' && doc.documentId">
-                                <button class="doc-btn btn-view" (click)="viewDocument(doc.documentId!, doc.nomFichier)"
-                                    title="Visualiser">
-                                    <svg viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                        <path fill-rule="evenodd"
-                                            d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                                            clip-rule="evenodd" />
+                            <div class="flex items-center gap-2">
+                                <span *ngIf="currentDocumentName" class="text-[10px] text-gray-400 font-medium">{{
+                                    currentDocumentName }}</span>
+                                <button *ngIf="currentDocumentUrl" (click)="openDocumentInNewTab()"
+                                    class="p-1 hover:bg-gray-100 rounded text-gray-500" title="Agrandir">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
+
+                        <div class="preview-content">
+                            <ng-container *ngIf="currentDocumentUrl; else noPreview">
+                                <iframe *ngIf="!isImageDocument" [src]="currentDocumentUrl | safe:'resourceUrl'"
+                                    class="preview-iframe"></iframe>
+                                <img *ngIf="isImageDocument" [src]="currentDocumentUrl" class="preview-img"
+                                    alt="Document">
+                            </ng-container>
+                            <ng-template #noPreview>
+                                <div class="preview-placeholder">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <p class="text-sm font-semibold text-gray-400">Aucun document chargé</p>
+                                    <p class="text-[11px] text-gray-300 mt-1">Le relevé de notes sera
+                                        chargé<br>automatiquement si disponible.</p>
+                                </div>
+                            </ng-template>
+                        </div>
                     </div>
                 </div>
+
+                <!-- TAB ÉTUDIANT & DOCUMENTS Supprimé (Désormais intégré dans l'onglet Prérequis) -->
 
                 <!-- ══ TAB DÉCISION ══════════════════════════════════════════════ -->
                 <ng-container *ngIf="activeTab === 'decision'">
@@ -1188,8 +1101,8 @@
 
                             <!-- LISTE ATTENTE -->
                             <div class="action-card-dept action-card-amber"
-                                [class.card-disabled]="!isCapaciteAtteinte(selectedDemande.niveauChoisi)"
-                                (click)="isCapaciteAtteinte(selectedDemande.niveauChoisi) && prepareDecision('LISTE_ATTENTE')">
+                                [class.card-disabled]="!isCapaciteAtteinte(selectedDemande.niveauChoisi) || !tousPrerequisNiveauTraites()"
+                                (click)="isCapaciteAtteinte(selectedDemande.niveauChoisi) && tousPrerequisNiveauTraites() && prepareDecision('LISTE_ATTENTE')">
                                 <div class="acard-icon">
                                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -1209,7 +1122,9 @@
                             </div>
 
                             <!-- REJETER -->
-                            <div class="action-card-dept action-card-red" (click)="prepareDecision('REJETE')">
+                            <div class="action-card-dept action-card-red"
+                                [class.card-disabled]="!tousPrerequisNiveauTraites()"
+                                (click)="tousPrerequisNiveauTraites() && prepareDecision('REJETE')">
                                 <div class="acard-icon">
                                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -1230,7 +1145,9 @@
                     </div>
 
                     <!-- Formulaire décision -->
+                    <!-- Formulaire décision -->
                     <div *ngIf="isActionnable(selectedDemande) && showDecisionForm" class="decision-form">
+
                         <div class="form-header-dept" [class.fh-green]="pendingDecision === 'ACCEPTE'"
                             [class.fh-amber]="pendingDecision === 'LISTE_ATTENTE'"
                             [class.fh-red]="pendingDecision === 'REJETE'">
@@ -1239,33 +1156,81 @@
                                 pendingDecision === 'LISTE_ATTENTE' ? '🕐 Mettre en liste d\'attente' :
                                 '❌ Confirmer le rejet' }}
                             </h3>
-                            <p>Dossier #{{ selectedDemande.id }} · {{ selectedDemande.prenomEtudiant }} {{
-                                selectedDemande.nomEtudiant }}</p>
+                            <p>Dossier #{{ selectedDemande.id }} · {{ selectedDemande.prenomEtudiant }}
+                                {{ selectedDemande.nomEtudiant }}</p>
                         </div>
 
-                        <div *ngIf="pendingDecision === 'ACCEPTE'"
-                            style="background:#f0fdf4;border-left:4px solid #16a34a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#166534;">
-                            <strong>ℹ️</strong> Le lien vers le formulaire de paiement sera généré automatiquement.
-                        </div>
-                        <div *ngIf="pendingDecision === 'LISTE_ATTENTE'"
-                            style="background:#fffbeb;border-left:4px solid #d97706;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400e;">
-                            <strong>ℹ️</strong> L'étudiant sera notifié automatiquement dès qu'une place se libère.
-                        </div>
-                        <div *ngIf="pendingDecision === 'REJETE'"
-                            style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#991b1b;">
-                            <strong>ℹ️</strong> Précisez le motif à la ligne <strong>[À préciser]</strong>.
+                        <!-- Note email automatique (commune aux 3 décisions) -->
+                        <div style="display:flex;align-items:center;gap:10px;background:#f8fafc;
+              border:0.5px solid #e2e8f0;border-radius:10px;
+              padding:12px 16px;margin-bottom:16px;">
+                            <svg style="width:14px;height:14px;color:#64748b;flex-shrink:0" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                            </svg>
+                            <span style="font-size:12px;color:#64748b;">
+                                Un email HTML professionnel sera généré et envoyé automatiquement à
+                                <strong style="color:#0f1117;">{{ selectedDemande.emailEtudiant }}</strong>
+                            </span>
                         </div>
 
-                        <label class="form-label-dept">Aperçu Email (modifiable)</label>
-                        <textarea [(ngModel)]="commentaire" class="form-textarea-dept" rows="10"
-                            style="font-family: 'JetBrains Mono', monospace; font-size: 12px;"></textarea>
+                        <!-- ACCEPTE : résumé simple -->
+                        <div *ngIf="pendingDecision === 'ACCEPTE'" style="background:#f0fdf4;border-left:4px solid #16a34a;
+              border-radius:8px;padding:14px 16px;margin-bottom:16px;
+              font-size:12px;color:#166534;line-height:1.6;">
+                            <strong>Ce qui sera envoyé :</strong> un lien de paiement sécurisé
+                            valable <strong>3 jours</strong>. Sans réponse dans ce délai,
+                            le dossier sera automatiquement annulé.
+                        </div>
+
+                        <!-- LISTE_ATTENTE : résumé simple -->
+                        <div *ngIf="pendingDecision === 'LISTE_ATTENTE'" style="background:#fffbeb;border-left:4px solid #d97706;
+              border-radius:8px;padding:14px 16px;margin-bottom:16px;
+              font-size:12px;color:#92400e;line-height:1.6;">
+                            <strong>Ce qui sera envoyé :</strong> une confirmation de mise en liste
+                            d'attente avec la position du candidat. Il sera notifié automatiquement
+                            dès qu'une place se libère.
+                        </div>
+
+                        <!-- REJETE : motif obligatoire + aperçu prérequis rejetés -->
+                        <ng-container *ngIf="pendingDecision === 'REJETE'">
+
+                            <!-- Aperçu prérequis rejetés (si présents) -->
+                            <div *ngIf="getPrerequisRejetes().length > 0" style="margin-bottom:14px;padding:12px 14px;background:#fff5f5;
+                border:0.5px solid #fecaca;border-radius:10px;">
+                                <p style="font-size:10px;font-weight:700;color:#dc2626;
+                 text-transform:uppercase;letter-spacing:.6px;margin:0 0 8px;">
+                                    Prérequis rejetés — inclus dans l'email
+                                </p>
+                                <div *ngFor="let p of getPrerequisRejetes()" style="display:flex;align-items:flex-start;gap:8px;
+                  padding:5px 0;border-bottom:0.5px solid #fecaca;">
+                                    <span style="font-size:11px;font-weight:600;color:#1e293b;flex:1;">
+                                        {{ p.prerequisRequis }}
+                                    </span>
+                                    <span style="font-size:11px;color:#dc2626;">
+                                        {{ p.motifRejet || 'Non satisfait' }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <label class="form-label-dept">
+                                Motif du rejet (optionnel)
+                            </label>
+                            <textarea [(ngModel)]="commentaire" class="form-textarea-dept" rows="4"
+                                placeholder="Ex: Prérequis académiques non satisfaits, niveau insuffisant...">
+    </textarea>
+                            <p style="font-size:11px;color:#8b92a9;margin-top:4px;">
+                                Ce motif sera intégré dans l'email envoyé à l'étudiant.
+                            </p>
+                        </ng-container>
 
                         <div class="form-actions-dept">
                             <button class="btn-back-dept" (click)="showDecisionForm = false">← Retour</button>
                             <button class="btn-confirm-dept" [class.btn-green]="pendingDecision === 'ACCEPTE'"
                                 [class.btn-amber]="pendingDecision === 'LISTE_ATTENTE'"
-                                [class.btn-red]="pendingDecision === 'REJETE'"
-                                [disabled]="actionLoading || !commentaire.trim()" (click)="confirmerDecision()">
+                                [class.btn-red]="pendingDecision === 'REJETE'" [disabled]="actionLoading"
+                                (click)="confirmerDecision()">
                                 <span *ngIf="actionLoading" class="btn-spinner"></span>
                                 {{ actionLoading ? 'Traitement...' :
                                 pendingDecision === 'ACCEPTE' ? 'Confirmer la validation' :
@@ -1278,6 +1243,85 @@
 
             </div>
         </main>
+    </div>
+</div>
+
+
+<!-- ══ DIALOG MODIFICATIONS NON ENREGISTRÉES ════════════════════════════════ -->
+<div *ngIf="showUnsavedChangesDialog" class="viewer-backdrop" style="z-index:2000">
+    <div class="reject-doc-shell animate-fadeIn" style="max-width:480px;">
+        <div class="reject-doc-header">
+            <div class="reject-doc-icon-box" style="background:#fff7ed">
+                <svg fill="none" stroke="#d97706" viewBox="0 0 24 24" style="width:24px;height:24px">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <div class="reject-doc-header-text">
+                <h3>Changements non enregistrés</h3>
+                <p style="font-size:12px;color:#64748b;margin-top:2px;">
+                    Vous avez modifié des statuts de prérequis ou documents sans confirmer de décision finale.
+                </p>
+            </div>
+        </div>
+
+        <div class="reject-doc-body" style="padding:10px 24px 24px;">
+            <div class="unsaved-options">
+                <button class="unsaved-option-btn opt-continue" (click)="showUnsavedChangesDialog = false">
+                    <div class="opt-icon-wrap opt-icon-gray">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </div>
+                    <div class="opt-text">
+                        <span class="opt-title">Continuer la révision</span>
+                        <span class="opt-desc">Rester sur le dossier et prendre une décision</span>
+                    </div>
+                    <svg class="opt-arrow" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+
+                <button class="unsaved-option-btn opt-keep" (click)="forceCloseModal()">
+                    <div class="opt-icon-wrap opt-icon-amber">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </div>
+                    <div class="opt-text">
+                        <span class="opt-title">Quitter et garder mes notes</span>
+                        <span class="opt-desc">Les modifications restent en mémoire pour cette session</span>
+                    </div>
+                    <svg class="opt-arrow" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+
+                <button class="unsaved-option-btn opt-discard" (click)="discardAndClose()">
+                    <div class="opt-icon-wrap opt-icon-red">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+                    <div class="opt-text">
+                        <span class="opt-title">Tout annuler</span>
+                        <span class="opt-desc">Supprimer toutes les modifications non sauvegardées</span>
+                    </div>
+                    <svg class="opt-arrow" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 

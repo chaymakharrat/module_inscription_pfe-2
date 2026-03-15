@@ -790,71 +790,7 @@
                 </div>
 
                 <!-- Infos contact -->
-                <div class="sidebar-contact">
-                    <div class="contact-row">
-                        <svg viewBox="0 0 20 20" fill="none">
-                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"
-                                fill="currentColor" />
-                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" fill="currentColor" />
-                        </svg>
-                        <span>{{ selectedDemande.etudiant.email }}</span>
-                    </div>
-                    <div class="contact-row" *ngIf="selectedDemande.etudiant.telephone">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path
-                                d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                        </svg>
-                        <span>{{ selectedDemande.etudiant.telephone }}</span>
-                    </div>
-                    <!-- 🆕 Date de Naissance -->
-                    <div class="contact-row" *ngIf="selectedDemande.etudiant.dateNaissance">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span>Né(e) le {{ selectedDemande.etudiant.dateNaissance | date:'dd/MM/yyyy' }}</span>
-                    </div>
-                    <!-- 🆕 Adresse -->
-                    <div class="contact-row" *ngIf="selectedDemande.etudiant.adresse">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span class="adresse-text">{{ selectedDemande.etudiant.adresse }}</span>
-                    </div>
-                    <div class="contact-row">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path
-                                d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
-                        </svg>
-                        <span>{{ selectedDemande.nomDiplome }}</span>
-                    </div>
-                    <div class="contact-row" *ngIf="selectedDemande.typeDiplome">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <span class="font-bold text-indigo-700">{{ selectedDemande.typeDiplome }}</span>
-                    </div>
-                    <!-- 🆕 Niveau Choisi -->
-                    <div class="contact-row" *ngIf="selectedDemande.niveauChoisi">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                        <span class="font-black text-blue-600 uppercase tracking-wider">{{ selectedDemande.niveauChoisi
-                            }}</span>
-                    </div>
-                    <div class="contact-row" *ngIf="selectedDemande.langueDiplome">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.02-3.228 19.893 19.893 0 01-1.962-5.354H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.992a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.992A1 1 0 0113 8z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <span>{{ selectedDemande.langueDiplome }}</span>
-                    </div>
-                </div>
+
 
                 <!-- Bouton fermer (sidebar) -->
                 <button class="sidebar-close" (click)="closeModal()">
@@ -891,23 +827,23 @@
                             style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-left:4px;animation:pulse 1.5s infinite"
                             title="Modifications en attente d'une décision finale"></span>
                     </button>
-                    <button class="modal-tab" [class.tab-active]="activeTab === 'action'"
-                        (click)="activeTab = 'action'">
+                    <button class="modal-tab" [class.tab-active]="activeTab === 'etudiant'"
+                        (click)="activeTab = 'etudiant'">
                         <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
                                 clip-rule="evenodd" />
                         </svg>
-                        Décision
+                        Infos Étudiant
                     </button>
                 </nav>
 
                 <!-- ── TAB : DOCUMENTS ── -->
+                <!-- ── TAB : DOCUMENTS ── -->
                 <div class="modal-body" *ngIf="activeTab === 'documents'">
 
                     <!-- Bandeau agent tiers -->
-                    <div *ngIf="isAssignedToOther"
-                        style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+                    <div *ngIf="isAssignedToOther" style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:8px;
+               padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
                         <svg style="width:20px;height:20px;color:#f59e0b;flex-shrink:0" viewBox="0 0 20 20"
                             fill="currentColor">
                             <path fill-rule="evenodd"
@@ -915,25 +851,39 @@
                                 clip-rule="evenodd" />
                         </svg>
                         <p style="margin:0;font-size:0.85rem;color:#92400e">
-                            Ce dossier est en cours de traitement par <strong>{{ taskAssignee }}</strong>. Vous
-                            ne
-                            pouvez pas y effectuer d'actions.
+                            Ce dossier est en cours de traitement par <strong>{{ taskAssignee }}</strong>.
                         </p>
                     </div>
 
-                    <!-- Alerte dossier incomplet -->
-                    <div class="incomplete-banner" *ngIf="!areAllDocumentsSubmitted(selectedDemande.documents)">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                clip-rule="evenodd" />
+                    <!-- Bannière SOUMIS — Commencer traitement -->
+                    <div *ngIf="selectedDemande.statutActuel === 'SOUMIS' && !isCurrentDemandeReadOnly" style="background:rgba(99,102,241,.05);border:1px dashed #6366f1;border-radius:12px;
+               padding:20px;text-align:center;margin-bottom:16px;">
+                        <svg style="width:28px;height:28px;color:#6366f1;margin:0 auto 10px;display:block" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
-                        <div>
-                            <strong>Dossier incomplet</strong>
-                            <p>{{ selectedDemande.documents.length -
-                                getDocumentsSoumisCount(selectedDemande.documents)
-                                }} pièce(s) manquante(s). Demandez-les avant toute validation.</p>
-                        </div>
+                        <p style="margin:0 0 14px;color:#4338ca;font-size:13px;font-weight:600;">
+                            Dossier nouvellement soumis — prenez-le en charge pour commencer l'étude
+                        </p>
+                        <button (click)="commencerTraitement()" [disabled]="actionLoading" style="background:#6366f1;color:white;border:none;padding:10px 20px;
+                   border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;">
+                            <span *ngIf="actionLoading" class="btn-spinner"></span>
+                            {{ actionLoading ? 'En cours...' : '→ Commencer le traitement' }}
+                        </button>
+                    </div>
+
+                    <!-- Dossier finalisé -->
+                    <div *ngIf="isCurrentDemandeReadOnly && selectedDemande.statutActuel !== 'EN_ATTENTE_DOCUMENT'"
+                        style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;
+               padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+                        <svg style="width:18px;height:18px;color:#16a34a;flex-shrink:0" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <p style="margin:0;font-size:12px;color:#166534;font-weight:600;">
+                            Dossier finalisé — lecture seule
+                        </p>
                     </div>
 
                     <!-- Liste documents -->
@@ -943,7 +893,7 @@
                             [class.doc-ko]="doc.statut === 'REJETE' || doc.statut === 'MANQUANTE'"
                             [class.doc-old-rejected]="isOldRejectedDocument(doc)"
                             [style.animation-delay]="i * 0.06 + 's'">
-                            <!-- Icône statut -->
+
                             <div class="doc-icon-wrap"
                                 [class.icon-ok]="doc.statut === 'SOUMIS' || doc.statut === 'VALIDE' || doc.statut === 'RELANCE'"
                                 [class.icon-ko]="doc.statut === 'REJETE' || doc.statut === 'MANQUANTE'">
@@ -961,10 +911,9 @@
                                 </svg>
                             </div>
 
-                            <!-- Infos -->
                             <div class="doc-info">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <p class="doc-type" style="margin: 0;">{{ doc.type }}</p>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <p class="doc-type" style="margin:0;">{{ doc.type }}</p>
                                     <span class="new-doc-badge"
                                         *ngIf="(doc.statut === 'SOUMIS' || doc.statut === 'RELANCE') && !doc.isValidated">
                                         Nouveau
@@ -974,10 +923,10 @@
                                 <p class="doc-missing" *ngIf="doc.statut === 'MANQUANTE'">Non soumis</p>
                                 <p class="doc-rejection-reason"
                                     *ngIf="doc.statut === 'REJETE' && doc.commentaireValidation">
-                                    <strong>Motif:</strong> {{ doc.commentaireValidation }}
+                                    <strong>Motif :</strong> {{ doc.commentaireValidation }}
                                 </p>
                             </div>
-                            <!-- Statut pill -->
+
                             <span class="doc-status-pill"
                                 [class.pill-ok]="doc.statut === 'SOUMIS' || doc.statut === 'VALIDE' || doc.statut === 'RELANCE'"
                                 [class.pill-ko]="doc.statut === 'REJETE' || doc.statut === 'MANQUANTE'">
@@ -987,7 +936,6 @@
                                 (doc.statut === 'SOUMIS' ? 'Soumis' : 'Manquant'))) }}
                             </span>
 
-                            <!-- Actions -->
                             <div class="doc-actions" *ngIf="doc.statut !== 'MANQUANTE'">
                                 <button class="doc-btn btn-view" (click)="viewDocument(doc.documentId, doc.nomFichier)"
                                     title="Visualiser">
@@ -1008,10 +956,10 @@
                                 </button>
                                 <button class="doc-btn btn-accept"
                                     (click)="$event.stopPropagation(); confirmAcceptDocument(doc)"
-                                    title="Valider ce document"
-                                    *ngIf="(doc.statut === 'SOUMIS' || doc.statut === 'REJETE' || doc.statut === 'RELANCE') && isAssignedToMe && !isCurrentDemandeReadOnly && !isOldRejectedDocument(doc)">
+                                    title="Valider ce document" *ngIf="(doc.statut === 'SOUMIS' || doc.statut === 'REJETE' || doc.statut === 'RELANCE')
+                           && isAssignedToMe && !isCurrentDemandeReadOnly && !isOldRejectedDocument(doc)">
                                     <svg viewBox="0 0 20 20" fill="currentColor"
-                                        style="color: #10b981; width: 1.25rem; height: 1.25rem;">
+                                        style="color:#10b981;width:1.25rem;height:1.25rem;">
                                         <path fill-rule="evenodd"
                                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                             clip-rule="evenodd" />
@@ -1019,8 +967,8 @@
                                 </button>
                                 <button class="doc-btn btn-reject"
                                     (click)="$event.stopPropagation(); openRejectDocDialog(doc)"
-                                    title="Rejeter ce document"
-                                    *ngIf="(doc.statut === 'SOUMIS' || doc.statut === 'VALIDE' || doc.statut === 'RELANCE') && isAssignedToMe && !isCurrentDemandeReadOnly && !isOldRejectedDocument(doc)">
+                                    title="Rejeter ce document" *ngIf="(doc.statut === 'SOUMIS' || doc.statut === 'VALIDE' || doc.statut === 'RELANCE')
+                           && isAssignedToMe && !isCurrentDemandeReadOnly && !isOldRejectedDocument(doc)">
                                     <svg viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd"
                                             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -1030,235 +978,339 @@
                             </div>
                         </div>
                     </div>
+                    <div *ngIf="!isCurrentDemandeReadOnly && selectedDemande.statutActuel !== 'SOUMIS'"
+                        style="margin-top:20px;border-top:1px solid #e8eaf0;padding-top:20px;">
 
-                    <!-- Bouton demander pièces -->
-                    <button class="btn-demander-pieces" (click)="onBtnDemanderPiecesClick()"
-                        *ngIf="!areAllDocumentsSubmitted(selectedDemande.documents) && !isCurrentDemandeReadOnly">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                        </svg>
-                        Demander les pièces manquantes
-                    </button>
-                </div>
-
-                <!-- ── TAB : DÉCISION ── -->
-                <div class="modal-body" *ngIf="activeTab === 'action'">
-
-                    <!-- Message Dossier Finalisé -->
-                    <div *ngIf="isCurrentDemandeReadOnly"
-                        style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:24px; text-align:center; margin-top:40px">
-                        <div
-                            style="width:56px; height:56px; background:#dcfce7; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px">
-                            <svg style="width:28px; height:28px; color:#16a34a" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
+                        <!-- DIALOG INTEGRÉ : REJET -->
+                        <div *ngIf="showRejetDialog" [@formAnim]
+                            style="background:white;border:1.5px solid #fecaca;border-radius:14px;padding:18px;margin-bottom:14px;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                                <div style="width:36px;height:36px;background:#fef2f2;border-radius:10px;
+                            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <svg style="width:18px;height:18px;color:#dc2626" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p style="margin:0;font-size:13px;font-weight:700;color:#0f1117;">Motif du rejet
+                                        (optionnel)</p>
+                                    <p style="margin:0;font-size:11px;color:#8b92a9;">
+                                        Un email sera automatiquement envoyé à {{ selectedDemande.etudiant.email }}
+                                    </p>
+                                </div>
+                                <button (click)="showRejetDialog = false"
+                                    style="margin-left:auto;background:none;border:none;cursor:pointer;color:#8b92a9;padding:4px;">
+                                    <svg style="width:16px;height:16px" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <textarea [(ngModel)]="commentaire" class="form-textarea"
+                                placeholder="Ex: Documents illisibles, incohérence entre données et pièces..." rows="3"
+                                style="font-size:13px;line-height:1.6;margin-bottom:12px;"></textarea>
+                            <div style="display:flex;justify-content:flex-end;gap:8px;">
+                                <button (click)="showRejetDialog = false" class="btn-back">Annuler</button>
+                                <button (click)="rejeterDossier()" [disabled]="actionLoading"
+                                    class="btn-confirm btn-confirm-red">
+                                    <span *ngIf="actionLoading" class="btn-spinner"></span>
+                                    {{ actionLoading ? 'Traitement...' : '✗ Confirmer le rejet' }}
+                                </button>
+                            </div>
                         </div>
-                        <h3 style="margin:0 0 8px; color:#166534; font-size:1.1rem; font-weight:700">Dossier
-                            Finalisé
-                        </h3>
-                        <p style="margin:0; color:#15803d; font-size:0.9rem">
-                            La décision finale a déjà été prise pour ce dossier. <br>
-                            Il est désormais en mode lecture seule.
-                        </p>
-                    </div>
 
-                    <!-- Bannière Commencer le traitement (pour dossiers SOUMIS) -->
-                    <div *ngIf="selectedDemande.statutActuel === 'SOUMIS' && !isCurrentDemandeReadOnly"
-                        style="background:rgba(99, 102, 241, 0.05); border:1px dashed #6366f1; border-radius:12px; padding:24px; text-align:center; margin-top:40px">
-                        <div
-                            style="width:56px; height:56px; background:#eef2ff; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px">
-                            <svg style="width:28px; height:28px; color:#6366f1" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
+                        <!-- DIALOG INTEGRÉ : DEMANDE PIÈCES -->
+                        <div *ngIf="showConfirmDemanderPieces" [@formAnim]
+                            style="background:white;border:1.5px solid #bfdbfe;border-radius:14px;padding:18px;margin-bottom:14px;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                                <div style="width:36px;height:36px;background:#eff6ff;border-radius:10px;
+                            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <svg style="width:18px;height:18px;color:#2563eb" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p style="margin:0;font-size:13px;font-weight:700;color:#0f1117;">Demander des
+                                        pièces</p>
+                                    <p style="margin:0;font-size:11px;color:#8b92a9;">L'étudiant devra resoumettre ces
+                                        documents</p>
+                                </div>
+                                <button (click)="showConfirmDemanderPieces = false"
+                                    style="margin-left:auto;background:none;border:none;cursor:pointer;color:#8b92a9;padding:4px;">
+                                    <svg style="width:16px;height:16px" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div
+                                style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:12px">
+                                <ul
+                                    style="margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px">
+                                    <li *ngFor="let item of apercuDocsManquants"
+                                        style="display:flex; align-items:center; gap:8px; font-size:12px; color:#334155; font-weight:600">
+                                        <svg style="width:12px; height:12px; color:#3b82f6" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {{ item.type }} <span style="font-weight:400; color:#64748b; font-size:11px"
+                                            *ngIf="item.motif">({{ item.motif }})</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div style="display:flex;justify-content:flex-end;gap:8px;">
+                                <button (click)="showConfirmDemanderPieces = false" class="btn-back">Annuler</button>
+                                <button (click)="confirmerDemanderPieces()" [disabled]="actionLoading"
+                                    class="btn-confirm btn-confirm-blue">
+                                    <span *ngIf="actionLoading" class="btn-spinner"></span>
+                                    {{ actionLoading ? 'Envoi...' : 'Envoyer la demande' }}
+                                </button>
+                            </div>
                         </div>
-                        <h3 style="margin:0 0 8px; color:#4338ca; font-size:1.1rem; font-weight:700">Dossier en
-                            attente de prise en charge</h3>
-                        <p style="margin:0 0 20px; color:#6366f1; font-size:0.9rem">
-                            Ce dossier est nouvellement soumis. Vous devez le prendre en charge pour commencer
-                            l'étude des documents.
-                        </p>
-                        <button (click)="commencerTraitement()" [disabled]="actionLoading"
-                            style="background:#6366f1; color:white; border:none; padding:12px 24px; border-radius:8px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px">
-                            <span *ngIf="actionLoading" class="spinner"></span>
-                            {{ actionLoading ? 'Prise en charge...' : 'Commencer le traitement' }}
-                        </button>
-                    </div>
-                    <!-- Sélecteur d'action -->
-                    <div class="action-selector"
-                        *ngIf="!showValidationDialog && !showRejetDialog && !showDemanderPiecesDialog && !isCurrentDemandeReadOnly && selectedDemande.statutActuel !== 'SOUMIS'">
 
-                        <!-- Bloc validation -->
-                        <div class="action-card"
-                            [class.action-card-disabled]="!areAllDocumentsSubmitted(selectedDemande.documents) || isAssignedToOther"
-                            (click)="areAllDocumentsSubmitted(selectedDemande.documents) && !isAssignedToOther && openValidationDialog()">
-                            <div class="action-card-icon icon-green">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <!-- DIALOG INTEGRÉ : VALIDATION -->
+                        <div *ngIf="showValidationDialog" [@formAnim]
+                            style="background:white;border:1.5px solid #bbf7d0;border-radius:14px;padding:18px;margin-bottom:14px;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                                <div style="width:36px;height:36px;background:#f0fdf4;border-radius:10px;
+                            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <svg style="width:18px;height:18px;color:#16a34a" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p style="margin:0;font-size:13px;font-weight:700;color:#0f1117;">Confirmer la
+                                        validation</p>
+                                    <p style="margin:0;font-size:11px;color:#8b92a9;">Le dossier sera transmis au
+                                        département</p>
+                                </div>
+                                <button (click)="showValidationDialog = false"
+                                    style="margin-left:auto;background:none;border:none;cursor:pointer;color:#8b92a9;padding:4px;">
+                                    <svg style="width:16px;height:16px" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div
+                                style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; margin-bottom:12px; font-size:12px; color:#166534; line-height:1.5">
+                                <p style="margin:0">
+                                    En validant ce dossier, vous confirmez que <strong>tous les documents
+                                        obligatoires</strong> sont conformes.
+                                </p>
+                            </div>
+
+                            <div style="display:flex;justify-content:flex-end;gap:8px;">
+                                <button (click)="showValidationDialog = false" class="btn-back">Annuler</button>
+                                <button (click)="validerDossier()"
+                                    [disabled]="actionLoading || !areAllDocumentsValidated"
+                                    class="btn-confirm btn-confirm-green">
+                                    <span *ngIf="actionLoading" class="btn-spinner"></span>
+                                    {{ actionLoading ? 'Validation...' : 'Valider le dossier' }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Boutons d'action principaux -->
+                        <div *ngIf="!showRejetDialog && !showConfirmDemanderPieces && !showValidationDialog"
+                            style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+
+                            <!-- Valider -->
+                            <button (click)="showValidationDialog = true" [disabled]="!areAllDocumentsSubmitted(selectedDemande.documents)
+                            || !areAllDocumentsValidated || actionLoading || isAssignedToOther" style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;
+                       gap:8px;padding:11px 16px;border-radius:10px;border:none;font-size:13px;
+                       font-weight:700;cursor:pointer;transition:all .2s;
+                       background:#059669;color:white;
+                       box-shadow:0 4px 12px rgba(5,150,105,.25);" [style.opacity]="(!areAllDocumentsSubmitted(selectedDemande.documents)
+                                   || !areAllDocumentsValidated || isAssignedToOther) ? '0.4' : '1'" [style.cursor]="(!areAllDocumentsSubmitted(selectedDemande.documents)
+                                   || !areAllDocumentsValidated || isAssignedToOther)
+                                   ? 'not-allowed' : 'pointer'" title="{{ !areAllDocumentsSubmitted(selectedDemande.documents)
+                          ? 'Validez tous les documents d\'abord' : 'Valider le dossier' }}">
+                                <span *ngIf="actionLoading" class="btn-spinner"></span>
+                                <svg *ngIf="!actionLoading" style="width:16px;height:16px" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                        d="M5 13l4 4L19 7" />
                                 </svg>
-                            </div>
-                            <div class="action-card-body">
-                                <h3>Valider le dossier</h3>
-                                <p *ngIf="areAllDocumentsSubmitted(selectedDemande.documents) && !isAssignedToOther">
-                                    Approuver et transmettre au département</p>
-                                <p *ngIf="!areAllDocumentsSubmitted(selectedDemande.documents)"
-                                    style="color:#dc2626;font-weight:600">Tous les documents doivent être
-                                    validés
-                                    d'abord</p>
-                                <p *ngIf="isAssignedToOther" style="color:#d97706;font-weight:600">Dossier
-                                    assigné à
-                                    {{
-                                    taskAssignee }}</p>
-                            </div>
-                            <svg class="action-card-arrow" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                        </div>
+                                Valider le dossier
+                            </button>
 
-                        <div class="action-card action-card-red" (click)="openRejetDialog()">
-                            <div class="action-card-icon icon-red">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <!-- Rejeter -->
+                            <button (click)="openRejetDialog()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;
+                       gap:8px;padding:11px 16px;border-radius:10px;border:1.5px solid #fecaca;
+                       font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;
+                       background:#fef2f2;color:#dc2626;">
+                                <svg style="width:16px;height:16px" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                        d="M6 18L18 6M6 6l12 12" />
                                 </svg>
-                            </div>
-                            <div class="action-card-body">
-                                <h3>Rejeter le dossier</h3>
-                                <p>Notifier l'étudiant avec un motif</p>
-                            </div>
-                            <svg class="action-card-arrow" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                        </div>
+                                Rejeter
+                            </button>
 
-                        <div class="action-card action-card-blue" (click)="openDemanderPiecesDialog()">
-                            <div class="action-card-icon icon-blue">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
+                            <!-- Demander pièces -->
+                            <button (click)="ouvrirConfirmDemanderPieces()" [disabled]="actionLoading" style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;
+                       gap:8px;padding:11px 16px;border-radius:10px;border:1.5px solid #bfdbfe;
+                       font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;
+                       background:#eff6ff;color:#2563eb;">
+                                <svg style="width:16px;height:16px" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
-                            </div>
-                            <div class="action-card-body">
-                                <h3>Demander des pièces</h3>
-                                <p>Envoyer une notification à l'étudiant</p>
-                            </div>
-                            <svg class="action-card-arrow" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd"
-                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                    clip-rule="evenodd" />
-                            </svg>
+                                Demander des pièces
+                            </button>
                         </div>
 
-                        <!-- Alerte dossier incomplet -->
-                        <div class="incomplete-banner" *ngIf="!areAllDocumentsSubmitted(selectedDemande.documents)">
-                            <svg viewBox="0 0 20 20" fill="currentColor">
+                        <!-- Info : docs non tous traités -->
+                        <p *ngIf="!areAllDocumentsSubmitted(selectedDemande.documents) && !showRejetDialog" style="margin:10px 0 0;font-size:11px;color:#d97706;font-weight:600;
+                   display:flex;align-items:center;gap:6px;">
+                            <svg style="width:14px;height:14px;flex-shrink:0" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd"
                                     d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
                                     clip-rule="evenodd" />
                             </svg>
-                            <div>
-                                <strong>Validation désactivée</strong>
-                                <p>Validez ou rejetez chaque document avant de prendre une décision. Les
-                                    changements
-                                    ne
-                                    sont enregistrés en base <strong>qu'après</strong> avoir pris une décision
-                                    finale.
-                                </p>
-                            </div>
-                        </div>
+                            Validez ou rejetez tous les documents avant de pouvoir valider le dossier
+                        </p>
                     </div>
-
-                    <!-- Formulaire validation -->
-                    <div class="action-form" *ngIf="showValidationDialog" [@formAnim]>
-                        <div class="form-header form-header-green">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <div>
-                                <h3>Confirmer la validation</h3>
-                                <p>Dossier #{{ selectedDemande.numeroDossier }} · {{
-                                    selectedDemande.etudiant.nom }}
-                                </p>
-                            </div>
-                        </div>
-                        <label class="form-label">Message (Email Preview)</label>
-                        <textarea [(ngModel)]="commentaire" class="form-textarea" placeholder="Ajustez l'email ici..."
-                            rows="12" style="font-family: 'JetBrains Mono', monospace; font-size: 13px;"></textarea>
-                        <div class="form-actions">
-                            <button class="btn-back" (click)="showValidationDialog = false">← Retour</button>
-                            <button class="btn-confirm btn-confirm-green" (click)="validerDossier()"
-                                [disabled]="actionLoading || !areAllDocumentsValidated">
-                                <span *ngIf="actionLoading" class="btn-spinner"></span>
-                                {{ actionLoading ? 'Traitement...' : 'Confirmer la validation' }}
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Formulaire rejet -->
-                    <div class="action-form" *ngIf="showRejetDialog" [@formAnim]>
-                        <div class="form-header form-header-red">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <div>
-                                <h3>Motif de rejet</h3>
-                                <p>Ce message sera envoyé à l'étudiant </p>
-                            </div>
-                        </div>
-                        <label class="form-label">Message (Email Preview) <span class="required">*</span></label>
-                        <textarea [(ngModel)]="commentaire" class="form-textarea" placeholder="Ajustez l'email ici..."
-                            rows="12" style="font-family: 'JetBrains Mono', monospace; font-size: 13px;"></textarea>
-                        <p class="form-hint" *ngIf="!commentaire.trim()">Un motif est obligatoire pour rejeter
-                            un
-                            dossier.</p>
-                        <div class="form-actions">
-                            <button class="btn-back" (click)="showRejetDialog = false">← Retour</button>
-                            <button class="btn-confirm btn-confirm-red" (click)="rejeterDossier()"
-                                [disabled]="actionLoading || !commentaire.trim()">
-                                <span *ngIf="actionLoading" class="btn-spinner"></span>
-                                {{ actionLoading ? 'Traitement...' : 'Confirmer le rejet' }}
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Formulaire demander pièces -->
-                    <div class="action-form" *ngIf="showDemanderPiecesDialog" [@formAnim]>
-                        <div class="form-header form-header-blue">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            <div>
-                                <h3>Demander des pièces</h3>
-                                <p>Notification envoyée par email à l'étudiant</p>
-                            </div>
-                        </div>
-                        <label class="form-label">Pièces demandées <span class="required">*</span></label>
-                        <textarea [(ngModel)]="commentaire" class="form-textarea"
-                            placeholder="Ex: Copie de la CIN, relevé de notes L2..." rows="4"></textarea>
-                        <div class="form-actions">
-                            <button class="btn-back" (click)="showDemanderPiecesDialog = false">←
-                                Retour</button>
-                            <button class="btn-confirm btn-confirm-blue" (click)="demanderPieces()"
-                                [disabled]="!commentaire.trim() || actionLoading">
-                                <span *ngIf="actionLoading" class="btn-spinner"></span>
-                                {{ actionLoading ? 'Traitement...' : 'Envoyer la demande' }}
-                            </button>
-                        </div>
-                    </div>
-
                 </div>
+
+                <!-- ── TAB : INFOS ÉTUDIANT ── -->
+                <div class="modal-body" *ngIf="activeTab === 'etudiant'">
+                    <div class="etudiant-info-grid">
+                        <!-- Carte : Identité & Contact -->
+                        <div class="info-card">
+                            <h4>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                </svg>
+                                Identité & Contact
+                            </h4>
+                            <div class="info-card-content">
+                                <div class="info-item">
+                                    <span class="info-label">Email</span>
+                                    <span class="info-value">{{ selectedDemande.etudiant.email }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Téléphone</span>
+                                    <span class="info-value">{{ selectedDemande.etudiant.telephone || 'Non renseigné'
+                                        }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Nationalité</span>
+                                    <span class="info-value">{{ selectedDemande.etudiant.paysNom || 'Non renseigné'
+                                        }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Genre</span>
+                                    <span class="info-value">{{ selectedDemande.etudiant.genre || 'Non renseigné'
+                                        }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Carte : Pièces d'Identité -->
+                        <div class="info-card">
+                            <h4>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
+                                </svg>
+                                Pièces d'Identité
+                            </h4>
+                            <div class="info-card-content">
+                                <div class="info-item" *ngIf="selectedDemande.etudiant.numCarteIdentite">
+                                    <span class="info-label">Numéro CIN</span>
+                                    <span class="info-value"
+                                        style="font-family: 'JetBrains Mono', monospace; color: var(--blue);">{{
+                                        selectedDemande.etudiant.numCarteIdentite }}</span>
+                                </div>
+                                <div class="info-item" *ngIf="selectedDemande.etudiant.numPassport">
+                                    <span class="info-label">Numéro Passeport</span>
+                                    <span class="info-value"
+                                        style="font-family: 'JetBrains Mono', monospace; color: var(--blue);">{{
+                                        selectedDemande.etudiant.numPassport }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Adresse</span>
+                                    <span class="info-value">{{ selectedDemande.etudiant.adresse || 'Non renseigné'
+                                        }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Carte : Parcours Académique -->
+                        <div class="info-card">
+                            <h4>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84a51.39 51.39 0 00-2.658.813m-15.482 0l6.23 3.333a2.25 2.25 0 002.103 0l6.23-3.333m-15.222 5.093a2.25 2.25 0 002.324 1.485c1.458-.103 2.871-.358 4.22-.756a2.25 2.25 0 012.324 1.485" />
+                                </svg>
+                                Parcours Académique
+                            </h4>
+                            <div class="info-card-content">
+                                <div class="info-item">
+                                    <span class="info-label">Dernier Diplôme</span>
+                                    <span class="info-value">{{ selectedDemande.etudiant.dernierDiplome || 'Non
+                                        renseigné' }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Type de Bac</span>
+                                    <span class="info-value">{{ selectedDemande.etudiant.typeBac || 'Non renseigné'
+                                        }}</span>
+                                </div>
+                                <div class="info-item" *ngIf="selectedDemande.etudiant.anneeDernierDiplome">
+                                    <span class="info-label">Année d'obtention</span>
+                                    <span class="info-value">{{ selectedDemande.etudiant.anneeDernierDiplome }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Carte : Formation Demandée -->
+                        <div class="info-card">
+                            <h4>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
+                                </svg>
+                                Formation Demandée
+                            </h4>
+                            <div class="info-card-content">
+                                <div class="info-item">
+                                    <span class="info-label">Diplôme</span>
+                                    <span class="info-value">{{ selectedDemande.nomDiplome }}</span>
+                                </div>
+                                <div class="info-badge-group">
+                                    <span class="premium-badge premium-badge-blue" *ngIf="selectedDemande.typeDiplome">
+                                        {{ selectedDemande.typeDiplome }}
+                                    </span>
+                                    <span class="premium-badge premium-badge-blue" *ngIf="selectedDemande.niveauChoisi">
+                                        {{ selectedDemande.niveauChoisi }}
+                                    </span>
+                                    <span class="premium-badge" style="text-transform: uppercase;"
+                                        *ngIf="selectedDemande.langueDiplome">
+                                        {{ selectedDemande.langueDiplome }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
             </main>
         </div>
@@ -1305,18 +1357,77 @@
             </div>
 
             <div class="viewer-body">
+                <!-- Section Viewer (Gauche) -->
                 <div class="viewer-container" *ngIf="currentDocumentUrl">
                     <!-- Image Viewer -->
-                    <img [src]="currentDocumentUrl | safe: 'resourceUrl'" 
-                         *ngIf="isImage" 
-                         class="viewer-img" 
-                         [alt]="currentDocumentName">
-                    
+                    <img [src]="currentDocumentUrl | safe: 'resourceUrl'" *ngIf="isImage" class="viewer-img"
+                        [alt]="currentDocumentName">
+
                     <!-- PDF/Document Viewer -->
-                    <iframe [src]="currentDocumentUrl | safe: 'resourceUrl'" 
-                            *ngIf="!isImage" 
-                            class="viewer-iframe"></iframe>
+                    <iframe [src]="currentDocumentUrl | safe: 'resourceUrl'" *ngIf="!isImage"
+                        class="viewer-iframe"></iframe>
                 </div>
+
+                <!-- Section Pôle de Vérification (Droite) -->
+                <aside class="viewer-info-side">
+                    <h3 class="viewer-side-title">
+                        <div class="viewer-side-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                style="width: 18px; height: 18px;">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                            </svg>
+                        </div>
+                        Pôle de Vérification
+                    </h3>
+
+                    <div class="viewer-info-group">
+                        <div class="viewer-info-card">
+                            <p class="viewer-info-label">Nom Complet</p>
+                            <p class="viewer-info-value">{{ selectedDemande?.etudiant?.nom }} {{
+                                selectedDemande?.etudiant?.prenom }}</p>
+                        </div>
+
+                        <div class="viewer-info-card">
+                            <p class="viewer-info-label">Date de Naissance</p>
+                            <p class="viewer-info-value">{{ selectedDemande?.etudiant?.dateNaissance | date:'dd/MM/yyyy'
+                                }}</p>
+                        </div>
+                    </div>
+
+                    <div class="viewer-info-group">
+                        <div class="viewer-info-card" *ngIf="selectedDemande?.etudiant?.numCarteIdentite">
+                            <p class="viewer-info-label">Numéro CIN</p>
+                            <p class="viewer-info-value"><span class="viewer-info-mono">{{
+                                    selectedDemande?.etudiant?.numCarteIdentite }}</span></p>
+                        </div>
+
+                        <div class="viewer-info-card" *ngIf="selectedDemande?.etudiant?.numPassport">
+                            <p class="viewer-info-label">Numéro Passeport</p>
+                            <p class="viewer-info-value"><span class="viewer-info-mono">{{
+                                    selectedDemande?.etudiant?.numPassport }}</span></p>
+                        </div>
+                    </div>
+
+                    <div class="viewer-info-group">
+                        <div class="viewer-info-card">
+                            <p class="viewer-info-label">Dernier Diplôme</p>
+                            <p class="viewer-info-value" style="font-size:12px;line-height:1.4">
+                                {{ selectedDemande?.etudiant?.dernierDiplome || 'Non renseigné' }}
+                            </p>
+                            <div style="margin-top:6px;display:flex;gap:6px">
+                                <span class="premium-badge" style="font-size:9px"
+                                    *ngIf="selectedDemande?.etudiant?.anneeDernierDiplome">
+                                    {{ selectedDemande?.etudiant?.anneeDernierDiplome }}
+                                </span>
+                                <span class="premium-badge" style="font-size:9px"
+                                    *ngIf="selectedDemande?.etudiant?.typeBac">
+                                    {{ selectedDemande?.etudiant?.typeBac }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
             </div>
         </div>
     </div>

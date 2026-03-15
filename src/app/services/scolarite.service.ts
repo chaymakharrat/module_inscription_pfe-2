@@ -39,6 +39,7 @@ export interface EtudiantInfoDTO {
     anneeDernierDiplome?: number; // 🆕 Ajout
     emailUniversitaire?: string; // 🆕 Ajout
     typeBac?: string; // 🆕 Ajout
+    genre?: string; // 🆕 Ajout
 }
 
 export interface DocumentStatusDTO {

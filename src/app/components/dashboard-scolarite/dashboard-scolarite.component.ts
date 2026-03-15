@@ -105,6 +105,8 @@ export class ScolariteDashboardComponent implements OnInit {
   // Filtres
   currentFilter: 'tous' | 'nouveaux' | 'urgents' | 'valides' | 'rejetes' | 'enAttente' | 'relances' = 'tous';
   searchTerm = '';
+  // Changer le type de activeTab
+  activeTab: 'documents' | 'etudiant' | 'action' = 'documents';
 
   // Dossier sélectionné pour le modal
   selectedDemande: DemandeDetailDTO | null = null;
@@ -271,6 +273,7 @@ export class ScolariteDashboardComponent implements OnInit {
       ].join(';');
     });
 
+
     const csvContent = [header.join(';'), ...rows].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -331,8 +334,13 @@ export class ScolariteDashboardComponent implements OnInit {
       this.loadDemandes();
     }
   }
+  // Dans dashboard-scolarite.component.ts
+  getDocsManquantsOuRejetes(documents: any[]): any[] {
+    if (!documents) return [];
+    return documents.filter(d => d.statut === 'REJETE' || d.statut === 'MANQUANTE');
+  }
 
-  activeTab: 'documents' | 'action' = 'documents'; // Onglet actif du modal
+  //activeTab: 'documents' | 'action' = 'documents'; // Onglet actif du modal
 
   openDemandeDetail(demande: DemandeDetailDTO, initialTab: 'documents' | 'action' = 'documents', actionType?: 'validation' | 'rejet' | 'pieces') {
     this.pendingDossierId = demande.id;
@@ -390,80 +398,46 @@ export class ScolariteDashboardComponent implements OnInit {
       }
     });
   }
-
   updateEmailItemsPreview(token?: string) {
     if (!this.selectedDemande) return;
 
+    // Récupérer les docs manquants/rejetés
+    const docsToRequest = this.selectedDemande.documents.filter(d =>
+      d.statut === 'REJETE' || d.statut === 'MANQUANTE'
+    );
 
-    let docsToRequest: any[];
+    const docsNames = docsToRequest.map(d => `- ${d.type}`).join('\n');
 
-    const isRelanceMode = this.selectedDemande.statutActuel === 'RELANCE' ||
-      this.selectedDemande.statutActuel === 'EN_ATTENTE_DOCUMENT';
-
-    if (isRelanceMode) {
-      // Pour les dossiers déjà relancés, on ne liste que :
-      // 1. Les documents manquants
-      // 2. Les documents rejetés DANS CETTE SESSION (via pendingDocChanges)
-      docsToRequest = this.selectedDemande.documents.filter(d => {
-        if (d.statut === 'MANQUANTE') return true;
-        const change = this.pendingDocChanges.get(d.documentId);
-        return change && change.statut === 'REJETE';
-      });
-    } else {
-      // Logique standard pour les nouveaux dossiers
-      docsToRequest = this.selectedDemande.documents.filter(d =>
-        d.statut === 'REJETE' || d.statut === 'MANQUANTE'
-      );
-    }
-
-    const docsNames = docsToRequest.map(d => d.type === 'CARTE_IDENTITE' ? "Pièce d'identité" : d.nomFichier || d.type);
-
-    const dossierNum = this.selectedDemande.numeroDossier;
-    let itemsList = docsNames.length > 0
-      ? docsNames.map(d => `- ${d}`).join('\n')
-      : "- (Préciser les documents ici)";
-
-    const baseUrl = window.location.origin;
-    const tokenPart = token ? `?token=${token}` : '';
-    const resubmissionLink = `${baseUrl}/mon-dossier${tokenPart}`;
-
-    this.commentaire = `Aperçu de l'email
------------------------------------------
-À : ${this.selectedDemande.etudiant.email}
-Objet : Documents manquants - Dossier #${dossierNum}
-
-Bonjour ${this.selectedDemande.etudiant.prenom},
-
-Veuillez soumettre à nouveau les documents suivants car ils sont invalides ou manquants :
-${itemsList}
-
-Vous pouvez les déposer directement via ce lien sécurisé (valable 72h) :
-${resubmissionLink}
-
-Cordialement,
-Le Service de Scolarité — ITECH University`;
+    // Aperçu simple — le vrai HTML sera construit par le backend
+    this.commentaire = docsNames.length > 0
+      ? docsNames
+      : "- (Aucun document rejeté détecté)";
   }
 
+  //   prepareRejetComment() {
+  //     if (!this.selectedDemande) return;
+  //     const studentName = `${this.selectedDemande.etudiant.prenom} ${this.selectedDemande.etudiant.nom}`;
+  //     const dossierNum = this.selectedDemande.numeroDossier;
+
+  //     this.commentaire = `Aperçu de l'email
+  // -----------------------------------------
+  // À : ${this.selectedDemande.etudiant.email}
+  // Objet : Décision concernant votre dossier #${dossierNum}
+
+  // Bonjour ${this.selectedDemande.etudiant.prenom},
+
+  // Après étude de votre dossier d'inscription, nous avons le regret de vous informer que votre candidature n'a pas été retenue.
+
+  // Motif : (Préciser le motif de rejet ici)
+
+  // Si vous souhaitez obtenir plus d'informations, veuillez contacter notre service de scolarité.
+
+  // Cordialement,
+  // Le Service de Scolarité — ITECH University`;
+  //   }
   prepareRejetComment() {
-    if (!this.selectedDemande) return;
-    const studentName = `${this.selectedDemande.etudiant.prenom} ${this.selectedDemande.etudiant.nom}`;
-    const dossierNum = this.selectedDemande.numeroDossier;
-
-    this.commentaire = `Aperçu de l'email
------------------------------------------
-À : ${this.selectedDemande.etudiant.email}
-Objet : Décision concernant votre dossier #${dossierNum}
-
-Bonjour ${this.selectedDemande.etudiant.prenom},
-
-Après étude de votre dossier d'inscription, nous avons le regret de vous informer que votre candidature n'a pas été retenue.
-
-Motif : (Préciser le motif de rejet ici)
-
-Si vous souhaitez obtenir plus d'informations, veuillez contacter notre service de scolarité.
-
-Cordialement,
-Le Service de Scolarité — ITECH University`;
+    // Plus utilisé — l'email est construit par le backend
+    this.commentaire = '';
   }
 
   closeModal() {
@@ -497,46 +471,91 @@ Le Service de Scolarité — ITECH University`;
     this.forceCloseModal();
   }
 
-  openValidationDialog() {
-    this.showValidationDialog = true;
-    this.showRejetDialog = false;
-  }
+  // openValidationDialog() {
+  //   this.showValidationDialog = true;
+  //   this.showRejetDialog = false;
+  // }
 
+  // openRejetDialog() {
+  //   this.showRejetDialog = true;
+  //   this.showValidationDialog = false;
+  //   this.prepareRejetComment();
+  // }
   openRejetDialog() {
     this.showRejetDialog = true;
     this.showValidationDialog = false;
-    this.prepareRejetComment();
+    // Juste un champ motif vide, pas de construction d'email
+    this.commentaire = '';
   }
+  demanderPiecesDirectement() {
+    if (!this.selectedDemande || !this.taskId || this.actionLoading) return;
 
-  openDemanderPiecesDialog() {
-    this.showDemanderPiecesDialog = true;
-    this.preparePieceRequestComment();
-  }
-  validerDossier() {
-    console.log('taskId:', this.taskId);
-    console.log('selectedDemande:', this.selectedDemande?.id);
-    console.log('commentaire:', this.commentaire);
-    if (!this.selectedDemande || !this.taskId) return;
+    const docsManquants = this.selectedDemande.documents
+      .filter(d => d.statut === 'REJETE' || d.statut === 'MANQUANTE')
+      .map(d => d.type)
+      .join(',');
+
+    if (!docsManquants) {
+      this.showNotification('Aucun document rejeté ou manquant détecté', 'error');
+      return;
+    }
 
     this.actionLoading = true;
-    // 1. Committer tous les changements de documents en attente
     this.commitPendingChanges().subscribe({
       next: () => {
-        // 2. Valider le dossier
+        this.scolariteService.completeTask(
+          this.taskId!,
+          'DOCUMENT_ILLISIBLE',
+          docsManquants,
+          this.userProfile?.email || 'scolarite_admin'
+        ).subscribe({
+          next: () => {
+            this.actionLoading = false;
+            if (this.pendingDossierId) this.sessionDocCache.delete(this.pendingDossierId);
+            this.forceCloseModal();
+            this.loadDemandes();
+            this.showNotification('Demande de pièces envoyée', 'success');
+          },
+          error: () => {
+            this.actionLoading = false;
+            this.showNotification('Erreur lors de la demande', 'error');
+          }
+        });
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.showNotification('Erreur sauvegarde documents', 'error');
+      }
+    });
+  }
+
+  // openDemanderPiecesDialog() {
+  //   this.showDemanderPiecesDialog = true;
+  //   this.preparePieceRequestComment();
+  // }
+  validerDossier() {
+    if (!this.selectedDemande || !this.taskId) return;
+
+    // ✅ Commentaire par défaut si l'agent ne saisit rien
+    const commentaireFinal = this.commentaire.trim() ||
+      `Dossier validé après vérification de l'ensemble des documents soumis.`;
+
+    this.actionLoading = true;
+    this.commitPendingChanges().subscribe({
+      next: () => {
         this.scolariteService.completeTask(
           this.taskId!,
           'ACCEPTE',
-          this.commentaire,
+          commentaireFinal,
           this.userProfile?.email || this.userProfile?.username || 'scolarite_admin'
         ).subscribe({
           next: () => {
             this.actionLoading = false;
-            // Effacer le cache du dossier après décision réussie
             if (this.pendingDossierId) this.sessionDocCache.delete(this.pendingDossierId);
             this.forceCloseModal();
             this.loadDemandes();
             this.loadStatistiques();
-            this.showNotification('Dossier validé avec succès', 'success');
+            this.showNotification('Dossier validé avec succès ✅', 'success');
           },
           error: (error) => {
             this.actionLoading = false;
@@ -545,10 +564,9 @@ Le Service de Scolarité — ITECH University`;
           }
         });
       },
-      error: (error) => {
+      error: () => {
         this.actionLoading = false;
-        console.error('Erreur commit documents:', error);
-        this.showNotification('Erreur lors de la sauvegarde des documents', 'error');
+        this.showNotification('Erreur sauvegarde documents', 'error');
       }
     });
   }
@@ -565,19 +583,25 @@ Le Service de Scolarité — ITECH University`;
     setTimeout(() => this.toastVisible = false, 3500);
   }
   // ── MODIFIER rejeterDossier() — plus de alert() ──────────────
-
   rejeterDossier() {
-    if (!this.selectedDemande || !this.taskId || !this.commentaire.trim()) return;
+    if (!this.selectedDemande || !this.taskId) return;
+
+    // ✅ Construire la liste des documents rejetés avec motifs
+    const docsRejetes = this.selectedDemande.documents
+      .filter(d => d.statut === 'REJETE')
+      .map(d => `${d.type}||${d.commentaireValidation || 'Non conforme'}`)
+      .join(';;');
+
+    // ✅ Fusionner motif + docs rejetés dans le commentaire
+    const commentaireComplet = `MOTIF:${this.commentaire.trim()}__DOCS:${docsRejetes}`;
 
     this.actionLoading = true;
-    // 1. Committer tous les changements de documents en attente
     this.commitPendingChanges().subscribe({
       next: () => {
-        // 2. Rejeter le dossier
         this.scolariteService.completeTask(
           this.taskId!,
           'REJETE',
-          this.commentaire,
+          commentaireComplet,  // ← commentaire enrichi
           'scolarite_admin'
         ).subscribe({
           next: () => {
@@ -590,14 +614,12 @@ Le Service de Scolarité — ITECH University`;
           },
           error: (error) => {
             this.actionLoading = false;
-            console.error('Erreur rejet:', error);
             this.showNotification('Erreur lors du rejet', 'error');
           }
         });
       },
-      error: (error) => {
+      error: () => {
         this.actionLoading = false;
-        console.error('Erreur commit documents:', error);
         this.showNotification('Erreur lors de la sauvegarde des documents', 'error');
       }
     });
@@ -611,20 +633,22 @@ Le Service de Scolarité — ITECH University`;
       this.showExportMenu = false;
     }
   }
-
-
   demanderPieces() {
-    if (!this.selectedDemande || !this.taskId || !this.commentaire.trim()) return;
+    if (!this.selectedDemande || !this.taskId) return;
+
+    // Construire la liste brute des docs manquants/rejetés
+    const docsManquants = this.selectedDemande.documents
+      .filter(d => d.statut === 'REJETE' || d.statut === 'MANQUANTE')
+      .map(d => d.type)
+      .join(',');
 
     this.actionLoading = true;
-    // 1. Committer tous les changements de documents en attente
     this.commitPendingChanges().subscribe({
       next: () => {
-        // 2. Envoyer la demande de pièces
         this.scolariteService.completeTask(
           this.taskId!,
           'DOCUMENT_ILLISIBLE',
-          this.commentaire,
+          docsManquants,  // ← liste brute, pas de HTML
           this.userProfile?.email || 'scolarite_admin'
         ).subscribe({
           next: () => {
@@ -643,7 +667,6 @@ Le Service de Scolarité — ITECH University`;
       },
       error: (error) => {
         this.actionLoading = false;
-        console.error('Erreur commit documents:', error);
         this.showNotification('Erreur lors de la sauvegarde des documents', 'error');
       }
     });
@@ -702,6 +725,12 @@ Le Service de Scolarité — ITECH University`;
     return forkJoin(apiCalls);
   }
 
+  /** Helper pour vérifier si tous les documents obligatoires sont SOUMIS */
+  areAllDocumentsSubmitted(docs: any[] | undefined): boolean {
+    if (!docs) return false;
+    return docs.every(d => d.statut !== 'MANQUANTE' && d.statut !== 'A_FOURNIR');
+  }
+
   get hasPendingChanges(): boolean {
     return this.pendingDocChanges.size > 0;
   }
@@ -738,6 +767,15 @@ Le Service de Scolarité — ITECH University`;
     }
 
     return this.selectedDemande.documents.every(doc => doc.statut === 'VALIDE');
+  }
+
+  get areAllDocumentsTreated(): boolean {
+    if (!this.selectedDemande || !this.selectedDemande.documents) return false;
+    if (this.selectedDemande.documents.length === 0) return true;
+
+    return this.selectedDemande.documents.every(doc =>
+      doc.statut === 'VALIDE' || doc.statut === 'REJETE'
+    );
   }
 
   get isAssignedToOther(): boolean {
@@ -911,21 +949,6 @@ Le Service de Scolarité — ITECH University`;
     return documents.some(d => d.statut === 'MANQUANTE' || d.statut === 'REJETE');
   }
 
-  /** Retourne vrai uniquement si TOUS les documents sont VALIDE (ou REJETE en mode RELANCE) */
-  areAllDocumentsSubmitted(documents: any[]): boolean {
-    if (!documents || documents.length === 0) return false;
-
-    const isRelanceMode = this.selectedDemande && (
-      this.selectedDemande.statutActuel === 'RELANCE' ||
-      this.selectedDemande.statutActuel === 'EN_ATTENTE_DOCUMENT'
-    );
-
-    if (isRelanceMode) {
-      return documents.every(d => d.statut === 'VALIDE' || d.statut === 'REJETE');
-    }
-
-    return documents.every(d => d.statut === 'VALIDE');
-  }
 
   getCompletionPercentage(documents: any[]): number {
     if (!documents || documents.length === 0) return 0;
@@ -1271,13 +1294,13 @@ Le Service de Scolarité — ITECH University`;
   selectQuickReason(reason: string) {
     this.rejectionDocComment = reason;
   }
-  onBtnDemanderPiecesClick() {
-    this.activeTab = 'action';
-    // Laisser Angular finir le rendu du tab avant d'ouvrir le dialog
-    setTimeout(() => {
-      this.openDemanderPiecesDialog();
-    }, 50);
-  }
+  // onBtnDemanderPiecesClick() {
+  //   this.activeTab = 'action';
+  //   // Laisser Angular finir le rendu du tab avant d'ouvrir le dialog
+  //   setTimeout(() => {
+  //     this.openDemanderPiecesDialog();
+  //   }, 50);
+  // }
 
   commencerTraitement() {
     if (!this.selectedDemande || this.selectedDemande.statutActuel !== 'SOUMIS') return;
@@ -1305,6 +1328,71 @@ Le Service de Scolarité — ITECH University`;
         this.actionLoading = false;
         console.error('Erreur prise en charge:', error);
         this.showNotification('Erreur lors de la prise en charge', 'error');
+      }
+    });
+  }
+  // Propriété pour le dialog de confirmation
+  showConfirmDemanderPieces = false;
+  apercuDocsManquants: { type: string; motif: string }[] = [];
+
+  // Ouvre le dialog avec aperçu
+  ouvrirConfirmDemanderPieces() {
+    if (!this.selectedDemande) return;
+
+    // Construire l'aperçu avec type + motif
+    this.apercuDocsManquants = this.selectedDemande.documents
+      .filter(d => d.statut === 'REJETE' || d.statut === 'MANQUANTE')
+      .map(d => ({
+        type: d.type,
+        motif: d.commentaireValidation ||
+          (d.statut === 'MANQUANTE' ? 'Document non soumis' : 'Non conforme')
+      }));
+
+    if (this.apercuDocsManquants.length === 0) {
+      this.showNotification('Aucun document rejeté ou manquant', 'error');
+      return;
+    }
+
+    this.showConfirmDemanderPieces = true;
+  }
+
+  // Confirme et envoie
+  confirmerDemanderPieces() {
+    if (!this.selectedDemande || !this.taskId) return;
+
+    // Format enrichi : type||motif;;type||motif
+    const docsPayload = this.apercuDocsManquants
+      .map(d => `${d.type}||${d.motif}`)
+      .join(';;');
+
+    this.actionLoading = true;
+    this.showConfirmDemanderPieces = false;
+
+    this.commitPendingChanges().subscribe({
+      next: () => {
+        this.scolariteService.completeTask(
+          this.taskId!,
+          'DOCUMENT_ILLISIBLE',
+          docsPayload,
+          this.userProfile?.email || 'scolarite_admin'
+        ).subscribe({
+          next: () => {
+            this.actionLoading = false;
+            if (this.pendingDossierId)
+              this.sessionDocCache.delete(this.pendingDossierId);
+            this.forceCloseModal();
+            this.loadDemandes();
+            this.showNotification('Demande envoyée ✅', 'success');
+          },
+          error: () => {
+            this.actionLoading = false;
+            this.showNotification('Erreur lors de l\'envoi', 'error');
+          }
+        });
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.showNotification('Erreur sauvegarde documents', 'error');
       }
     });
   }

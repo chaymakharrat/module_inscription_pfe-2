@@ -437,10 +437,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     { value: 'MATHEMATIQUES', label: 'Bac Mathématiques' },
     { value: 'TECHNIQUE', label: 'Bac Technique' },
     { value: 'ECONOMIE_GESTION', label: 'Bac Économie et Gestion' },
-    { value: 'SCIENCES_INFORMATIQUE', label: "Bac Sciences de l'Informatique" },
-    { value: 'LETTRES', label: 'Bac Lettres' },
-    { value: 'SPORT', label: 'Bac Sport' },
-    { value: 'AUTRE', label: 'Autre' }
+    { value: 'SCIENCES_INFORMATIQUE', label: "Bac Sciences de l'Informatique" }
   ];
 
   private readonly DRAFT_KEY = 'pre_inscription_draft';

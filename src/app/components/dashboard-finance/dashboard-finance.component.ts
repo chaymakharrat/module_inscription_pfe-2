@@ -67,6 +67,7 @@ export interface EcheanceDTO {
 export interface FactureSummaryDTO {
   id: number;
   numeroFacture: string;
+  montantBrut: number;
   montantTotal: number;
   montantPaye: number;
   montantRestant: number;
@@ -164,6 +165,7 @@ export class DashboardFinanceComponent implements OnInit {
 
   private apiUrl = `${environment.apiUrl}/FINANCE-SERVICE/api/dashboard-finance`;
   protected Math = Math;
+  today: Date = new Date();
 
   userProfile: KeycloakProfile | null = null;
   emailAgent = '';
@@ -183,7 +185,7 @@ export class DashboardFinanceComponent implements OnInit {
 
   showModal = false;
   selectedFormulaire: FormulaireDashboardDTO | null = null;
-  activeTab: 'preferences' | 'facture' | 'decision' = 'preferences';
+  activeTab: 'preferences' | 'facture' = 'preferences';
 
   showDecisionForm = false;
   pendingDecision: 'VALIDER' | 'REFUSER' | null = null;
@@ -320,7 +322,7 @@ export class DashboardFinanceComponent implements OnInit {
     return pages;
   }
 
-  openDetail(f: FormulaireDashboardDTO, tab: 'preferences' | 'facture' | 'decision' = 'preferences'): void {
+  openDetail(f: FormulaireDashboardDTO, tab: 'preferences' | 'facture' = 'preferences'): void {
     this.selectedFormulaire = f;
     this.activeTab = tab;
     this.showModal = true;
@@ -371,7 +373,7 @@ export class DashboardFinanceComponent implements OnInit {
     this.pendingDecision = decision;
     this.showDecisionForm = true;
     if (decision === 'VALIDER') {
-      this.commentaireDecision = '';
+      this.commentaireDecision = 'Dossier validé. Les préférences financières ont été confirmées.';
     } else {
       this.commentaireDecision = '';
     }
@@ -402,7 +404,7 @@ export class DashboardFinanceComponent implements OnInit {
       // 2. Récupérer le taskId Camunda
       const env = (window as any).environment || { workflowServiceUrl: 'http://localhost:8080' }; // Fallback simple si import manquant
       const tasks = await this.scolariteService.getTasksForEnrollment(this.selectedFormulaire.enrollmentId).toPromise();
-      
+
       if (!tasks || tasks.length === 0) {
         this.actionLoading = false;
         this.showToast('❌ Aucune tâche Camunda trouvée pour ce dossier', 'error');
@@ -458,7 +460,11 @@ export class DashboardFinanceComponent implements OnInit {
 
   ouvrirPaiement(echeance: EcheanceDTO): void {
     this.selectedEcheance = echeance;
+
+    // Le backend a déjà déduit la remise du `montantAPayer` de l'échéance.
+    // On ne doit donc PAS réappliquer la remise ici sous peine d'un double discount.
     this.montantPaiement = echeance.montantAPayer;
+
     this.modePaiementSelectionne = 'ESPECES';
     this.showPaiementDialog = true;
   }
@@ -467,6 +473,20 @@ export class DashboardFinanceComponent implements OnInit {
     this.showPaiementDialog = false;
     this.selectedEcheance = null;
     this.montantPaiement = 0;
+  }
+
+  recalculerTotauxRemises(): void {
+    if (!this.selectedFormulaire) return;
+
+    // Somme des pourcentages des remises qui sont soit déjà ACCEPTEE en base
+    // SOIT ont une décision locale "acceptee" en cours dans pendingRemiseDecisions
+    const total = this.selectedFormulaire.remisesDemandees.reduce((sum, r) => {
+      const pending = this.pendingRemiseDecisions.get(r.id);
+      const isAccepted = pending ? pending.acceptee : (r.statut === 'ACCEPTEE');
+      return isAccepted ? sum + r.pourcentage : sum;
+    }, 0);
+
+    this.selectedFormulaire.totalRemiseAcceptee = total;
   }
 
   // confirmerPaiement(): void {
@@ -668,6 +688,7 @@ export class DashboardFinanceComponent implements OnInit {
       'SCOLARITE_VALIDEE',
       'EN_COURS_DEPARTEMENT',
       'DEPARTEMENT_VALIDE',
+      'FORMULAIRE_ENVOYE',
       'EN_ATTENTE_PAIEMENT',
       'PAIEMENT_VALIDE',
       'INSCRIT'
@@ -691,7 +712,7 @@ export class DashboardFinanceComponent implements OnInit {
     const activeMap: Record<string, string[]> = {
       'SCOLARITE': ['SOUMIS', 'EN_COURS_SCOLARITE', 'EN_ATTENTE_DOCUMENT'],
       'DEPARTEMENT': ['EN_COURS_DEPARTEMENT', 'SCOLARITE_VALIDEE'],
-      'PAIEMENT': ['EN_ATTENTE_PAIEMENT', 'DEPARTEMENT_VALIDE', 'SOUMIS'],
+      'PAIEMENT': ['EN_ATTENTE_PAIEMENT', 'FORMULAIRE_ENVOYE', 'DEPARTEMENT_VALIDE', 'SOUMIS'],
       'INSCRIT': ['PAIEMENT_VALIDE'],
     };
     if (step === 'PAIEMENT' && this.selectedFormulaire.statut === 'SOUMIS') return true;
@@ -739,8 +760,9 @@ export class DashboardFinanceComponent implements OnInit {
     return Math.round((this.stats.montantTotalEncaisse / total) * 100);
   }
 
-  getNombreEcheancesImpayees(facture: FactureSummaryDTO): number {
-    return facture.echeances.filter(e => e.statut === 'EN_ATTENTE').length;
+  getNombreEcheancesImpayees(facture?: FactureSummaryDTO): number {
+    if (!facture || !facture.echeances) return 0;
+    return facture.echeances.filter(e => e.statut === 'EN_ATTENTE' || e.statut === 'IMPAYE').length;
   }
 
   private showToast(message: string, type: 'success' | 'error'): void {
@@ -906,13 +928,14 @@ export class DashboardFinanceComponent implements OnInit {
 
   deciderRemise(remise: RemiseDTO, acceptee: boolean): void {
     if (!this.selectedFormulaire) return;
-    
+
     if (acceptee) {
       const commentaire = `Remise "${remise.motif}" acceptée.`;
       // Mise à jour locale immédiate pour le feedback visuel
       remise.statut = 'ACCEPTEE';
       remise.commentaireAgent = commentaire;
       this.pendingRemiseDecisions.set(remise.id, { acceptee: true, commentaire });
+      this.recalculerTotauxRemises(); // Mise à jour globale immédiate
       this.showToast(`✓ Remise "${remise.motif}" acceptée localement`, 'success');
     } else {
       this.ouvrirRejetRemise(remise);
@@ -937,15 +960,16 @@ export class DashboardFinanceComponent implements OnInit {
 
   confirmerRejetRemise(): void {
     if (!this.selectedRemiseForRejet || !this.rejetRemiseMotif.trim()) return;
-    
+
     const remise = this.selectedRemiseForRejet;
     const commentaire = this.rejetRemiseMotif;
-    
+
     // Mise à jour locale
     remise.statut = 'REFUSEE';
     remise.commentaireAgent = commentaire;
     this.pendingRemiseDecisions.set(remise.id, { acceptee: false, commentaire });
-    
+    this.recalculerTotauxRemises(); // Mise à jour globale immédiate
+
     this.showToast(`✕ Remise "${remise.motif}" refusée localement`, 'success');
     this.annulerRejetRemise();
   }
@@ -957,10 +981,10 @@ export class DashboardFinanceComponent implements OnInit {
   // Cela signifie probablement que l'envoi vers la DB doit être fait IMMÉDIATEMENT quand l'agent clique sur "Confirmer le rejet" dans le nouveau modal.
   // Rectifions confirmerRejetRemise() pour envoyer la requête si c'est ce qui est voulu.
   // "on n'envoie la requête [...] seulement si il prend une décision" -> décision individuelle remise.
-  
+
   confirmerRejetRemiseBase(): void {
     if (!this.selectedRemiseForRejet || !this.selectedFormulaire) return;
-    
+
     const remise = this.selectedRemiseForRejet;
     const commentaire = this.rejetRemiseMotif;
     const payload: RemiseDecisionRequest = {
@@ -968,7 +992,7 @@ export class DashboardFinanceComponent implements OnInit {
       commentaire,
       agentEmail: this.emailAgent
     };
-    
+
     this.actionLoading = true;
     this.http.patch(
       `${this.apiUrl}/formulaires/${this.selectedFormulaire.enrollmentId}/remises/${remise.id}/decision`,
@@ -998,7 +1022,7 @@ export class DashboardFinanceComponent implements OnInit {
       commentaire,
       agentEmail: this.emailAgent
     };
-    
+
     this.http.patch(
       `${this.apiUrl}/formulaires/${this.selectedFormulaire.enrollmentId}/remises/${remise.id}/decision`,
       payload
@@ -1037,7 +1061,7 @@ export class DashboardFinanceComponent implements OnInit {
 
   toutesRemisesDecidees(): boolean {
     if (!this.selectedFormulaire?.remisesDemandees) return true;
-    return this.selectedFormulaire.remisesDemandees.every(r => 
+    return this.selectedFormulaire.remisesDemandees.every(r =>
       r.statut !== 'EN_ATTENTE' || this.pendingRemiseDecisions.has(r.id)
     );
   }
@@ -1057,5 +1081,47 @@ export class DashboardFinanceComponent implements OnInit {
     this.showDocumentViewer = false;
     this.currentDocumentUrl = null;
     this.currentDocumentName = null;
+  }
+  pdfLoading = false;
+  recuPdfLoadingMap: { [key: number]: boolean } = {};
+
+  downloadFacturePdf(factureId: number): void {
+    this.pdfLoading = true;
+    const url = `${environment.apiUrl}/FINANCE-SERVICE/api/finance/factures/${factureId}/pdf`;
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `facture-${factureId}.pdf`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        this.pdfLoading = false;
+        this.showToast('✅ Facture téléchargée', 'success');
+      },
+      error: () => {
+        this.pdfLoading = false;
+        this.showToast('❌ Erreur téléchargement PDF', 'error');
+      }
+    });
+  }
+
+  downloadRecuPaiement(echeanceId: number): void {
+    this.recuPdfLoadingMap[echeanceId] = true;
+    const url = `${environment.apiUrl}/FINANCE-SERVICE/api/finance/paiements/echeance/${echeanceId}/recu`;
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `recu-paiement-${echeanceId}.pdf`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        this.recuPdfLoadingMap[echeanceId] = false;
+        this.showToast('✅ Reçu téléchargé', 'success');
+      },
+      error: () => {
+        this.recuPdfLoadingMap[echeanceId] = false;
+        this.showToast('❌ Erreur téléchargement PDF', 'error');
+      }
+    });
   }
 }
