@@ -50,13 +50,34 @@ export interface Student {
     matricule?: string;
 }
 
+// export interface DemandeInscription {
+//     id?: number;
+//     etudiantId: number;
+//     nomDiplome: string;
+//     typeDeDiplome?: string;
+//     langueDiplome?: string;
+//     niveauChoisi?: string;
+//     dateCreation?: string;
+// }
 export interface DemandeInscription {
     id?: number;
     etudiantId: number;
-    nomDiplome: string;
+
+    // ✅ NOUVEAU — remplace nomDiplome + langueDiplome + niveauChoisi
+    niveauSpecifiqueId?: number | null;
+
+    // ✅ Conservé — info propre à la demande
     typeDeDiplome?: string;
-    langueDiplome?: string;
-    niveauChoisi?: string;
+
+    // ❌ Ces champs ne sont plus envoyés au backend
+    // nomDiplome?: string;
+    // langueDiplome?: string;
+    // niveauChoisi?: string;
+
     dateCreation?: string;
+    statutActuel?: string;
+    processInstanceId?: string;
+    tokenAcces?: string;
+    tokenExpiration?: string;
 }
 

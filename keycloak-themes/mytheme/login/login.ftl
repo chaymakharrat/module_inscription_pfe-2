@@ -238,6 +238,12 @@
                 <p class="subtitle">iTech University</p>
             </div>
 
+            <#if message?has_content>
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #dc2626; padding: 12px 16px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; text-align: center; font-weight: 500;">
+                    ${message.summary?no_esc}
+                </div>
+            </#if>
+
             <form action="${url.loginAction}" method="post">
                 <div class="form-group">
                     <label for="username">Nom d'utilisateur</label>

@@ -161,7 +161,7 @@
                                 <path
                                     d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.354 4.646a.5.5 0 010 .708L7 9.707 5.146 7.854a.5.5 0 01.708-.708L7 8.293l3.646-3.647a.5.5 0 01.708 0z" />
                             </svg>
-                            Délai de paiement : 7 jours après validation
+                            Délai de paiement : 3 jours après validation
                         </div>
                     </div>
                 </div>
@@ -181,14 +181,14 @@
                     </div>
                     <div class="type-body">
                         <h3>Paiement en mensualités</h3>
-                        <p>Fractionnez vos frais en 3 versements mensuels égaux.</p>
+                        <p>Fractionnez vos frais en 9 versements mensuels égaux.</p>
                         <!-- ✅ Message informatif fixe — fréquence définie par l'administration -->
                         <div class="type-avantage" *ngIf="preferences.typePaiement === 'PARTIEL'">
                             <svg viewBox="0 0 16 16" fill="currentColor">
                                 <path
                                     d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.354 4.646a.5.5 0 010 .708L7 9.707 5.146 7.854a.5.5 0 01.708-.708L7 8.293l3.646-3.647a.5.5 0 01.708 0z" />
                             </svg>
-                            3 échéances · 1 versement par mois
+                            9 échéances · 1 versement par mois
                         </div>
                     </div>
                 </div>
@@ -222,26 +222,6 @@
                 <p>Cochez toutes les remises auxquelles vous êtes éligible(e). Elles seront vérifiées par le service
                     financier.</p>
             </div>
-
-            <!-- <div class="remises-list" *ngIf="remisesDisponibles.length > 0; else noRemises">
-                <div class="remise-item" *ngFor="let remise of remisesDisponibles"
-                    [class.remise-selected]="isRemiseSelected(remise.id)" (click)="toggleRemise(remise.id)">
-                    <div class="remise-check">
-                        <svg *ngIf="isRemiseSelected(remise.id)" viewBox="0 0 16 16" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M12.354 4.354a.5.5 0 010 .707l-7 7a.5.5 0 01-.708 0l-3.5-3.5a.5.5 0 01.708-.708L5 10.793l6.646-6.647a.5.5 0 01.708 0z"
-                                clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="remise-body">
-                        <div class="remise-header-row">
-                            <span class="remise-motif">{{ remise.motif }}</span>
-                            <span class="remise-pct">-{{ remise.pourcentage }}%</span>
-                        </div>
-                        <p class="remise-desc" *ngIf="remise.description">{{ remise.description }}</p>
-                    </div>
-                </div>
-            </div> -->
             <div class="remises-list">
                 <div class="remise-item-wrap" *ngFor="let remise of remisesDisponibles">
 

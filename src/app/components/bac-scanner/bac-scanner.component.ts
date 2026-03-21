@@ -33,17 +33,39 @@ export interface BacResult {
   <!-- IDLE -->
   <ng-container *ngIf="state === 'idle'">
     <div class="idle-card">
-      <div class="icon-wrap">🎓</div>
+      <div class="icon-wrap">
+        <svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path d="M12 14l9-5-9-5-9 5 9 5z" />
+          <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
+        </svg>
+      </div>
       <p class="idle-title">Scanner le diplôme de Bac</p>
       <p class="idle-sub">
         Photographiez le <strong>diplôme complet</strong> — le 2D-DOC est en bas à gauche<br/>
         <strong>100% fiable · Pas d'erreur OCR possible</strong>
       </p>
       <div class="idle-btns">
-        <button type="button" class="btn-camera" (click)="startCamera()">📷 Caméra live</button>
-        <button type="button" class="btn-gallery" (click)="fileInput.click()">🖼️ Galerie</button>
+        <button type="button" class="btn-camera" (click)="startCamera()">
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 012 2H5a2 2 0 01-2-2V9z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Caméra live
+        </button>
+        <button type="button" class="btn-gallery" (click)="fileInput.click()">
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          Galerie
+        </button>
       </div>
-      <p class="idle-tip">💡 Cadrez tout le diplôme, pas seulement le QR code</p>
+      <p class="idle-tip">
+        <svg class="w-3 h-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Cadrez tout le diplôme, pas seulement le QR code
+      </p>
     </div>
   </ng-container>
 
@@ -61,7 +83,12 @@ export interface BacResult {
         </div>
         <div class="cam-badge" [class.found]="qrDetected">
           <span *ngIf="!qrDetected">🔍 Cherche le 2D-DOC…</span>
-          <span *ngIf="qrDetected">✅ Détecté !</span>
+          <span *ngIf="qrDetected">
+            <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+            </svg>
+            Détecté !
+          </span>
         </div>
       </div>
     </div>
@@ -84,12 +111,20 @@ export interface BacResult {
   <ng-container *ngIf="state === 'success'">
     <div class="result-card">
       <div class="result-header">
-        <span class="success-icon">🎓</span>
+        <div class="success-icon">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
         <div>
           <p class="result-title">Données Bac extraites</p>
           <p class="result-sub">Certifiées par le 2D-DOC officiel</p>
         </div>
-        <button type="button" class="btn-sm" (click)="reset()">↺</button>
+        <button type="button" class="btn-sm" (click)="reset()">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
       </div>
 
       <div class="data-list">
@@ -149,11 +184,19 @@ export interface BacResult {
     ↺ Rescanner
   </button>
 </div> -->
-<div class="flex items-center gap-2 mt-3 p-3 rounded-xl"
-     [ngClass]="result?.isManual ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-200'">
-  <span>{{ result?.isManual ? '⚠️' : '✅' }}</span>
+<div class="flex items-center gap-2 mt-3 p-4 rounded-2xl border transition-all duration-300"
+     [ngClass]="result?.isManual ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'">
+  <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+       [ngClass]="result?.isManual ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'">
+    <svg *ngIf="!result?.isManual" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+    </svg>
+    <svg *ngIf="result?.isManual" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  </div>
   <div class="flex-1">
-    <p class="text-xs font-bold" [ngClass]="result?.isManual ? 'text-amber-700' : 'text-green-700'">
+    <p class="text-xs font-extrabold" [ngClass]="result?.isManual ? 'text-amber-800' : 'text-green-800'">
       <ng-container *ngIf="result?.success && !result?.isManual">
         Données transmises automatiquement
       </ng-container>
@@ -161,13 +204,16 @@ export interface BacResult {
         QR illisible — document enregistré pour vérification
       </ng-container>
     </p>
-    <p *ngIf="result?.isManual" class="text-xs text-amber-600 mt-0.5">
-      💡 Pour un meilleur résultat : photographiez le diplôme entier avec bonne lumière, en cadrant bien le code 2D-DOC en bas à gauche.
+    <p *ngIf="result?.isManual" class="text-xs text-amber-700/80 mt-1 font-medium leading-relaxed">
+      Aidez-nous à valider plus vite en cadrant bien le code 2D-DOC en bas à gauche.
     </p>
   </div>
-  <button type="button" class="ml-auto text-xs text-slate-400 hover:text-slate-600 font-bold flex-shrink-0"
+  <button type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-[10px] font-black text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all flex-shrink-0"
           (click)="reset()">
-    ↺ Rescanner
+    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+    Rescanner
   </button>
 </div>
     </div>
@@ -176,13 +222,23 @@ export interface BacResult {
   <!-- ERROR -->
   <!-- <ng-container *ngIf="state === 'error'">
     <div class="error-card">
-      <p class="error-title">⚠️ {{ errorMessage }}</p>
+      <p class="error-title">
+        <svg class="w-5 h-5 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        {{ errorMessage }}
+      </p>
       <p class="error-sub">
         Conseil : photographiez <strong>le diplôme entier</strong>, pas seulement le QR code.
         Bonne lumière, image nette.
       </p>
       <div class="idle-btns" style="margin-top:10px">
-        <button type="button" class="btn-camera" (click)="startCamera()">📷 Réessayer</button>
+        <button type="button" class="btn-camera" (click)="startCamera()">
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 012 2H5a2 2 0 01-2-2V9z" />
+          </svg>
+          Réessayer
+        </button>
         <button type="button" class="btn-gallery" (click)="reset()">Annuler</button>
       </div>
     </div>
@@ -223,26 +279,49 @@ export interface BacResult {
 
     /* IDLE */
     .idle-card {
-      display:flex; flex-direction:column; align-items:center; gap:14px;
-      border:2px dashed #fde68a; border-radius:20px;
-      background:linear-gradient(135deg,#fffbeb,#fef9c3); padding:32px 24px; text-align:center;
+      display:flex; flex-direction:column; align-items:center; gap:18px;
+      border:2px solid #f1f5f9; border-radius:24px;
+      background:#f8fafc; padding:40px 24px; text-align:center;
+      transition: all 0.3s ease;
     }
-    .icon-wrap { font-size:42px; }
-    .idle-title { font-size:15px; font-weight:900; color:#78350f; margin:0; }
-    .idle-sub   { font-size:12px; color:#92400e; margin:0; line-height:1.7; }
-    .idle-sub strong { color:#b45309; }
-    .idle-tip   { font-size:10px; color:#fbbf24; margin:0; }
-    .idle-btns  { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; width:100%; }
+    .icon-wrap { 
+      width:72px; height:72px; border-radius:20px;
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      display:flex; align-items:center; justify-content:center;
+      color:#2563eb; margin-bottom:4px;
+      box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.1);
+    }
+    .idle-title { font-size:16px; font-weight:900; color:#1e293b; margin:0; }
+    .idle-sub   { font-size:12px; color:#64748b; margin:0; line-height:1.7; }
+    .idle-sub strong { color:#334155; }
+    .idle-tip   { 
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:700; color:#94a3b8; margin:0; 
+      background: white; padding: 6px 12px; border-radius: 999px;
+      border: 1px solid #f1f5f9;
+    }
+    .idle-btns  { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; width:100%; }
     .btn-camera {
-      flex:1; padding:12px 20px; background:#d97706; color:#fff;
-      border:none; border-radius:14px; font-weight:900; font-size:12px;
-      letter-spacing:.07em; cursor:pointer; transition:all .2s;
+      flex:1; padding:14px 24px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color:#fff;
+      border:none; border-radius:16px; font-weight:900; font-size:13px;
+      letter-spacing:.03em; cursor:pointer; transition:all .3s cubic-bezier(0.16, 1, 0.3, 1);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+      animation: pulse 2s infinite;
     }
-    .btn-camera:hover { background:#b45309; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+    .btn-camera:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.5); }
     .btn-gallery {
-      padding:12px 20px; background:#f1f5f9; color:#475569;
-      border:none; border-radius:14px; font-weight:800; font-size:12px; cursor:pointer;
+      padding:14px 24px; background:white; color:#475569;
+      border:1.5px solid #e2e8f0; border-radius:16px; font-weight:800; font-size:13px; 
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition: all 0.2s;
     }
+    .btn-gallery:hover { background:#f8fafc; border-color:#cbd5e1; }
 
     /* CAMERA */
     .frame-hint { text-align:center; font-size:12px; font-weight:800; color:#d97706; margin-bottom:10px; }
@@ -257,40 +336,47 @@ export interface BacResult {
     .qr-c.tr { top:0; right:0; border-top-width:3px; border-right-width:3px; border-radius:0 6px 0 0; }
     .qr-c.bl { bottom:0; left:0; border-bottom-width:3px; border-left-width:3px; border-radius:0 0 0 6px; }
     .qr-c.br { bottom:0; right:0; border-bottom-width:3px; border-right-width:3px; border-radius:0 0 6px 0; }
-    .scan-line { position:absolute; left:6px; right:6px; height:2px; background:linear-gradient(90deg,transparent,#fbbf24,transparent); animation:beam 1.8s ease-in-out infinite; }
+    .scan-line { position:absolute; left:6px; right:6px; height:2px; background:linear-gradient(90deg,transparent,#60a5fa,transparent); animation:beam 1.8s ease-in-out infinite; }
     .scan-line.stop { animation:none; top:50%; background:linear-gradient(90deg,transparent,#4ade80,transparent); }
     @keyframes beam { 0%{top:4px} 50%{top:calc(100% - 4px)} 100%{top:4px} }
-    .cam-badge { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.7); backdrop-filter:blur(6px); border-radius:20px; padding:6px 16px; font-size:12px; font-weight:700; color:#fbbf24; white-space:nowrap; }
+    .cam-badge { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.7); backdrop-filter:blur(6px); border-radius:20px; padding:6px 16px; font-size:12px; font-weight:700; color:#60a5fa; white-space:nowrap; }
     .cam-badge.found { color:#4ade80; }
     .camera-btns { display:flex; gap:8px; margin-top:10px; }
     .btn-ghost { flex:1; padding:10px; background:transparent; color:#475569; border:2px solid #e2e8f0; border-radius:12px; font-weight:700; font-size:11px; cursor:pointer; }
 
     /* LOADING */
-    .loading-card { display:flex; flex-direction:column; align-items:center; gap:14px; padding:40px 24px; text-align:center; border:2px solid #fde68a; border-radius:20px; background:#fffbeb; }
-    .loading-spinner { width:48px; height:48px; border:4px solid #fde68a; border-top-color:#d97706; border-radius:50%; animation:spin .8s linear infinite; }
+    .loading-card { display:flex; flex-direction:column; align-items:center; gap:14px; padding:40px 24px; text-align:center; border:2px solid #dbeafe; border-radius:20px; background:white; }
+    .loading-spinner { width:48px; height:48px; border:4px solid #eff6ff; border-top-color:#2563eb; border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    .loading-txt { font-size:14px; font-weight:900; color:#d97706; margin:0; }
-    .loading-sub { font-size:11px; color:#92400e; margin:0; }
+    .loading-txt { font-size:14px; font-weight:900; color:#2563eb; margin:0; }
+    .loading-sub { font-size:11px; color:#64748b; margin:0; }
 
     /* SUCCESS */
-    .result-card { border:2px solid #fde68a; border-radius:20px; background:linear-gradient(135deg,#fffbeb,#f0fdf4); padding:20px; }
-    .result-header { display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; }
-    .success-icon { font-size:28px; flex-shrink:0; }
-    .result-title { font-size:14px; font-weight:900; color:#78350f; margin:0 0 2px; }
-    .result-sub   { font-size:10px; color:#d97706; margin:0; }
-    .btn-sm { padding:6px 10px; background:transparent; border:none; font-size:16px; color:#94a3b8; cursor:pointer; margin-left:auto; }
-    .data-list { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
-    .data-item { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#fff; border-radius:12px; border:1px solid #fde68a; gap:12px; }
-    .dk { font-size:10px; font-weight:900; color:#d97706; text-transform:uppercase; letter-spacing:.07em; flex-shrink:0; }
-    .dv { font-size:14px; font-weight:700; color:#1e293b; text-align:right; }
-    .dv.rtl { direction:rtl; font-family:'Segoe UI',Tahoma,sans-serif; }
-    .dv.mono { font-family:monospace; letter-spacing:.1em; }
-    .dv.mention { color:#16a34a; font-weight:900; }
+    .result-card { border:1px solid #e2e8f0; border-radius:24px; background:#f8fafc; padding:24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
+    .result-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+    .result-card { border:1px solid #e2e8f0; border-radius:24px; background:#f8fafc; padding:24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
+    .result-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+    .success-icon { 
+      width:48px; height:48px; border-radius:14px; background:#f0fdf4; color:#16a34a;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0;
+    }
+    .result-title { font-size:15px; font-weight:900; color:#1e293b; margin:0 0 2px; }
+    .result-sub   { font-size:11px; color:#64748b; margin:0; font-weight:600; }
+    .btn-sm { padding:8px; background:white; border:1px solid #e2e8f0; border-radius:10px; color:#94a3b8; cursor:pointer; margin-left:auto; transition:all 0.2s; }
+    .btn-sm:hover { color:#2563eb; border-color:#dbeafe; background:#eff6ff; }
+    .data-list { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+    .data-item { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#fff; border-radius:14px; border:1px solid #f1f5f9; gap:12px; }
+    .dk { font-size:10px; font-weight:900; color:#94a3b8; text-transform:uppercase; letter-spacing:.1em; flex-shrink:0; }
+    .dv { font-size:14px; font-weight:800; color:#0f172a; text-align:right; }
+    .dv.rtl { direction:rtl; font-family:'Segoe UI',Tahoma,sans-serif; font-size:15px; }
+    .dv.mono { font-family:'JetBrains Mono', monospace; font-size:13px; color:#2563eb; }
+    .dv.mention { color:#16a34a; font-weight:900; padding:2px 10px; background:#f0fdf4; border-radius:8px; }
     .debug-section { margin-bottom:14px; }
-    .debug-toggle { font-size:11px; font-weight:700; color:#d97706; cursor:pointer; padding:6px 0; list-style:none; }
+    .debug-toggle { font-size:11px; font-weight:700; color:#2563eb; cursor:pointer; padding:6px 0; list-style:none; }
     .debug-raw { background:#1e1b4b; color:#a5b4fc; border-radius:10px; padding:12px; font-size:10px; margin:6px 0 0; white-space:pre-wrap; word-break:break-all; max-height:150px; overflow-y:auto; }
-    .btn-confirm { width:100%; padding:13px; background:#d97706; color:#fff; border:none; border-radius:14px; font-weight:900; font-size:12px; letter-spacing:.1em; cursor:pointer; transition:background .2s; }
-    .btn-confirm:hover { background:#b45309; }
+    .btn-confirm { width:100%; padding:13px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color:#fff; border:none; border-radius:14px; font-weight:900; font-size:12px; letter-spacing:.1em; cursor:pointer; transition:all .3s ease; }
+    .btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4); }
 
     /* ERROR */
     .error-card { border:2px solid #fecaca; border-radius:16px; background:#fff5f5; padding:20px; text-align:center; }

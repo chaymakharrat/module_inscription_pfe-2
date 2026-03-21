@@ -64,6 +64,7 @@ export class DashboardAdminComponent implements OnInit {
     private router: Router,
     private keycloak: KeycloakService
   ) { }
+  private pollingInterval: any;
 
   async ngOnInit() {
     this.isLoggedIn = await this.keycloak.isLoggedIn();
@@ -77,6 +78,17 @@ export class DashboardAdminComponent implements OnInit {
     this.loadStats();
     this.loadDistribution();
     this.loadDemandes();
+    // ✅ Polling toutes les 30 secondes
+    this.pollingInterval = setInterval(() => {
+      this.loadStats();
+      this.loadDistribution();
+    }, 30000);
+  }
+  ngOnDestroy() {
+    // ✅ Toujours nettoyer
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+    }
   }
 
   // ========== CHARGEMENT DES DONNÉES ==========

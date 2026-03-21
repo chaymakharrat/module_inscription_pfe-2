@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule, FormBuilder, FormGroup,
@@ -52,7 +52,7 @@ interface Stamped<T> {
     AutoSaveIndicatorComponent,
     ActionButtonsComponent,
     InputComponent,
-    FooterComponent,
+    //FooterComponent,
     CinScannerComponent,
     BacScannerComponent,
     BacScannerServiceComponent,
@@ -74,6 +74,9 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   // ── Form & Navigation ────────────────────────────────────────────────────
   inscriptionForm!: FormGroup;
   countries: Country[] = [];
+  filteredCountries: Country[] = [];
+  countrySearch: string = '';
+  showCountryDropdown = false;
   diplomas: DiplomeEtudier[] = [];
   levels: NiveauDiplomeSpecifique[] = [];
   currentStep = 1;
@@ -120,6 +123,9 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   /** Toutes les demandes de l'étudiant existant */
   existingDemandes: any[] = [];
 
+  /** Statut des documents de l'étudiant existant */
+  existingDocStatuses: any[] = [];
+
   /** Si true, le diplôme visé est déjà dans une demande active */
   duplicateDiplomeBlocked = false;
   duplicateDiplomeMessage = '';
@@ -157,9 +163,8 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
    */
   get isBacForced(): boolean {
     if (this.sessionBac === null) return false;
-    // Si la session BAC est <= 2023, on considère que c'est le dernier diplôme possible 
-    // (ou que c'est la règle de gestion pour l'automatisme).
-    return this.sessionBac <= 2023;
+    // Si l'année d'obtention de bac + 2 > 2026 alors rempli automatiquement les champs
+    return (this.sessionBac + 2) > 2026;
   }
 
   /** Options du select "Dernier Diplôme" selon session */
@@ -335,8 +340,11 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     if (this.nationalityMode === 'tunisian') {
       if (this.sessionBac) {
         if (diplome === 'BACCALAUREAT') return this.sessionBac;
-        if (diplome === 'PREPARATOIRE') return this.sessionBac + 1;
+        // preparatoir alors il ne doit pas inferieur au date d'otention du bac+2
+        if (diplome === 'PREPARATOIRE') return this.sessionBac + 2;
+        // licence alors il ne doit pas inferieur au date d'otention du bac+3
         if (diplome === 'LICENCE') return this.sessionBac + 3;
+        // mater ou cycle ingenieur alors il ne doit pas inferieur au date d'otention du bac+5
         return this.sessionBac + 5;
       }
       // ✅ Sans session → MIN = annéeNaissance + offset exact
@@ -377,7 +385,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     if (this.nationalityMode === 'tunisian') {
       if (this.sessionBac) {
         if (diplome === 'BACCALAUREAT') return `Session ${this.sessionBac} (automatique)`;
-        if (diplome === 'PREPARATOIRE') return `Entre ${this.sessionBac + 1} et ${this.sessionBac + 2}`;
+        if (diplome === 'PREPARATOIRE') return `≥ ${this.sessionBac + 2}`;
         if (diplome === 'LICENCE') return `≥ ${this.sessionBac + 3}`;
         return `≥ ${this.sessionBac + 5}`;
       }
@@ -420,6 +428,8 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   }
   verifyMatch: boolean | null = null;
   verifyReason = '';
+  /** true si le type de bac a été verrouillé après un scan réussi */
+  scanTypeBacLocked = false;
 
   // ── Diplômes ─────────────────────────────────────────────────────────────
   availableLangues: Langue[] = [];
@@ -561,7 +571,11 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
         if (nomDiplome && langue) {
           this.diplomaService.getNiveauxByDiplomeNameAndLangue(nomDiplome, langue)
             .subscribe(data => {
-              this.levels = data;
+              this.levels = data.sort((a, b) => {
+                const nA = parseInt(String(a.niveau), 10);
+                const nB = parseInt(String(b.niveau), 10);
+                return nA - nB;
+              });
               this.inscriptionForm.get('academicInfo.niveauVise')?.setValue('');
             });
         }
@@ -810,11 +824,22 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     const isTunisian = this.nationalityMode === 'tunisian';
 
     if (isTunisian) {
-      // < 21 ans : BAC ou PREPARATOIRE uniquement
+      if (this.sessionBac !== null) {
+        const available = ['BACCALAUREAT'];
+        // si l'année d'obtention de bac +2 <= 2026 alors je me permet de choisir soit son dernier diplome bac ou preparatoire
+        if ((this.sessionBac + 2) <= 2026) available.push('PREPARATOIRE');
+        // si l'année d'obtention de bac +3 <= 2026 alors son dernier diplome peut etre licence
+        if ((this.sessionBac + 3) <= 2026) available.push('LICENCE');
+        // si l'année d'obtention de bac +5 <= 2026 alors son dernier diplome peut etre tout les diplomes
+        if ((this.sessionBac + 5) <= 2026) {
+          if (!available.includes('LICENCE')) available.push('LICENCE');
+          available.push('MASTERE', 'INGENIEUR');
+        }
+        return available;
+      }
+      // Logique par défaut par âge si session inconnue
       if (age < 21) return ['BACCALAUREAT', 'PREPARATOIRE'];
-      // 21 ou 22 ans : BAC, PREPARATOIRE ou LICENCE
       if (age <= 22) return ['BACCALAUREAT', 'PREPARATOIRE', 'LICENCE'];
-      // >= 23 ans : tout
       return ['BACCALAUREAT', 'PREPARATOIRE', 'LICENCE', 'MASTERE', 'INGENIEUR'];
     }
 
@@ -921,13 +946,19 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
       if (!student) {
         this.studentMode = 'new';
+        this.isIdentificationConfirmed = true;
         this.cdr.detectChanges();
         return;
       }
 
       this.existingStudent = student;
       this.studentMode = 'existing';
+      this.isIdentificationConfirmed = true;
       this.prefillFromStudent(student);
+      // Auto-valider état civil et coordonnées pour les étudiants existants (données pré-remplies)
+      this.etatCivilValidated = true;
+      this.coordonneesValidated = true;
+      this.cursusValidated = true;
       this.cdr.detectChanges();
 
       if (student.id) {
@@ -948,6 +979,14 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
           catchError(() => of([]))
         ).subscribe(demandes => {
           this.existingDemandes = demandes ?? [];
+        });
+
+        // Charger les statuts des documents
+        this.studentService.getDocumentsStatus(student.id).pipe(
+          catchError(() => of([]))
+        ).subscribe(docs => {
+          this.existingDocStatuses = docs ?? [];
+          this.cdr.detectChanges();
         });
       }
     }, 0);
@@ -1029,6 +1068,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     this.existingStudent = null;
     this.existingDemande = null;
     this.existingDemandes = [];
+    this.existingDocStatuses = [];
     this.duplicateDiplomeBlocked = false;
     this.duplicateDiplomeMessage = '';
     this.cinStamped = null;
@@ -1076,6 +1116,35 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   // ════════════════════════════════════════════════════════════════════════
   // ── Propriété ──────────────────────────────────────
   isVerifying = false;
+  showSkeleton = false;
+  isIdentificationConfirmed = false;
+
+  // ── Méthodes Intelligence ──────────────────────────
+  autoFormatName(field: string): void {
+    const control = this.personalInfo.get(field);
+    if (!control || !control.value) return;
+
+    let value = control.value.trim();
+    if (field === 'nom') {
+      value = value.toUpperCase();
+    } else if (field === 'prenom') {
+      value = value.split(' ').map((word: string) =>
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
+    }
+    control.setValue(value, { emitEvent: false });
+  }
+
+  triggerConfetti(): void {
+    if ((window as any).confetti) {
+      (window as any).confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#2563eb', '#3b82f6', '#10b981', '#ffffff']
+      });
+    }
+  }
 
   // ── Méthode principale ─────────────────────────────
   verifyAndFillForm(): void {
@@ -1087,20 +1156,23 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     if (!this.bacDiplomeData && !this.bacReleveData) return;
 
     this.isVerifying = true;
+    this.showSkeleton = true;
     this.verifyMatch = null;
     this.verifyReason = '';
 
-    // Simuler délai de vérification
+    // Simuler délai de vérification "intelligent"
     setTimeout(() => {
       this.tryVerify(); // lance la vérification croisée partielle ou totale
 
       if (this.verifyMatch === true) {
         this.fillFormFromDocs(); // remplit le formulaire
+        this.isIdentificationConfirmed = true;
       }
 
+      this.showSkeleton = false;
       this.isVerifying = false;
       this.cdr.detectChanges();
-    }, 800);
+    }, 1800);
   }
 
   // ── Handler pour remplissage manuel forcé depuis CIN ──
@@ -1122,6 +1194,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     // car bacDiplomeData et bacReleveData sont null (scans échoués)
     this.verifyReason = 'Identité remplie via CIN (scans BAC illisibles — validation manuelle requise)';
     this.fillFormFromDocs();
+    this.isIdentificationConfirmed = true;
     this.alertService.success('Formulaire rempli depuis la CIN. Les documents BAC seront vérifiés manuellement.');
   }
 
@@ -1166,6 +1239,10 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       if (this.bacDiplomeData.specialite) {
         const mapped = this.mapSpecialtyToBacType(this.bacDiplomeData.specialite);
         pi.get('typeBac')?.setValue(mapped);
+        if (mapped) {
+          pi.get('typeBac')?.disable({ emitEvent: false });
+          this.scanTypeBacLocked = true;
+        }
       }
     }
 
@@ -1180,7 +1257,11 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       const spec = this.bacReleveData.specialiteFr || (this.bacReleveData as any).specialite;
       if (spec) {
         const mapped = this.mapSpecialtyToBacType(spec);
-        pi.get('typeBac')?.setValue(mapped);
+        if (mapped && !this.scanTypeBacLocked) {
+          pi.get('typeBac')?.setValue(mapped);
+          pi.get('typeBac')?.disable({ emitEvent: false });
+          this.scanTypeBacLocked = true;
+        }
       }
     }
 
@@ -1215,6 +1296,11 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     //this.tryVerify();
   }
   onBacScanned(result: BacResult): void {
+    // Réinitialiser le verrou typeBac à chaque nouveau scan
+    this.scanTypeBacLocked = false;
+    const pi = this.inscriptionForm.get('personalInfo');
+    pi?.get('typeBac')?.enable({ emitEvent: false });
+
     // ✅ TOUJOURS stocker le fichier (scan réussi ou non)
     if ((result as any).file) {
       this.selectedFiles.set(TypeDocument.DIPLOME_BAC, (result as any).file);
@@ -1235,6 +1321,12 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
   // onBacServiceScanned(result: BacServiceResult): void {
   onBacServiceScanned(result: BacServiceResult): void {
+    // Réinitialiser le verrou typeBac à chaque nouveau scan (si pas déjà verrouillé par le scan du diplôme)
+    if (!this.scanTypeBacLocked) {
+      const pi = this.inscriptionForm.get('personalInfo');
+      pi?.get('typeBac')?.enable({ emitEvent: false });
+    }
+
     // ✅ TOUJOURS stocker le fichier
     if ((result as any).file) {
       this.selectedFiles.set(TypeDocument.RELEVE_NOTES, (result as any).file);
@@ -1544,7 +1636,10 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   // DATA LOADING
   // ════════════════════════════════════════════════════════════════════════
   loadInitialData(): void {
-    this.countryService.getCountriesWithIndicatifs().subscribe(data => { this.countries = data; });
+    this.countryService.getCountriesWithIndicatifs().subscribe(data => {
+      this.countries = data;
+      this.filteredCountries = data; // Initialisation
+    });
     this.diplomaService.getDiplomas().subscribe(data => { this.diplomas = data; });
     forkJoin({
       types: this.diplomaService.getTypes(),
@@ -1554,6 +1649,129 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       const typesWithDiplomas = new Set(responsables.filter(r => r.typeNom).map(r => r.typeNom));
       this.typesDiplome = types.filter(t => typesWithDiplomas.has(t.nom));
     });
+  }
+
+  // ── Searchable Country Dropdown logic ──────────────────────────────────────
+  toggleCountryDropdown(): void {
+    this.showCountryDropdown = !this.showCountryDropdown;
+    if (this.showCountryDropdown) {
+      this.countrySearch = '';
+      this.filteredCountries = [...this.countries];
+    }
+  }
+
+  filterCountries(query: string): void {
+    this.countrySearch = query;
+    if (!query) {
+      this.filteredCountries = [...this.countries];
+      return;
+    }
+    const q = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    this.filteredCountries = this.countries.filter(c =>
+      c.nom?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(q) ||
+      c.indicatif?.includes(q)
+    );
+  }
+
+  selectCountry(country: Country): void {
+    this.inscriptionForm.get('personalInfo.pays')?.setValue(country.id);
+    this.showCountryDropdown = false;
+    this.countrySearch = country.nom || '';
+  }
+
+  getSelectedCountryName(): string {
+    const id = this.inscriptionForm.get('personalInfo.pays')?.value;
+    const country = this.countries.find(c => c.id == id);
+    return country?.nom || '';
+  }
+
+  getSelectedCountryIndicatif(): string {
+    const id = this.inscriptionForm.get('personalInfo.pays')?.value;
+    const country = this.countries.find(c => c.id == id);
+    return country?.indicatif || '';
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.premium-select-wrap')) {
+      this.showCountryDropdown = false;
+    }
+  }
+
+  getCountryFlag(nom: string, indicatif?: string): string {
+    const nameMap: Record<string, string> = {
+      // Europe
+      'Andorre': 'ad', 'Andorra': 'ad', 'Albanie': 'al', 'Autriche': 'at', 'Belgique': 'be', 'Belgium': 'be',
+      'Bulgarie': 'bg', 'Biélorussie': 'by', 'Suisse': 'ch', 'Switzerland': 'ch', 'Chypre': 'cy',
+      'République Tchèque': 'cz', 'Allemagne': 'de', 'Germany': 'de', 'Danemark': 'dk', 'Estonie': 'ee',
+      'Espagne': 'es', 'Spain': 'es', 'Finlande': 'fi', 'France': 'fr', 'Royaume-Uni': 'gb', 'UK': 'gb',
+      'Grèce': 'gr', 'Croatie': 'hr', 'Hongrie': 'hu', 'Irlande': 'ie', 'Islande': 'is', 'Italie': 'it',
+      'Italy': 'it', 'Liechtenstein': 'li', 'Lituanie': 'lt', 'Luxembourg': 'lu', 'Lettonie': 'lv',
+      'Monaco': 'mc', 'Moldavie': 'md', 'Monténégro': 'me', 'Macédoine': 'mk', 'Malte': 'mt',
+      'Pays-Bas': 'nl', 'Netherlands': 'nl', 'Norvège': 'no', 'Pologne': 'pl', 'Portugal': 'pt',
+      'Roumanie': 'ro', 'Serbie': 'rs', 'Russie': 'ru', 'Russia': 'ru', 'Suède': 'se', 'Slovénie': 'si',
+      'Slovaquie': 'sk', 'Saint-Marin': 'sm', 'Turquie': 'tr', 'Ukraine': 'ua', 'Vatican': 'va',
+
+      // Afrique (Expanded)
+      'Tunisie': 'tn', 'Tunisia': 'tn', 'Maroc': 'ma', 'Morocco': 'ma', 'Algérie': 'dz', 'Algeria': 'dz',
+      'Libye': 'ly', 'Égypte': 'eg', 'Sénégal': 'sn', 'Senegal': 'sn', 'Mali': 'ml', 'Niger': 'ne',
+      'Tchad': 'td', 'Soudan': 'sd', 'Éthiopie': 'et', 'Somalie': 'so', 'Djibouti': 'dj', 'Kenya': 'ke',
+      'Ouganda': 'ug', 'Rwanda': 'rw', 'Burundi': 'bi', 'Tanzanie': 'tz', 'Malawi': 'mw', 'Zambie': 'zm',
+      'Zimbabwe': 'zw', 'Mozambique': 'mz', 'Afrique du Sud': 'za', 'Namibie': 'na', 'Botswana': 'bw',
+      'Angola': 'ao', 'Gabon': 'ga', 'Congo': 'cg', 'Cameroun': 'cm', 'Nigéria': 'ng', 'Bénin': 'bj',
+      'Togo': 'tg', 'Ghana': 'gh', 'Côte d\'Ivoire': 'ci', 'Libéria': 'lr', 'Sierra Leone': 'sl',
+      'Guinée': 'gn', 'Guinée-Bissau': 'gw', 'Gambie': 'gm', 'Mauritanie': 'mr', 'Érythrée': 'er',
+
+      // Moyen-Orient & Asie
+      'Émirats Arabes Unis': 'ae', 'United Arab Emirates': 'ae', 'Afghanistan': 'af', 'Arménie': 'am',
+      'Azerbaïdjan': 'az', 'Bahreïn': 'bh', 'Bangladesh': 'bd', 'Bhoutan': 'bt', 'Brunei': 'bn',
+      'Cambodge': 'kh', 'Chine': 'cn', 'China': 'cn', 'Géorgie': 'ge', 'Inde': 'in', 'India': 'in',
+      'Indonésie': 'id', 'Iran': 'ir', 'Iraq': 'iq', 'Israël': 'il', 'Japon': 'jp', 'Japan': 'jp',
+      'Jordanie': 'jo', 'Kazakhstan': 'kz', 'Koweït': 'kw', 'Kirghizistan': 'kg', 'Laos': 'la',
+      'Liban': 'lb', 'Malaisie': 'my', 'Maldives': 'mv', 'Mongolie': 'mn', 'Népal': 'np', 'Oman': 'om',
+      'Pakistan': 'pk', 'Palestine': 'ps', 'Philippines': 'ph', 'Qatar': 'qa', 'Arabie Saoudite': 'sa',
+      'Singapour': 'sg', 'Corée du Sud': 'kr', 'Sri Lanka': 'lk', 'Syrie': 'sy', 'Taïwan': 'tw',
+      'Thaïlande': 'th', 'Turkménistan': 'tm', 'Ouzbékistan': 'uz', 'Viêt Nam': 'vn', 'Yémen': 'ye',
+
+      // Amériques
+      'Canada': 'ca', 'États-Unis': 'us', 'USA': 'us', 'Mexique': 'mx', 'Mexicio': 'mx',
+      'Argentine': 'ar', 'Bolivie': 'bo', 'Brésil': 'br', 'Chili': 'cl', 'Colombie': 'co',
+      'Costa Rica': 'cr', 'Cuba': 'cu', 'Équateur': 'ec', 'Guatemala': 'gt', 'Haïti': 'ht',
+      'Honduras': 'hn', 'Jamaïque': 'jm', 'Nicaragua': 'ni', 'Panama': 'pa', 'Paraguay': 'py',
+      'Pérou': 'pe', 'Porto Rico': 'pr', 'Uruguay': 'uy', 'Venezuela': 've',
+      'Antigua-et-Barbuda': 'ag', 'Bahamas': 'bs', 'Barbade': 'bb', 'Belize': 'bz',
+
+      // Océanie
+      'Australie': 'au', 'Australia': 'au', 'Nouvelle-Zélande': 'nz', 'Fidji': 'fj'
+    };
+
+    // Fallback via indicatif pour les cas non mappés par nom
+    const indicatifMap: Record<string, string> = {
+      '+376': 'ad', '+971': 'ae', '+93': 'af', '+1-268': 'ag', '+1268': 'ag',
+      '+216': 'tn', '+33': 'fr', '+212': 'ma', '+213': 'dz', '+221': 'sn',
+      '+237': 'cm', '+225': 'ci', '+223': 'ml', '+241': 'ga', '+242': 'cg',
+      '+224': 'gn', '+222': 'mr', '+229': 'bj', '+228': 'tg', '+226': 'bf',
+      '+227': 'ne', '+235': 'td', '+236': 'cf', '+253': 'dj', '+269': 'km',
+      '+261': 'mg', '+1': 'us', '+44': '+gb', '+39': 'it', '+34': 'es',
+      '+49': 'de', '+41': 'ch', '+32': 'be', '+43': 'at', '+352': 'lu'
+    };
+
+    const cleanName = nom?.trim();
+    let code = nameMap[cleanName];
+
+    if (!code && indicatif) {
+      const cleanInd = indicatif.replace(/\s/g, '');
+      code = indicatifMap[cleanInd] || indicatifMap[cleanInd.split('-')[0]];
+    }
+
+    if (!code) {
+      // Tentative de recherche partielle si le nom exact échoue
+      const entry = Object.entries(nameMap).find(([k]) => cleanName?.includes(k) || k.includes(cleanName));
+      code = entry ? entry[1] : 'un';
+    }
+
+    return `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
   }
 
   onTypeChange(typeName: string): void {
@@ -1592,6 +1810,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     }
 
     this.isSubmitting = true;
+    this.triggerConfetti();
     const fv = this.inscriptionForm.getRawValue();
 
     // Étudiant existant → PUT email/phone puis soumettre la demande
@@ -1627,34 +1846,73 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     };
 
     this.studentService.createStudent(studentData).pipe(
-      switchMap(savedStudent => {
-        if (!savedStudent) return of(null);
-
-        const uploadEntries = Array.from(this.selectedFiles.entries());
-        if (uploadEntries.length === 0) return of(savedStudent);
-
-        const uploads$ = uploadEntries.map(([type, file]) =>
-          this.uploadWithAutoValidation(savedStudent.id!, type, file)
-        );
-
-        return forkJoin(uploads$).pipe(map(() => savedStudent));
-      }),
-
-      switchMap(student => {
-        if (!student) return of(null);
-        this.submitDemande(student.id!, fv, new Map());
+      catchError(() => {
+        this.isSubmitting = false;
+        this.alertService.error('Erreur lors de la création du compte.');
         return of(null);
       })
-
-    ).subscribe({
-      error: () => {
-        this.isSubmitting = false;
-        this.alertService.error('Une erreur est survenue. Veuillez réessayer.');
-      }
+    ).subscribe(savedStudent => {
+      if (!savedStudent) return;
+      // submitDemande s'occupe des uploads + création de la demande
+      this.submitDemande(savedStudent.id!, fv);
     });
   }
-  private submitDemande(studentId: number, fv: any, filesToUpload?: Map<string, File>): void {
-    const files = filesToUpload ?? this.selectedFiles;
+  // private submitDemande(studentId: number, fv: any, filesToUpload?: Map<string, File>): void {
+  //   let files = filesToUpload ?? this.selectedFiles;
+
+  //   // Si candidat existant, on ne ré-upload que les documents rejetés ou manquants
+  //   if (this.studentMode === 'existing') {
+  //     const filteredFiles = new Map<string, File>();
+  //     for (const [type, file] of files.entries()) {
+  //       if (this.shouldUploadDocument(type)) {
+  //         filteredFiles.set(type, file);
+  //       }
+  //     }
+  //     files = filteredFiles;
+  //   }
+
+  //   const uploads = Array.from(files.entries()).map(([type, file]) =>
+  //     this.uploadWithAutoValidation(studentId, type, file)
+  //   );
+
+  //   const uploadObs = uploads.length > 0 ? forkJoin(uploads) : of([]);
+
+  //   uploadObs.pipe(
+  //     switchMap(() => {
+  //       const demande: DemandeInscription = {
+  //         etudiantId: studentId,
+  //         nomDiplome: fv.academicInfo.diplomeVise,
+  //         typeDeDiplome: fv.academicInfo.typeVise,
+  //         langueDiplome: fv.academicInfo.langueVise,
+  //         niveauChoisi: fv.academicInfo.niveauVise,
+  //         dateCreation: new Date().toISOString()
+  //       };
+  //       return this.enrollmentService.postDemande(demande);
+  //     })
+  //   ).subscribe({
+  //     next: () => {
+  //       this.isSubmitting = false;
+  //       localStorage.removeItem(this.DRAFT_KEY);
+  //       this.alertService.success('Inscription réussie !');
+  //       this.resetForm();
+  //     },
+  //     error: () => {
+  //       this.isSubmitting = false;
+  //       this.alertService.error('Erreur lors de la soumission.');
+  //     }
+  //   });
+  // }  // ← UNE SEULE accolade fermante ici
+  private submitDemande(studentId: number, fv: any,
+    filesToUpload?: Map<string, File>): void {
+    let files = filesToUpload ?? this.selectedFiles;
+
+    if (this.studentMode === 'existing') {
+      const filteredFiles = new Map<string, File>();
+      for (const [type, file] of files.entries()) {
+        if (this.shouldUploadDocument(type)) filteredFiles.set(type, file);
+      }
+      files = filteredFiles;
+    }
 
     const uploads = Array.from(files.entries()).map(([type, file]) =>
       this.uploadWithAutoValidation(studentId, type, file)
@@ -1664,14 +1922,26 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
     uploadObs.pipe(
       switchMap(() => {
+
+        // ✅ Trouver le niveauSpecifiqueId depuis this.levels
+        const niveauChoisiVal = fv.academicInfo.niveauVise;
+        const niveauObj = this.levels.find(n =>
+          String(n.niveau) === String(niveauChoisiVal)
+        );
+
+        if (!niveauObj?.id) {
+          // Log pour débug
+          console.warn('niveauSpecifiqueId introuvable pour niveau:',
+            niveauChoisiVal, 'dans levels:', this.levels);
+        }
+
         const demande: DemandeInscription = {
           etudiantId: studentId,
-          nomDiplome: fv.academicInfo.diplomeVise,
-          typeDeDiplome: fv.academicInfo.typeVise,
-          langueDiplome: fv.academicInfo.langueVise,
-          niveauChoisi: fv.academicInfo.niveauVise,
+          niveauSpecifiqueId: niveauObj?.id ?? null,  // ✅ ID stable
+          typeDeDiplome: fv.academicInfo.typeVise,    // ✅ conservé
           dateCreation: new Date().toISOString()
         };
+
         return this.enrollmentService.postDemande(demande);
       })
     ).subscribe({
@@ -1681,12 +1951,13 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
         this.alertService.success('Inscription réussie !');
         this.resetForm();
       },
-      error: () => {
+      error: (err) => {
         this.isSubmitting = false;
+        console.error('Erreur soumission:', err);
         this.alertService.error('Erreur lors de la soumission.');
       }
     });
-  }  // ← UNE SEULE accolade fermante ici
+  }
 
   // ════════════════════════════════════════════════════════════════════════
   // DRAFT / SAVE
@@ -1778,6 +2049,34 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     if (d === 'PREPARATOIRE') return TypeDocument.DIPLOME_BAC; // ← même doc que BAC
     return TypeDocument.AUTRE;
   }
+
+  /**
+   * Pour les candidats existants :
+   * Détermine si un document doit être uploadé.
+   * On upload SEULEMENT si :
+   * - Le document n'existe pas encore (MANQUANTE)
+   * - Le document a été rejeté (REJETE)
+   */
+  shouldUploadDocument(type: string): boolean {
+    if (this.studentMode !== 'existing') return true;
+
+    const docStatus = this.existingDocStatuses.find(d =>
+      (d.type || d.typeDocument) === type
+    );
+
+    if (!docStatus) return true; // Pas trouvé → à uploader
+
+    const statut = (docStatus.statut || docStatus.typeEnvoie || '').toUpperCase();
+    // On n'upload que si c'est rejeté ou manquant
+    return statut === 'REJETE' || statut === 'MANQUANTE';
+  }
+
+  getDocStatus(type: string): string | null {
+    if (this.studentMode !== 'existing') return null;
+    const doc = this.existingDocStatuses.find(d => (d.type || d.typeDocument) === type);
+    return doc ? (doc.statut || doc.typeEnvoie || '').toUpperCase() : null;
+  }
+
   get needsPreparatoireDocs(): boolean {
     const diplome = this.inscriptionForm?.get('personalInfo.dernierDiplome')?.value;
     return diplome?.toUpperCase() === 'PREPARATOIRE';

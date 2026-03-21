@@ -32,29 +32,65 @@ interface EditableResult {
   <!-- ══════════ IDLE ══════════ -->
   <ng-container *ngIf="state === 'idle'">
     <div class="idle-card">
+      <!-- Illustration de guidage -->
+      <div class="guidance-illustration mb-4">
+        <svg width="120" height="80" viewBox="0 0 120 80" fill="none" class="mx-auto">
+          <rect x="10" y="10" width="100" height="60" rx="8" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4 4"/>
+          <rect x="30" y="25" width="60" height="35" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" class="animate-float-slow"/>
+          <path d="M95 55L105 70M85 55L75 70" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+
       <div class="cin-icon-wrap">
-        <svg width="44" height="44" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <rect x="2" y="5" width="20" height="14" rx="2.5" stroke-width="1.4"/>
-          <circle cx="7.5" cy="11" r="2" stroke-width="1.4"/>
-          <path d="M12 9h6M12 13h4" stroke-width="1.4" stroke-linecap="round"/>
+        <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <rect x="2" y="5" width="20" height="14" rx="3" stroke-width="2"/>
+          <path d="M7 10h10M7 14h5" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </div>
       <p class="idle-title">Scan automatique de la CIN</p>
       <p class="idle-sub">
         Photographiez le recto de votre carte d'identité tunisienne<br/>
-        et cadrez-la dans le guide — le formulaire se remplira automatiquement ✨
+        et cadrez-la dans le guide — le formulaire se remplira automatiquement
       </p>
       <div class="idle-btns">
-        <button type="button" class="btn-primary"   (click)="openCamera()">📷 Caméra</button>
-        <button type="button" class="btn-secondary" (click)="openGallery()">🖼️ Galerie</button>
+        <button type="button" class="btn-primary animate-pulse-slow" (click)="openCamera()">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          Caméra
+        </button>
+        <button type="button" class="btn-secondary" (click)="openGallery()">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          Galerie
+        </button>
       </div>
+      
+      <!-- Mention Sécurité & Conseils -->
+      <div class="security-assurance mt-4 p-3 rounded-xl border border-blue-50 bg-blue-50/30 flex items-center gap-2">
+        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+        <p class="text-[10px] font-bold text-blue-600/80 m-0">
+          Vos données sont cryptées et ne sont jamais stockées sans votre accord.
+        </p>
+      </div>
+
       <p class="idle-tip">💡 Photo nette · Bonne luminosité · Sans reflets</p>
     </div>
   </ng-container>
 
   <!-- ══════════ FRAMING ══════════ -->
   <ng-container *ngIf="state === 'framing'">
-    <p class="frame-hint">📐 Alignez la CIN dans le cadre bleu</p>
+    <p class="frame-hint">
+      <svg class="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+      ALIGNEMENT DE LA CARTE
+    </p>
     <div class="viewport-wrap">
       <div #viewport class="viewport"
            (mousedown)="onPointerDown($event)"
@@ -117,8 +153,13 @@ interface EditableResult {
         </svg>
 
         <div class="align-badge" [class.good]="alignmentGood">
-          <span *ngIf="!alignmentGood">⚠ Centrez la CIN dans le cadre</span>
-          <span *ngIf="alignmentGood">✓ Bon alignement</span>
+          <svg *ngIf="!alignmentGood" class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <svg *ngIf="alignmentGood" class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span *ngIf="alignmentGood">Alignement optimal</span>
         </div>
       </div>
 
@@ -137,17 +178,41 @@ interface EditableResult {
         <button class="ctrl-btn guide-btn"
                 [class.active]="showFieldGuide"
                 (click)="showFieldGuide = !showFieldGuide"
-                title="Afficher les zones OCR">🗺</button>
+                title="Afficher les zones OCR">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+          </svg>
+        </button>
         <span class="zoom-val">{{ (scale*100)|number:'1.0-0' }}%</span>
       </div>
     </div>
 
     <div class="frame-btns">
-      <button type="button" class="btn-ghost" (click)="resetFrame()">↺ Réinitialiser</button>
-      <button type="button" class="btn-ghost" (click)="openGallery()">🖼️ Autre photo</button>
-      <button type="button" class="btn-analyze" (click)="analyzePhoto()">🔍 Analyser</button>
+      <button type="button" class="btn-ghost" (click)="resetFrame()">
+        <svg class="w-3 h-3 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Réinitialiser
+      </button>
+      <button type="button" class="btn-ghost" (click)="openGallery()">
+        <svg class="w-3 h-3 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        Autre photo
+      </button>
+      <button type="button" class="btn-analyze" (click)="analyzePhoto()">
+        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        Analyser
+      </button>
     </div>
-    <p class="idle-tip">{{ alignmentGood ? '✅ Prêt — cliquez sur Analyser' : 'Glissez · Pincez · Molette pour ajuster' }}</p>
+    <p class="idle-tip">
+      <svg *ngIf="alignmentGood" class="w-3 h-3 mr-1 inline text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+      </svg>
+      {{ alignmentGood ? 'Prêt — cliquez sur Analyser' : 'Glissez · Pincez · Molette pour ajuster' }}
+    </p>
   </ng-container>
 
   <!-- ══════════ SCANNING ══════════ -->
@@ -178,16 +243,24 @@ interface EditableResult {
     </div>
   </ng-container>
 
-  <!-- ══════════ SUCCESS ══════════ -->
   <ng-container *ngIf="state === 'success'">
     <div class="result-card">
       <div class="result-header">
-        <div class="result-icon">✏️</div>
+        <div class="result-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+          </svg>
+        </div>
         <div class="rh-text">
           <p class="result-title">CIN lue — Vérifiez et corrigez si besoin</p>
           <p class="result-sub">Le formulaire a été pré-rempli avec les données extraites.</p>
         </div>
-        <button type="button" class="btn-restart" (click)="reset()">↺ Recommencer</button>
+        <button type="button" class="btn-restart" (click)="reset()">
+          <svg class="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Recommencer
+        </button>
       </div>
       <div class="fields-grid">
         <!-- PRÉNOM -->
@@ -258,7 +331,11 @@ interface EditableResult {
   <!-- ══════════ ERROR ══════════ -->
   <ng-container *ngIf="state === 'error'">
     <div class="error-card">
-      <div class="error-icon">✕</div>
+      <div class="error-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </div>
       <div>
         <p class="error-title">Échec de la lecture</p>
         <p class="error-msg">{{ errorMessage }}</p>
@@ -279,8 +356,8 @@ interface EditableResult {
     /* ── IDLE ── */
     .idle-card {
       display: flex; flex-direction: column; align-items: center; gap: 12px;
-      border: 2px dashed #bfdbfe; border-radius: 20px;
-      background: #f0f7ff; padding: 32px 24px; text-align: center;
+      border: none; border-radius: 20px;
+      background: #f8fafc; padding: 32px 24px; text-align: center;
     }
     .cin-icon-wrap {
       width: 64px; height: 64px; border-radius: 16px;
@@ -294,17 +371,19 @@ interface EditableResult {
 
     /* ── Buttons ── */
     .btn-primary {
+      display: flex; align-items: center; justify-content: center;
       padding: 10px 24px; background: #2563eb; color: #fff;
-      border: none; border-radius: 12px; font-weight: 800; font-size: 12px;
-      letter-spacing: .08em; cursor: pointer; transition: background .2s;
+      border: none; border-radius: 12px; font-weight: 800; font-size: 13px;
+      letter-spacing: .02em; cursor: pointer; transition: all .2s;
     }
-    .btn-primary:hover { background: #1d4ed8; }
+    .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.2); }
     .btn-secondary {
-      padding: 10px 24px; background: #e2e8f0; color: #334155;
-      border: none; border-radius: 12px; font-weight: 800; font-size: 12px;
-      cursor: pointer; transition: background .2s;
+      display: flex; align-items: center; justify-content: center;
+      padding: 10px 24px; background: white; color: #475569;
+      border: 1.5px solid #e2e8f0; border-radius: 12px; font-weight: 800; font-size: 13px;
+      cursor: pointer; transition: all .2s;
     }
-    .btn-secondary:hover { background: #cbd5e1; }
+    .btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
     .btn-ghost {
       padding: 10px 16px; background: transparent; color: #475569;
       border: 2px solid #e2e8f0; border-radius: 12px;
@@ -319,12 +398,12 @@ interface EditableResult {
     .btn-analyze:hover:not(:disabled) { background: #15803d; }
     .btn-analyze:disabled { background: #86efac; cursor: not-allowed; opacity: .65; }
     .btn-confirm {
-      width: 100%; padding: 14px; background: #16a34a; color: #fff;
-      border: none; border-radius: 14px; font-weight: 900; font-size: 12px;
-      letter-spacing: .1em; cursor: pointer; display: flex; align-items: center;
-      justify-content: center; gap: 8px; transition: background .2s; margin-top: 4px;
+      width: 100%; padding: 14px; background: #2563eb; color: #fff;
+      border: none; border-radius: 14px; font-weight: 900; font-size: 13px;
+      letter-spacing: .02em; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 8px; transition: all 0.2s; margin-top: 4px;
     }
-    .btn-confirm:hover { background: #15803d; }
+    .btn-confirm:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.2); }
     .btn-restart {
       padding: 6px 12px; background: transparent; border: none;
       color: #94a3b8; font-size: 11px; font-weight: 700; cursor: pointer;
@@ -445,11 +524,31 @@ interface EditableResult {
     .progress-bar { width: 100%; height: 4px; background: #dbeafe; border-radius: 4px; overflow: hidden; }
     .progress-fill { height: 100%; background: #2563eb; border-radius: 4px; transition: width .45s ease; }
 
+    /* ── REFINED ANIMATIONS ── */
+    @keyframes pulse-slow {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.2); }
+      50% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+    }
+    .animate-pulse-slow {
+      animation: pulse-slow 2.5s infinite ease-in-out;
+    }
+
+    @keyframes float-slow {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      50% { transform: translateY(-3px) rotate(1deg); }
+    }
+    .animate-float-slow {
+      animation: float-slow 4s infinite ease-in-out;
+    }
+
+    .guidance-illustration { opacity: 0.8; }
+
 
     /* ── SUCCESS ── */
     .result-card {
-      border: 2px solid #d1fae5; border-radius: 20px;
-      background: #f0fdf4; padding: 20px;
+      border: 1.5px solid #e2e8f0; border-radius: 20px;
+      background: #f8fafc; padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     }
     .result-header {
       display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;

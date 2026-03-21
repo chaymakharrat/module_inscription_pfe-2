@@ -12,7 +12,7 @@ import { environment } from '../../envirements/enviremetns';
 export interface PrerequisItemDTO {
   id: number;
   nom: string;
-  obligatoire: boolean;
+  // ✅ obligatoire supprimé — tous les prérequis sont obligatoires
 }
 
 export interface PrerequisConfigDTO {
@@ -26,7 +26,7 @@ export interface PrerequisConfigDTO {
 
 export interface PrerequisFormData {
   nom: string;
-  obligatoire: boolean;
+  // ✅ obligatoire supprimé
 }
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
@@ -40,19 +40,18 @@ export interface PrerequisFormData {
 })
 export class ParametragePrerequisComponent implements OnInit {
 
-  // ── State principal ──────────────────────────────────────────────────────────
   niveauxConfig: PrerequisConfigDTO[] = [];
   loading = false;
   emailEnseignant = '';
 
   private apiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/prerequis-config`;
 
-  // ── Édition capacité ─────────────────────────────────────────────────────────
+  // Édition capacité
   editingCapacite: Record<number, boolean> = {};
   newCapacite: Record<number, number> = {};
   savingCapacite: Record<number, boolean> = {};
 
-  // ── Modal formulaire prérequis ───────────────────────────────────────────────
+  // Modal formulaire
   showFormModal = false;
   isEditMode = false;
   formLoading = false;
@@ -62,13 +61,13 @@ export class ParametragePrerequisComponent implements OnInit {
   formData: PrerequisFormData = this.emptyForm();
   formErrors: Record<string, string> = {};
 
-  // ── Suppression ──────────────────────────────────────────────────────────────
+  // Suppression
   showDeleteConfirm = false;
   deleteLoading = false;
   prereqToDelete: PrerequisItemDTO | null = null;
   niveauPourSuppression: PrerequisConfigDTO | null = null;
 
-  // ── Toast ────────────────────────────────────────────────────────────────────
+  // Toast
   toastVisible = false;
   toastMessage = '';
   toastType: 'success' | 'error' = 'success';
@@ -94,7 +93,7 @@ export class ParametragePrerequisComponent implements OnInit {
     }
   }
 
-  // ─── CHARGEMENT ─────────────────────────────────────────────────────────────
+  // ─── CHARGEMENT ──────────────────────────────────────────────────────────
 
   loadConfig(): void {
     this.loading = true;
@@ -113,7 +112,7 @@ export class ParametragePrerequisComponent implements OnInit {
     });
   }
 
-  // ─── CAPACITÉ ───────────────────────────────────────────────────────────────
+  // ─── CAPACITÉ ────────────────────────────────────────────────────────────
 
   startEditCapacite(config: PrerequisConfigDTO): void {
     this.editingCapacite[config.niveauSpecifiqueId] = true;
@@ -154,7 +153,7 @@ export class ParametragePrerequisComponent implements OnInit {
     });
   }
 
-  // ─── MODAL FORMULAIRE ───────────────────────────────────────────────────────
+  // ─── MODAL FORMULAIRE ────────────────────────────────────────────────────
 
   openAddModal(config: PrerequisConfigDTO | null): void {
     this.selectedNiveau = config ?? (this.niveauxConfig.length > 0 ? this.niveauxConfig[0] : null);
@@ -175,10 +174,8 @@ export class ParametragePrerequisComponent implements OnInit {
     this.isEditMode = true;
     this.selectedNiveau = config;
     this.editingPrerequisId = prereq.id;
-    this.formData = {
-      nom: prereq.nom,
-      obligatoire: prereq.obligatoire
-    };
+    // ✅ Plus d'obligatoire dans le formData
+    this.formData = { nom: prereq.nom };
     this.formErrors = {};
     this.showFormModal = true;
   }
@@ -198,13 +195,10 @@ export class ParametragePrerequisComponent implements OnInit {
 
     this.formLoading = true;
 
-    const body = {
-      nom: this.formData.nom.trim(),
-      obligatoire: this.formData.obligatoire
-    };
+    // ✅ Body sans obligatoire
+    const body = { nom: this.formData.nom.trim() };
 
     if (this.isEditMode && this.editingPrerequisId) {
-      // ── PUT : modifier ────────────────────────────────────────────────────
       this.http.put<PrerequisItemDTO>(
         `${this.apiUrl}/prerequis/${this.editingPrerequisId}`,
         body,
@@ -223,7 +217,6 @@ export class ParametragePrerequisComponent implements OnInit {
       });
 
     } else {
-      // ── POST : ajouter ────────────────────────────────────────────────────
       const niveauId = this.selectedNiveau!.niveauSpecifiqueId;
 
       this.http.post<PrerequisConfigDTO>(
@@ -251,7 +244,7 @@ export class ParametragePrerequisComponent implements OnInit {
     }
   }
 
-  // ─── SUPPRESSION ────────────────────────────────────────────────────────────
+  // ─── SUPPRESSION ─────────────────────────────────────────────────────────
 
   confirmerSuppression(config: PrerequisConfigDTO, prereq: PrerequisItemDTO): void {
     this.prereqToDelete = prereq;
@@ -277,18 +270,14 @@ export class ParametragePrerequisComponent implements OnInit {
         this.prereqToDelete = null;
         this.showToast('✅ Prérequis retiré du niveau', 'success');
       },
-      error: (err) => {
+      error: () => {
         this.deleteLoading = false;
         this.showToast('❌ Erreur lors de la suppression', 'error');
       }
     });
   }
 
-  // ─── NAVIGATION ─────────────────────────────────────────────────────────────
-
-
-
-  // ─── VALIDATION ─────────────────────────────────────────────────────────────
+  // ─── VALIDATION ──────────────────────────────────────────────────────────
 
   private validateForm(): boolean {
     this.formErrors = {};
@@ -306,21 +295,17 @@ export class ParametragePrerequisComponent implements OnInit {
     return true;
   }
 
-  // ─── UTILITAIRES ────────────────────────────────────────────────────────────
+  // ─── UTILITAIRES ─────────────────────────────────────────────────────────
 
   private emptyForm(): PrerequisFormData {
-    return {
-      nom: '',
-      obligatoire: true
-    };
+    // ✅ Plus d'obligatoire
+    return { nom: '' };
   }
 
   private updatePrereqInList(updated: PrerequisItemDTO): void {
     this.niveauxConfig = this.niveauxConfig.map(config => ({
       ...config,
-      prerequis: config.prerequis.map(p =>
-        p.id === updated.id ? updated : p
-      )
+      prerequis: config.prerequis.map(p => p.id === updated.id ? updated : p)
     }));
   }
 

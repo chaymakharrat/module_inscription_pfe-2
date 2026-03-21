@@ -55,6 +55,11 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "allowedHosts": [
+              "unloathed-lilla-overextreme.ngrok-free.dev"
+            ]
+          },
           "configurations": {
             "production": {
               "buildTarget": "inscription-front:build:production"

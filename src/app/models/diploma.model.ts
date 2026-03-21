@@ -16,11 +16,22 @@ export interface DiplomeEtudier {
     prerequis: string[];
 }
 
+// export interface NiveauDiplomeSpecifique {
+//     id: number;
+//     niveau: number;
+//     diplome?: string;
+//     capaciteMax?: number;  // ← utile pour afficher
+// }
 export interface NiveauDiplomeSpecifique {
     id: number;
     niveau: number;
-    diplome?: string;
-    capaciteMax?: number;  // ← utile pour afficher
+    capaciteMax?: number;
+    // ✅ Nouveaux champs correspondant au DTO backend
+    nomDiplomeResponsable?: string;
+    langue?: string;
+    fraisInscription?: number;
+    niveauId?: number;
+    // ❌ Supprimer : diplome?: string;  — remplacé par nomDiplomeResponsable
 }
 export interface NiveauDiplome {
     id: number;

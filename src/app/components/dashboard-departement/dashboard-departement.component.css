@@ -1001,8 +1001,25 @@
     color: #3b82f6;
 }
 
+/* Split layout: list pane + preview pane side-by-side */
+.prereq-split-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+    overflow: hidden;
+}
+
+.prereq-split-layout.show-preview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+    overflow: hidden;
+}
+
 .prereq-list-pane {
-    max-height: calc(100vh - 250px);
+    max-height: calc(100vh - 180px);
     overflow-y: auto;
     padding-right: 8px;
     display: flex;
@@ -1020,8 +1037,9 @@
     overflow: hidden;
     position: sticky;
     top: 0;
-    height: calc(100vh - 250px);
-    min-height: 500px;
+    height: calc(100vh - 180px);
+    max-height: calc(94vh - 110px);
+    min-height: 400px;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
     animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1452,6 +1470,65 @@
     color: var(--green);
 }
 
+/* ── DONUT CHART ─────────────────────────────────────────────────── */
+.donut-chart-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 12px 0 4px;
+    flex: 1;
+}
+
+.donut-chart-container {
+    flex-shrink: 0;
+    width: 130px;
+    height: 130px;
+    filter: drop-shadow(0 4px 16px rgba(37, 99, 235, .12));
+}
+
+.donut-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.donut-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.donut-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.donut-stat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.donut-stat-num {
+    display: block;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.donut-stat-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-top: 1px;
+}
+
 /* ────────────────────────────────────────────────────────────────
    MODAL
 ──────────────────────────────────────────────────────────────── */
@@ -1471,13 +1548,14 @@
 .modal-shell {
     display: flex;
     width: 100%;
-    max-width: 1100px;
-    height: min(92vh, 800px);
+    max-width: 1400px;
+    height: min(94vh, 900px);
     background: #fff;
     border-radius: 24px;
     overflow: hidden;
     box-shadow: 0 32px 80px rgba(0, 0, 0, .22), 0 8px 24px rgba(0, 0, 0, .08);
     animation: shellIn .3s cubic-bezier(.16, 1, .3, 1);
+    transition: max-width 0.4s cubic-bezier(.16, 1, .3, 1);
 }
 
 @keyframes shellIn {

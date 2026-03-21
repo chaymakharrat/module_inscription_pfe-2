@@ -5,7 +5,7 @@
 
     <div class="page-inner">
 
-        <!-- ══ LOADING ══════════════════════════════════════════════════════ -->
+        <!-- ══ LOADING ══ -->
         <div class="loader-wrap" *ngIf="loading">
             <div class="loader-dots">
                 <span></span><span></span><span></span>
@@ -13,7 +13,7 @@
             <p>Chargement en cours…</p>
         </div>
 
-        <!-- ══ GRILLE DES NIVEAUX ════════════════════════════════════════════ -->
+        <!-- ══ GRILLE DES NIVEAUX ══ -->
         <div class="levels-grid" *ngIf="!loading">
 
             <div class="level-card" *ngFor="let config of niveauxConfig; let i = index"
@@ -83,19 +83,16 @@
 
                     <!-- Liste -->
                     <div class="prereq-list" *ngIf="config.prerequis.length > 0">
-                        <div class="prereq-row" *ngFor="let p of config.prerequis; let j = index"
-                            [class.row-obligatoire]="p.obligatoire" [class.row-optionnel]="!p.obligatoire"
+                        <!-- ✅ row-obligatoire/row-optionnel supprimés — tous obligatoires -->
+                        <div class="prereq-row row-obligatoire" *ngFor="let p of config.prerequis; let j = index"
                             [style.animation-delay]="(j * 50) + 'ms'">
 
-                            <div class="row-indicator" [class.ind-blue]="p.obligatoire"
-                                [class.ind-gray]="!p.obligatoire"></div>
+                            <div class="row-indicator ind-blue"></div>
 
                             <span class="row-nom">{{ p.nom }}</span>
 
-                            <span class="row-badge" [class.badge-req]="p.obligatoire"
-                                [class.badge-opt]="!p.obligatoire">
-                                {{ p.obligatoire ? 'Obligatoire' : 'Optionnel' }}
-                            </span>
+                            <!-- ✅ Badge "Obligatoire" fixe — plus de conditionnel -->
+                            <span class="row-badge badge-req">Obligatoire</span>
 
                             <div class="row-actions">
                                 <button class="action-btn" (click)="openEditModal(config, p)" title="Modifier">
@@ -125,14 +122,12 @@
                 </div>
             </div>
 
-        </div><!-- /levels-grid -->
-    </div><!-- /page-inner -->
-</div><!-- /page-shell -->
+        </div>
+    </div>
+</div>
 
 
-<!-- ══════════════════════════════════════════════════════════
-     MODAL AJOUT / MODIFICATION
-══════════════════════════════════════════════════════════ -->
+<!-- ══ MODAL AJOUT / MODIFICATION ══ -->
 <div class="overlay" *ngIf="showFormModal" (click)="closeFormModal()">
     <div class="dialog" (click)="$event.stopPropagation()">
 
@@ -147,7 +142,9 @@
                 </svg>
             </div>
             <div>
-                <h2 class="dialog-title">{{ isEditMode ? 'Modifier le prérequis' : 'Nouveau prérequis' }}</h2>
+                <h2 class="dialog-title">
+                    {{ isEditMode ? 'Modifier le prérequis' : 'Nouveau prérequis' }}
+                </h2>
                 <p class="dialog-sub" *ngIf="selectedNiveau">
                     Niveau {{ selectedNiveau.niveau }} · {{ selectedNiveau.nomDiplome }}
                 </p>
@@ -160,28 +157,24 @@
         </div>
 
         <div class="dialog-body">
-
             <!-- Champ nom -->
             <div class="field">
-                <label class="field-label">Description du prérequis <span class="req-star">*</span></label>
+                <label class="field-label">
+                    Description du prérequis <span class="req-star">*</span>
+                </label>
                 <input type="text" class="field-input" [(ngModel)]="formData.nom"
                     placeholder="Ex : Licence BAC+3, Anglais niveau B2, Moyenne ≥ 12…"
                     [class.field-error]="formErrors['nom']" autocomplete="off">
                 <span class="field-err-msg" *ngIf="formErrors['nom']">{{ formErrors['nom'] }}</span>
             </div>
 
-            <!-- Toggle obligatoire -->
-            <div class="toggle-field">
-                <div class="toggle-field-text">
-                    <span class="toggle-field-label">Caractère obligatoire</span>
-                    <span class="toggle-field-hint">Si désactivé, ce prérequis est souhaitable mais non bloquant</span>
-                </div>
-                <button class="toggle" [class.toggle-on]="formData.obligatoire"
-                    (click)="formData.obligatoire = !formData.obligatoire" type="button">
-                    <span class="toggle-knob"></span>
-                </button>
+            <!-- ✅ Toggle obligatoire supprimé — tous les prérequis sont obligatoires -->
+            <div class="field"
+                style="padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;">
+                <p style="font-size:12px;color:#166534;font-weight:600;margin:0;">
+                    ✓ Ce prérequis sera automatiquement marqué comme obligatoire
+                </p>
             </div>
-
         </div>
 
         <div class="dialog-foot">
@@ -196,7 +189,7 @@
 </div>
 
 
-<!-- ══ MODAL SUPPRESSION ════════════════════════════════════════════════ -->
+<!-- ══ MODAL SUPPRESSION ══ -->
 <div class="overlay" *ngIf="showDeleteConfirm" (click)="showDeleteConfirm = false">
     <div class="dialog dialog-sm" (click)="$event.stopPropagation()">
 
@@ -237,7 +230,7 @@
 </div>
 
 
-<!-- ══ TOAST ════════════════════════════════════════════════════════════ -->
+<!-- ══ TOAST ══ -->
 <div class="toast" [class.toast-in]="toastVisible" [class.toast-success]="toastType === 'success'"
     [class.toast-error]="toastType === 'error'">
     <span class="toast-dot"></span>

@@ -4,17 +4,37 @@
     <!-- ── IDLE ──────────────────────────────────────────────────── -->
     <ng-container *ngIf="state === 'idle'">
         <div class="idle-card">
-            <div class="icon-wrap">🎓</div>
+            <div class="icon-wrap">
+                <svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
             <p class="idle-title">Scanner le diplôme de Bac</p>
             <p class="idle-sub">
                 Photographiez le <strong>diplôme complet</strong> — le 2D-DOC est en bas à gauche<br />
                 <strong>100 % fiable · Toutes les notes extraites automatiquement</strong>
             </p>
             <div class="idle-btns">
-                <button type="button" class="btn-camera" (click)="startCamera()">📷 Caméra live</button>
-                <button type="button" class="btn-gallery" (click)="fileInput.click()">🖼️ Galerie</button>
+                <button type="button" class="btn-camera" (click)="startCamera()">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 012 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Caméra live
+                </button>
+                <button type="button" class="btn-gallery" (click)="fileInput.click()">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Galerie
+                </button>
             </div>
-            <p class="idle-tip">💡 Cadrez tout le diplôme, pas seulement le QR code</p>
+            <p class="idle-tip">
+                <svg class="w-3 h-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Cadrez tout le diplôme, pas seulement le QR code
+            </p>
         </div>
     </ng-container>
 
@@ -34,7 +54,12 @@
                 </div>
                 <div class="cam-badge" [class.found]="qrDetected">
                     <span *ngIf="!qrDetected">🔍 Cherche le 2D-DOC…</span>
-                    <span *ngIf="qrDetected">✅ Détecté !</span>
+                    <span *ngIf="qrDetected">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Détecté !
+                    </span>
                 </div>
             </div>
         </div>
@@ -59,16 +84,29 @@
 
             <!-- En-tête -->
             <div class="result-header">
-                <span class="success-icon">🎓</span>
+                <div class="success-icon">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
                 <div>
                     <p class="result-title">Données BAC extraites</p>
                     <p class="result-sub">Certifiées par le 2D-DOC officiel</p>
                 </div>
-                <button type="button" class="btn-sm" (click)="reset()">↺</button>
+                <button type="button" class="btn-sm" (click)="reset()">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
             </div>
 
             <!-- ── Identité ── -->
-            <div class="section-label">👤 Identité</div>
+            <div class="section-label">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Identité
+            </div>
             <div class="data-list">
 
                 <div class="data-item" *ngIf="result?.nomComplet">
@@ -112,7 +150,12 @@
             </div>
 
             <!-- ── Note Anglais uniquement ── -->
-            <div class="section-label" *ngIf="result?.noteAnglais">📊 Note</div>
+            <div class="section-label" *ngIf="result?.noteAnglais">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Note
+            </div>
             <div class="notes-table" *ngIf="result?.noteAnglais">
                 <div class="note-row" [class.note-high]="isHigh(result?.noteAnglais)"
                     [class.note-mid]="isMid(result?.noteAnglais)" [class.note-low]="isLow(result?.noteAnglais)">
@@ -161,11 +204,19 @@
                     ↺ Rescanner
                 </button>
             </div> -->
-            <div class="flex items-center gap-2 mt-3 p-3 rounded-xl"
-                [ngClass]="result?.isManual ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-200'">
-                <span>{{ result?.isManual ? '⚠️' : '✅' }}</span>
+            <div class="flex items-center gap-2 mt-4 p-4 rounded-2xl border transition-all duration-300"
+                [ngClass]="result?.isManual ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                    [ngClass]="result?.isManual ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'">
+                    <svg *ngIf="!result?.isManual" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <svg *ngIf="result?.isManual" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
                 <div class="flex-1">
-                    <p class="text-xs font-bold" [ngClass]="result?.isManual ? 'text-amber-700' : 'text-green-700'">
+                    <p class="text-xs font-extrabold" [ngClass]="result?.isManual ? 'text-amber-800' : 'text-green-800'">
                         <ng-container *ngIf="result?.success && !result?.isManual">
                             Données transmises automatiquement
                         </ng-container>
@@ -173,15 +224,17 @@
                             QR illisible — document enregistré pour vérification manuelle
                         </ng-container>
                     </p>
-                    <p *ngIf="result?.isManual" class="text-xs text-amber-600 mt-0.5">
-                        💡 Pour un meilleur résultat : photographiez le document entier
-                        avec bonne lumière, en cadrant bien le code 2D-DOC.
+                    <p *ngIf="result?.isManual" class="text-xs text-amber-700/80 mt-1 font-medium leading-relaxed">
+                        Aidez-nous à valider plus vite en cadrant bien le code 2D-DOC.
                     </p>
                 </div>
                 <button type="button"
-                    class="ml-auto text-xs text-slate-400 hover:text-slate-600 font-bold flex-shrink-0"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-[10px] font-black text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all flex-shrink-0"
                     (click)="reset()">
-                    ↺ Rescanner
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Rescanner
                 </button>
             </div>
         </div>
@@ -204,24 +257,42 @@
     <!-- ── ERROR ─────────────────────────────────────────────────── -->
     <ng-container *ngIf="state === 'error'">
         <div class="error-card">
-            <p class="error-title">⚠️ {{ errorMessage }}</p>
+            <p class="error-title">
+                <svg class="w-5 h-5 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {{ errorMessage }}
+            </p>
             <p class="error-sub">
                 Conseil : photographiez <strong>le diplôme entier</strong>, pas seulement le QR code.
                 Bonne lumière, image nette.
             </p>
             <div class="idle-btns" style="margin-top:10px">
-                <button type="button" class="btn-camera" (click)="startCamera()">📷 Réessayer</button>
+                <button type="button" class="btn-camera" (click)="startCamera()">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 012 2H5a2 2 0 01-2-2V9z" />
+                    </svg>
+                    Réessayer
+                </button>
                 <button type="button" class="btn-gallery" (click)="reset()">Annuler</button>
             </div>
 
             <!-- ✅ AJOUTER : upload manuel si QR illisible -->
             <div class="manual-upload-box">
-                <p class="manual-title">📎 QR illisible ? Uploadez le fichier directement</p>
+                <p class="manual-title">
+                    <svg class="w-4 h-4 mr-2 inline-block text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    QR illisible ? Uploadez le fichier directement
+                </p>
                 <p class="manual-sub">Le document sera vérifié par l'administration.</p>
                 <input #manualInput type="file" accept="image/*,application/pdf" class="hidden"
                     (change)="onManualUpload($event)" />
                 <button type="button" class="btn-manual" (click)="manualInput.click()">
-                    📂 Choisir le fichier
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    Choisir le fichier
                 </button>
             </div>
         </div>
@@ -230,11 +301,25 @@
     <!-- ── MANUAL ────────────────────────────────────────────────── -->
     <ng-container *ngIf="state === 'manual'">
         <div class="manual-card">
-            <div class="manual-icon">📎</div>
+            <div class="manual-icon">
+                <svg class="w-10 h-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+            </div>
             <p class="manual-title">Fichier uploadé manuellement</p>
             <p class="manual-sub">{{ manualFileName }}</p>
-            <p class="manual-note">⚠️ Sera vérifié par l'administration</p>
-            <button type="button" class="btn-restart" (click)="reset()">↺ Recommencer</button>
+            <p class="manual-note text-amber-600 font-bold flex items-center gap-1.5 mt-2 transition-all">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Sera vérifié par l'administration
+            </p>
+            <button type="button" class="btn-restart" (click)="reset()">
+                <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Recommencer
+            </button>
         </div>
     </ng-container>
 
