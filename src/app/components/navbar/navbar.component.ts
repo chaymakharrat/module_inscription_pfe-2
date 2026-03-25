@@ -41,6 +41,7 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
     private scrollService: ScrollService
   ) { }
 
+
   async ngOnInit(): Promise<void> {
     // Vérifier le statut de connexion
     this.isLoggedIn = await this.keycloak.isLoggedIn();

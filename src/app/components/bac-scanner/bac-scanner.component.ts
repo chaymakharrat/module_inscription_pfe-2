@@ -34,7 +34,7 @@ export interface BacResult {
   <ng-container *ngIf="state === 'idle'">
     <div class="idle-card">
       <div class="icon-wrap">
-        <svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path d="M12 14l9-5-9-5-9 5 9 5z" />
           <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
@@ -279,20 +279,20 @@ export interface BacResult {
 
     /* IDLE */
     .idle-card {
-      display:flex; flex-direction:column; align-items:center; gap:18px;
-      border:2px solid #f1f5f9; border-radius:24px;
-      background:#f8fafc; padding:40px 24px; text-align:center;
+      display:flex; flex-direction:column; align-items:center; gap:10px;
+      border:2px solid #f1f5f9; border-radius:20px;
+      background:#f8fafc; padding:24px 20px; text-align:center;
       transition: all 0.3s ease;
     }
     .icon-wrap { 
-      width:72px; height:72px; border-radius:20px;
+      width:56px; height:56px; border-radius:16px;
       background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
       display:flex; align-items:center; justify-content:center;
       color:#2563eb; margin-bottom:4px;
       box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.1);
     }
-    .idle-title { font-size:16px; font-weight:900; color:#1e293b; margin:0; }
-    .idle-sub   { font-size:12px; color:#64748b; margin:0; line-height:1.7; }
+    .idle-title { font-size:14px; font-weight:900; color:#1e293b; margin:0; }
+    .idle-sub   { font-size:11px; color:#64748b; margin:0; line-height:1.5; }
     .idle-sub strong { color:#334155; }
     .idle-tip   { 
       display:flex; align-items:center; justify-content:center;
@@ -302,8 +302,8 @@ export interface BacResult {
     }
     .idle-btns  { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; width:100%; }
     .btn-camera {
-      flex:1; padding:14px 24px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color:#fff;
-      border:none; border-radius:16px; font-weight:900; font-size:13px;
+      flex:1; padding:10px 24px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color:#fff;
+      border:none; border-radius:12px; font-weight:900; font-size:12px;
       letter-spacing:.03em; cursor:pointer; transition:all .3s cubic-bezier(0.16, 1, 0.3, 1);
       display:flex; align-items:center; justify-content:center;
       box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
@@ -316,8 +316,8 @@ export interface BacResult {
     }
     .btn-camera:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.5); }
     .btn-gallery {
-      padding:14px 24px; background:white; color:#475569;
-      border:1.5px solid #e2e8f0; border-radius:16px; font-weight:800; font-size:13px; 
+      padding:10px 24px; background:white; color:#475569;
+      border:1.5px solid #e2e8f0; border-radius:12px; font-weight:800; font-size:12px; 
       cursor:pointer; display:flex; align-items:center; justify-content:center;
       transition: all 0.2s;
     }
@@ -345,11 +345,11 @@ export interface BacResult {
     .btn-ghost { flex:1; padding:10px; background:transparent; color:#475569; border:2px solid #e2e8f0; border-radius:12px; font-weight:700; font-size:11px; cursor:pointer; }
 
     /* LOADING */
-    .loading-card { display:flex; flex-direction:column; align-items:center; gap:14px; padding:40px 24px; text-align:center; border:2px solid #dbeafe; border-radius:20px; background:white; }
-    .loading-spinner { width:48px; height:48px; border:4px solid #eff6ff; border-top-color:#2563eb; border-radius:50%; animation:spin .8s linear infinite; }
+    .loading-card { display:flex; flex-direction:column; align-items:center; gap:10px; padding:24px 20px; text-align:center; border:2px solid #dbeafe; border-radius:20px; background:white; }
+    .loading-spinner { width:40px; height:40px; border:4px solid #eff6ff; border-top-color:#2563eb; border-radius:50%; animation:spin .8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    .loading-txt { font-size:14px; font-weight:900; color:#2563eb; margin:0; }
-    .loading-sub { font-size:11px; color:#64748b; margin:0; }
+    .loading-txt { font-size:13px; font-weight:900; color:#2563eb; margin:0; }
+    .loading-sub { font-size:10.5px; color:#64748b; margin:0; }
 
     /* SUCCESS */
     .result-card { border:1px solid #e2e8f0; border-radius:24px; background:#f8fafc; padding:24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }

@@ -16,7 +16,7 @@
         <!-- ══ GRILLE DES NIVEAUX ══ -->
         <div class="levels-grid" *ngIf="!loading">
 
-            <div class="level-card" *ngFor="let config of niveauxConfig; let i = index"
+            <div class="level-card" *ngFor="let config of niveauxConfig; let i = index; trackBy: trackByNiveau"
                 [style.animation-delay]="(i * 80) + 'ms'">
 
                 <!-- En-tête niveau -->
@@ -25,42 +25,130 @@
                         <div class="level-num">N{{ config.niveau }}</div>
                         <div class="level-meta">
                             <h3 class="level-name">{{ config.nomDiplome }}</h3>
-                            <span class="lang-tag">{{ config.langue }}</span>
+                            <div class="level-tags">
+                                <span class="lang-tag">{{ config.langue }}</span>
+                                <span class="prereq-count" *ngIf="config.prerequis.length > 0">
+                                    {{ config.prerequis.length }} prérequis
+                                </span>
+                                <span class="prereq-count prereq-none" *ngIf="config.prerequis.length === 0">
+                                    Aucun prérequis
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Capacité -->
-                    <div class="cap-block">
-                        <span class="cap-eyebrow">Capacité</span>
+                    <!-- Settings Blocks -->
+                    <div class="level-head-right">
 
-                        <div class="cap-display" *ngIf="!editingCapacite[config.niveauSpecifiqueId]">
-                            <span class="cap-number">{{ config.capaciteMax }}</span>
-                            <span class="cap-unit">places</span>
-                            <button class="ghost-icon" (click)="startEditCapacite(config)" title="Modifier">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                            </button>
+                        <!-- Capacité -->
+                        <div class="cap-block">
+                            <span class="cap-eyebrow">Capacité</span>
+                            <div class="cap-display" *ngIf="!editingCapacite[config.niveauSpecifiqueId]">
+                                <span class="cap-number">{{ config.capaciteMax }}</span>
+                                <span class="cap-unit">places</span>
+                                <button class="ghost-icon" (click)="startEditCapacite(config)" title="Modifier">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="cap-edit-row" *ngIf="editingCapacite[config.niveauSpecifiqueId]">
+                                <input type="number" class="cap-input"
+                                    [(ngModel)]="newCapacite[config.niveauSpecifiqueId]" min="1" max="999">
+                                <button class="icon-confirm" (click)="saveCapacite(config)"
+                                    [disabled]="savingCapacite[config.niveauSpecifiqueId]">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </button>
+                                <button class="icon-cancel" (click)="cancelEditCapacite(config)">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
 
-                        <div class="cap-edit-row" *ngIf="editingCapacite[config.niveauSpecifiqueId]">
-                            <input type="number" class="cap-input" [(ngModel)]="newCapacite[config.niveauSpecifiqueId]"
-                                min="1" max="999">
-                            <button class="icon-confirm" (click)="saveCapacite(config)"
-                                [disabled]="savingCapacite[config.niveauSpecifiqueId]">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                        d="M5 13l4 4L19 7" />
-                                </svg>
-                            </button>
-                            <button class="icon-cancel" (click)="cancelEditCapacite(config)">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                        <!-- Score Minimum -->
+                        <div class="cap-block score-block">
+                            <span class="cap-eyebrow">Score Min</span>
+                            <div class="cap-display" *ngIf="!editingScore[config.niveauSpecifiqueId]">
+                                <span class="cap-number" [class.score-low]="config.scoreMinimum < 50"
+                                    [class.score-mid]="config.scoreMinimum >= 50 && config.scoreMinimum < 75"
+                                    [class.score-high]="config.scoreMinimum >= 75">
+                                    {{ config.scoreMinimum }}
+                                </span>
+                                <span class="cap-unit">pts</span>
+                                <button class="ghost-icon" (click)="startEditScore(config)" title="Modifier">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="cap-edit-row" *ngIf="editingScore[config.niveauSpecifiqueId]">
+                                <input type="number" class="cap-input" [(ngModel)]="newScore[config.niveauSpecifiqueId]"
+                                    min="0" max="100">
+                                <button class="icon-confirm" (click)="saveScore(config)"
+                                    [disabled]="savingScore[config.niveauSpecifiqueId]">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </button>
+                                <button class="icon-cancel" (click)="cancelEditScore(config)">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
+
+                        <!-- Taille Groupe -->
+                        <div class="cap-block group-block">
+                            <span class="cap-eyebrow">Taille Groupe</span>
+                            <div class="cap-display" *ngIf="!editingTaille[config.niveauSpecifiqueId]">
+                                <span class="cap-number">{{ config.tailleGroupe }}</span>
+                                <span class="cap-unit">étud.</span>
+                                <button class="ghost-icon" (click)="startEditTaille(config)" title="Modifier">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="cap-edit-row" *ngIf="editingTaille[config.niveauSpecifiqueId]">
+                                <input type="number" class="cap-input"
+                                    [(ngModel)]="newTaille[config.niveauSpecifiqueId]" min="1" max="999">
+                                <button class="icon-confirm" (click)="saveTaille(config)"
+                                    [disabled]="savingTaille[config.niveauSpecifiqueId]">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </button>
+                                <button class="icon-cancel" (click)="cancelEditTaille(config)">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ══ BARRE DE PROGRESSION CAPACITÉ ══ -->
+                <div class="capacity-bar-wrap">
+                    <div class="capacity-bar-fill" [style.width]="getCapacityPercent(config) + '%'"
+                        [class.bar-green]="getCapacityPercent(config) < 70"
+                        [class.bar-amber]="getCapacityPercent(config) >= 70 && getCapacityPercent(config) < 90"
+                        [class.bar-red]="getCapacityPercent(config) >= 90">
                     </div>
                 </div>
 
@@ -83,17 +171,11 @@
 
                     <!-- Liste -->
                     <div class="prereq-list" *ngIf="config.prerequis.length > 0">
-                        <!-- ✅ row-obligatoire/row-optionnel supprimés — tous obligatoires -->
-                        <div class="prereq-row row-obligatoire" *ngFor="let p of config.prerequis; let j = index"
+                        <div class="prereq-row"
+                            *ngFor="let p of config.prerequis; let j = index; trackBy: trackByPrereq"
                             [style.animation-delay]="(j * 50) + 'ms'">
-
                             <div class="row-indicator ind-blue"></div>
-
                             <span class="row-nom">{{ p.nom }}</span>
-
-                            <!-- ✅ Badge "Obligatoire" fixe — plus de conditionnel -->
-                            <span class="row-badge badge-req">Obligatoire</span>
-
                             <div class="row-actions">
                                 <button class="action-btn" (click)="openEditModal(config, p)" title="Modifier">
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,7 +239,6 @@
         </div>
 
         <div class="dialog-body">
-            <!-- Champ nom -->
             <div class="field">
                 <label class="field-label">
                     Description du prérequis <span class="req-star">*</span>
@@ -168,12 +249,12 @@
                 <span class="field-err-msg" *ngIf="formErrors['nom']">{{ formErrors['nom'] }}</span>
             </div>
 
-            <!-- ✅ Toggle obligatoire supprimé — tous les prérequis sont obligatoires -->
-            <div class="field"
-                style="padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;">
-                <p style="font-size:12px;color:#166534;font-weight:600;margin:0;">
-                    ✓ Ce prérequis sera automatiquement marqué comme obligatoire
-                </p>
+            <div class="info-banner">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p>Ce prérequis sera marqué comme obligatoire pour tous les candidats</p>
             </div>
         </div>
 
@@ -211,12 +292,12 @@
             </button>
         </div>
 
-        <div class="del-preview">
+        <div class="del-preview" *ngIf="prereqToDelete">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <span>{{ prereqToDelete?.nom }}</span>
+            <span>{{ prereqToDelete.nom }}</span>
         </div>
 
         <div class="dialog-foot">

@@ -249,12 +249,12 @@
                                         [class.chip-purple]="f.typePaiement === 'PARTIEL'">
                                         {{ f.typePaiement }}
                                     </span>
-                                    <span *ngIf="f.paiementEnLigne" class="statut-chip chip-green">En ligne</span>
-                                    <span *ngIf="!f.paiementEnLigne" class="statut-chip chip-gray">Présentiel</span>
                                     <span *ngIf="f.totalRemiseDemandee > 0" class="statut-chip chip-amber">
                                         -{{ f.totalRemiseDemandee }}% (acceptées : {{ f.totalRemiseAcceptee }}%)
                                     </span>
-                                    <span *ngIf="f.typePaiement === 'PARTIEL' && getNombreEcheancesImpayees(f.facture) > 0" class="statut-chip chip-red">
+                                    <span
+                                        *ngIf="f.typePaiement === 'PARTIEL' && getNombreEcheancesImpayees(f.facture) > 0"
+                                        class="statut-chip chip-red">
                                         {{ getNombreEcheancesImpayees(f.facture) }} échéance(s) impayée(s)
                                     </span>
                                 </div>
@@ -330,7 +330,8 @@
                                 </div>
                                 <div class="info-item" *ngIf="f.typePaiement === 'PARTIEL'">
                                     <span class="info-label">Échéances restantes</span>
-                                    <span class="info-val text-red-600 font-bold">{{ getNombreEcheancesImpayees(f.facture) }}</span>
+                                    <span class="info-val text-red-600 font-bold">{{
+                                        getNombreEcheancesImpayees(f.facture) }}</span>
                                 </div>
                             </div>
                             <div class="card-prereq" [class.prereq-ok]="f.statut === 'VALIDE'"
@@ -1042,9 +1043,6 @@
                     <!-- Infos paiement -->
                     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
                         <span class="statut-chip chip-blue">{{ selectedFormulaire.typePaiement }}</span>
-                        <span *ngIf="selectedFormulaire.paiementEnLigne" class="statut-chip chip-green">En ligne</span>
-                        <span *ngIf="!selectedFormulaire.paiementEnLigne"
-                            class="statut-chip chip-gray">Présentiel</span>
                         <span *ngIf="selectedFormulaire.frequenceMois" class="statut-chip chip-purple">
                             {{ selectedFormulaire.frequenceMois }} mois
                         </span>

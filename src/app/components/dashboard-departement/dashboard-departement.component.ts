@@ -28,19 +28,13 @@ export interface DashboardDeptDTO {
   capacites: CapaciteNiveauDTO[]; demandes: DemandeDeptDTO[];
 }
 
-// export interface CapaciteNiveauDTO {
-//   niveau: number; nomDiplome: string; typeDiplome?: string; langue: string;
-//   capaciteMax: number; inscritsConfirmes: number; enCoursTraitement: number;
-//   enCoursDepartement: number; listeAttente: number; placesRestantes: number;
-//   pourcentageRemplissage: number; prerequisNiveau: string[]; prerequisType: string[];
-// }
 export interface CapaciteNiveauDTO {
   niveau: number; nomDiplome: string; typeDiplome?: string; langue: string;
   capaciteMax: number; inscritsConfirmes: number; enCoursTraitement: number;
   enCoursDepartement: number; listeAttente: number; placesRestantes: number;
   pourcentageRemplissage: number; prerequisNiveau: string[]; prerequisType: string[];
-  tailleGroupe?: number;   // ✅ ajouter
-  scoreMinimum?: number;  // ✅ ajouter
+  tailleGroupe?: number;
+  scoreMinimum?: number;
 }
 
 export interface DemandeDeptDTO {
@@ -140,7 +134,7 @@ export class DashboardDepartementComponent implements OnInit {
   tokenFormulaire: string | null = null;
   loadingToken = false;
 
-  // ── Score prérequis NIVEAU — slider inline, pas de dialog ────────────────
+  // ── Score prérequis NIVEAU — slider inline ───────────────────────────────
   prerequisActionLoading = false;
   motifEnCours: Map<number, string> = new Map();
 
@@ -173,7 +167,7 @@ export class DashboardDepartementComponent implements OnInit {
   toastMessage = '';
   toastType: 'success' | 'error' = 'success';
 
-  // Rejet Document (gardé pour les documents)
+  // Rejet Document
   showRejectDocDialog = false;
   selectedDocToReject: DocumentStatusDTO | null = null;
   rejectionDocComment = '';
@@ -368,7 +362,6 @@ export class DashboardDepartementComponent implements OnInit {
   }
 
   // ─── SCORE PRÉREQUIS — SLIDER INLINE ────────────────────────────────────
-  // Plus de dialog séparé. L'agent note directement dans la carte prérequis.
 
   setScorePrerequis(detail: PrerequisDetailDTO, score: number): void {
     if (!this.selectedDemande) return;
@@ -573,74 +566,6 @@ export class DashboardDepartementComponent implements OnInit {
     }
   }
 
-  // confirmerDecision(): void {
-  //   if (!this.selectedDemande || !this.pendingDecision) return;
-  //   this.actionLoading = true;
-  //   const login = this.userProfile?.email || 'enseignant_responsable';
-
-  //   const prereqObservables = Array.from(this.pendingPrereqChanges.entries()).map(([pid, change]) =>
-  //     this.http.post(`${this.apiUrl}/demandes/${this.selectedDemande!.id}/prerequis/confirm`, {
-  //       prerequisId: pid,
-  //       score: (change as any).score,
-  //       motifRejet: (change as any).motifRejet || null,
-  //       agentEmail: this.emailEnseignant
-  //     })
-  //   );
-
-  //   const docObservables = Array.from(this.pendingDocChanges.entries()).map(([did, change]) =>
-  //     this.http.put(`${this.ETUDIANT_SERVICE_URL}/api/documents/${did}/status`, {
-  //       statut: change.statut, commentaireValidation: change.commentaireValidation,
-  //       agentEmail: this.emailEnseignant
-  //     })
-  //   );
-
-  //   forkJoin([...prereqObservables, ...docObservables]).subscribe({
-  //     next: () => {
-  //       const taskId = this.selectedDemande!.taskId;
-  //       if (!taskId) { this.actionLoading = false; this.showToast('❌ Tâche introuvable', 'error'); return; }
-
-  //       let payloadDecision = '';
-  //       if (this.pendingDecision === 'REJETE') {
-  //         const prereqsKo = this.selectedDemande!.prerequisDetails
-  //           .filter(p => p.source === 'NIVEAU' && p.score !== null && p.score !== undefined && p.score < 50)
-  //           .map(p => `${p.prerequisRequis}||${p.motifRejet || 'Score insuffisant'} (${p.score}/100)`)
-  //           .join(';;');
-  //         payloadDecision = prereqsKo.length > 0
-  //           ? `MOTIF:${this.commentaire.trim()}__PREREQS:${prereqsKo}`
-  //           : this.commentaire.trim();
-  //       }
-
-  //       const scoreTotalStr = `SCORE:${this.selectedDemande!.scoreTotal}`;
-  //       payloadDecision = payloadDecision ? `${payloadDecision}__${scoreTotalStr}` : scoreTotalStr;
-
-  //       this.scolariteService.completeTask(taskId, this.pendingDecision!, payloadDecision, login).subscribe({
-  //         next: () => {
-  //           this.actionLoading = false;
-  //           this.sessionPrereqCache.delete(this.selectedDemande!.id);
-  //           this.sessionDocCache.delete(this.selectedDemande!.id);
-  //           this.showToast(
-  //             this.pendingDecision === 'ACCEPTE'
-  //               ? `✅ Dossier validé — Score : ${this.selectedDemande!.scoreTotal}/100`
-  //               : this.pendingDecision === 'LISTE_ATTENTE'
-  //                 ? `🕐 Liste d'attente — Score : ${this.selectedDemande!.scoreTotal}/100`
-  //                 : '❌ Dossier rejeté',
-  //             'success'
-  //           );
-  //           this.showModal = false;
-  //           this.refreshAfterDecision();
-  //         },
-  //         error: () => { this.actionLoading = false; this.showToast('❌ Erreur décision finale', 'error'); }
-  //       });
-  //     },
-  //     error: (err) => {
-  //       console.error('Erreur Batch Save:', err);
-  //       this.actionLoading = false;
-  //       this.showToast('❌ Erreur enregistrement des scores', 'error');
-  //     }
-  //   });
-  // }
-  // ─── REMPLACER confirmerDecision() par soumettreEvaluation() ─────────────
-
   soumettreEvaluation(): void {
     if (!this.selectedDemande) return;
     this.actionLoading = true;
@@ -669,14 +594,13 @@ export class DashboardDepartementComponent implements OnInit {
           return;
         }
 
-        // 2. Construire le payload pour le delegate
-        // Format : "SCORE:75__NIVEAU:1__LANGUE:FRANCAIS__AGENT:prof@itech.tn"
         const scoreTotal = this.selectedDemande!.scoreTotal;
         const niveau = this.selectedDemande!.niveauChoisi || '';
         const langue = this.selectedDemande!.langue || '';
-        const payload = `SCORE:${scoreTotal}__NIVEAU:${niveau}__LANGUE:${langue}__AGENT:${login}`;
+        const nomDiplome = this.selectedDemande!.nomDiplome || '';
+        // ✅ Ajout de nomDiplome dans le payload pour supporter le mode PAR_TYPE
+        const payload = `SCORE:${scoreTotal}__NIVEAU:${niveau}__LANGUE:${langue}__DIPLOME:${nomDiplome}__AGENT:${login}`;
 
-        // 3. completeTask → le delegate décide tout seul
         this.scolariteService.completeTask(
           taskId,
           'ACCEPTE',
@@ -706,14 +630,18 @@ export class DashboardDepartementComponent implements OnInit {
       }
     });
   }
+
+  // ─── getTailleGroupeActuel() — CORRIGÉ ───────────────────────────────────
+  // ✅ Filtre sur nomDiplome + langue + niveau pour éviter les ambiguïtés en mode PAR_TYPE
+
   getTailleGroupeActuel(): number {
     if (!this.selectedDemande || !this.dashboard?.capacites?.length) return 20;
-    const cap = this.dashboard.capacites.find(
-      c => c.niveau.toString() === this.selectedDemande!.niveauChoisi
-        && c.langue === this.selectedDemande!.langue
+    const cap = this.dashboard.capacites.find(c =>
+      c.niveau.toString() === this.selectedDemande!.niveauChoisi
+      && c.langue === this.selectedDemande!.langue
+      && c.nomDiplome === this.selectedDemande!.nomDiplome
     );
-    // tailleGroupe n'est pas dans CapaciteNiveauDTO pour l'instant → valeur par défaut 20
-    return 20;
+    return cap?.tailleGroupe ?? 20;
   }
 
   // ─── HELPERS DIVERS ──────────────────────────────────────────────────────
@@ -725,28 +653,116 @@ export class DashboardDepartementComponent implements OnInit {
     return { inscrits: totInscrits, max: totMax, pct: Math.min(100, (totInscrits / totMax) * 100) };
   }
 
-  isCapaciteAtteinte(niveau?: string): boolean {
+  // ─── isCapaciteAtteinte() — CORRIGÉ ──────────────────────────────────────
+  // ✅ Filtre maintenant par nomDiplome + langue pour éviter les faux positifs en mode PAR_TYPE
+
+  isCapaciteAtteinte(niveau?: string, nomDiplome?: string, langue?: string): boolean {
     if (!this.dashboard?.capacites?.length) return false;
     if (niveau) {
-      const cap = this.dashboard.capacites.find(c => c.niveau.toString() === niveau);
+      const cap = this.dashboard.capacites.find(c =>
+        c.niveau.toString() === niveau
+        && (!nomDiplome || c.nomDiplome === nomDiplome)
+        && (!langue || c.langue === langue)
+      );
       return cap ? (cap.inscritsConfirmes + cap.enCoursTraitement) >= cap.capaciteMax : false;
     }
-    return this.dashboard.capacites.some(c => (c.inscritsConfirmes + c.enCoursTraitement) >= c.capaciteMax);
+    return this.dashboard.capacites.some(c =>
+      (c.inscritsConfirmes + c.enCoursTraitement) >= c.capaciteMax
+    );
   }
 
-  getCapaciteText(niveau?: string): string {
+  // ─── getCapaciteText() — CORRIGÉ ─────────────────────────────────────────
+  // ✅ Filtre maintenant par nomDiplome + langue pour afficher la bonne capacité
+  //    en mode PAR_TYPE (plusieurs diplômes avec le même niveau mais différents)
+
+  getCapaciteText(niveau?: string, nomDiplome?: string, langue?: string): string {
     if (!this.dashboard?.capacites?.length) return '—';
     if (niveau) {
-      const cap = this.dashboard.capacites.find(c => c.niveau.toString() === niveau);
+      const cap = this.dashboard.capacites.find(c =>
+        c.niveau.toString() === niveau
+        && (!nomDiplome || c.nomDiplome === nomDiplome)
+        && (!langue || c.langue === langue)
+      );
       if (cap) return `${cap.inscritsConfirmes + cap.enCoursTraitement}/${cap.capaciteMax}`;
     }
     const cap = this.dashboard.capacites[0];
     return `${cap.inscritsConfirmes + cap.enCoursTraitement}/${cap.capaciteMax}`;
   }
 
+  // ─── getDemandesListeAttente() — CORRIGÉ ─────────────────────────────────
+  // ✅ En mode PAR_TYPE : regroupement par diplôme, puis tri par score décroissant
+  // ✅ En mode PAR_DIPLOME : tri simple par score décroissant (comportement précédent)
+
   getDemandesListeAttente(): DemandeDeptDTO[] {
     return (this.dashboard?.demandes?.filter(d => d.statut === 'LISTE_ATTENTE') || [])
-      .sort((a, b) => b.scoreTotal - a.scoreTotal);
+      .sort((a, b) => {
+        // Grouper par diplôme d'abord (utile en mode PAR_TYPE)
+        if (a.nomDiplome !== b.nomDiplome)
+          return a.nomDiplome.localeCompare(b.nomDiplome);
+        // Puis trier par score décroissant dans chaque groupe
+        return b.scoreTotal - a.scoreTotal;
+      });
+  }
+
+  // ─── getCommonPrerequisType() — CORRIGÉ ──────────────────────────────────
+  // ✅ MODE PAR_TYPE  : retourne l'intersection des prérequis communs à tous les diplômes
+  // ✅ MODE PAR_DIPLOME : retourne les prérequis du seul diplôme (comportement précédent)
+  // ✅ Paramètre optionnel nomDiplome pour filtrer sur un diplôme spécifique
+
+  getCommonPrerequisType(nomDiplome?: string): string[] {
+    if (!this.dashboard?.capacites?.length) return [];
+
+    // Si un diplôme spécifique est demandé, retourner ses prérequis directement
+    if (nomDiplome) {
+      const cap = this.dashboard.capacites.find(c => c.nomDiplome === nomDiplome);
+      return cap?.prerequisType || [];
+    }
+
+    // Calculer l'intersection de tous les prérequis communs (mode PAR_TYPE)
+    const allPrereqs = this.dashboard.capacites.map(c => c.prerequisType || []);
+    if (!allPrereqs.length) return [];
+
+    // Si un seul diplôme, retourner directement ses prérequis
+    if (allPrereqs.length === 1) return allPrereqs[0];
+
+    // Intersection : prérequis présents dans TOUS les diplômes
+    return allPrereqs.reduce((common, prereqs) =>
+      common.filter(p => prereqs.includes(p))
+    );
+  }
+
+  // ─── isModeParType() — NOUVEAU ───────────────────────────────────────────
+  // ✅ Détecte si l'enseignant est en mode PAR_TYPE (plusieurs diplômes différents)
+  //    ou PAR_DIPLOME (un seul diplôme responsable)
+
+  isModeParType(): boolean {
+    if (!this.dashboard?.capacites?.length) return false;
+    const nomsUniques = new Set(this.dashboard.capacites.map(c => c.nomDiplome));
+    return nomsUniques.size > 1;
+  }
+
+  // ─── getNomsDiplomesDistincts() — NOUVEAU ────────────────────────────────
+  // ✅ Retourne les noms de diplômes distincts gérés par l'enseignant
+  //    Utile pour les filtres ou les regroupements visuels en mode PAR_TYPE
+
+  getNomsDiplomesDistincts(): string[] {
+    if (!this.dashboard?.capacites?.length) return [];
+    return [...new Set(this.dashboard.capacites.map(c => c.nomDiplome))];
+  }
+
+  // ─── getCapacitesParDiplome() — NOUVEAU ──────────────────────────────────
+  // ✅ Regroupe les capacités par nom de diplôme
+  //    Pratique pour afficher un header par diplôme en mode PAR_TYPE
+
+  getCapacitesParDiplome(): Map<string, CapaciteNiveauDTO[]> {
+    const map = new Map<string, CapaciteNiveauDTO[]>();
+    if (!this.dashboard?.capacites?.length) return map;
+    this.dashboard.capacites.forEach(cap => {
+      const existing = map.get(cap.nomDiplome) || [];
+      existing.push(cap);
+      map.set(cap.nomDiplome, existing);
+    });
+    return map;
   }
 
   isActionnable(demande: DemandeDeptDTO): boolean { return demande.statut === 'EN_COURS_DEPARTEMENT'; }
@@ -845,10 +861,6 @@ export class DashboardDepartementComponent implements OnInit {
   }
 
   openAddPrereq(): void { if (this.paramComponent) this.paramComponent.openAddModal(null); }
-
-  getCommonPrerequisType(): string[] {
-    return this.dashboard?.capacites?.length ? (this.dashboard.capacites[0].prerequisType || []) : [];
-  }
 
   // ─── WORKFLOW STEPPER ────────────────────────────────────────────────────
 
@@ -1000,7 +1012,8 @@ export class DashboardDepartementComponent implements OnInit {
   selectedNiveau: string | null = null;
 
   filtrerParNiveau(cap: CapaciteNiveauDTO): void {
-    const key = `${cap.niveau}-${cap.langue}`;
+    // ✅ La clé intègre maintenant nomDiplome pour éviter les collisions en mode PAR_TYPE
+    const key = `${cap.niveau}-${cap.langue}-${cap.nomDiplome}`;
     this.selectedNiveau = this.selectedNiveau === key ? null : key;
     this.currentFilter = 'tous';
     this.currentPage = 0;
@@ -1012,7 +1025,10 @@ export class DashboardDepartementComponent implements OnInit {
     this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
       params: {
         email: this.emailEnseignant.trim().toLowerCase(),
-        niveau: cap.niveau.toString(), langue: cap.langue,
+        niveau: cap.niveau.toString(),
+        langue: cap.langue,
+        // ✅ Ajout du filtre nomDiplome pour le mode PAR_TYPE
+        nomDiplome: cap.nomDiplome,
         page: '0', size: this.pageSize.toString()
       }
     }).subscribe({
@@ -1040,21 +1056,24 @@ export class DashboardDepartementComponent implements OnInit {
     if (!this.emailEnseignant) return;
     if (!window.confirm(
       `⚠️ Confirmer le rejet de TOUTES les demandes en liste d'attente\n` +
-      `Niveau ${cap.niveau} · ${cap.langue}\n\nCette action est irréversible.`
+      `Niveau ${cap.niveau} · ${cap.langue} · ${cap.nomDiplome}\n\nCette action est irréversible.`
     )) return;
 
+    // ✅ La clé intègre nomDiplome pour le mode PAR_TYPE
     this.rejetMasseLoading = true;
-    this.rejetMasseNiveauKey = `${cap.niveau}-${cap.langue}`;
+    this.rejetMasseNiveauKey = `${cap.niveau}-${cap.langue}-${cap.nomDiplome}`;
     this.http.post(`${environment.workflowServiceUrl}/api/process/rejet-masse`, null, {
       params: {
         emailEnseignant: this.emailEnseignant.trim().toLowerCase(),
-        nomDiplome: this.dashboard?.nomDiplome || '',
+        // ✅ Utilise le nomDiplome de la capacité, pas dashboard?.nomDiplome
+        //    (important en mode PAR_TYPE pour cibler le bon diplôme)
+        nomDiplome: cap.nomDiplome,
         langue: cap.langue, niveau: cap.niveau.toString()
       }
     }).subscribe({
       next: () => {
         this.rejetMasseLoading = false; this.rejetMasseNiveauKey = null;
-        this.showToast(`✅ Rejet en masse lancé — Niveau ${cap.niveau} (${cap.langue})`, 'success');
+        this.showToast(`✅ Rejet en masse lancé — ${cap.nomDiplome} · Niveau ${cap.niveau} (${cap.langue})`, 'success');
         setTimeout(() => this.refreshAfterDecision(), 2000);
       },
       error: (err) => {
@@ -1071,10 +1090,8 @@ export class DashboardDepartementComponent implements OnInit {
     this.toastMessage = message; this.toastType = type; this.toastVisible = true;
     setTimeout(() => this.toastVisible = false, 3500);
   }
-  // ═══════════════════════════════════════════════════════════════════════
-  // AJOUTER ces propriétés dans la section "Score prérequis NIVEAU"
-  // juste après : motifEnCours: Map<number, string> = new Map();
-  // ═══════════════════════════════════════════════════════════════════════
+
+  // ─── DIALOG REJET PRÉREQUIS ──────────────────────────────────────────────
 
   showRejetPrerequisDialog = false;
   selectedPrerequisToReject: PrerequisDetailDTO | null = null;
@@ -1086,11 +1103,6 @@ export class DashboardDepartementComponent implements OnInit {
     'Certificat manquant',
     'Expérience insuffisante'
   ];
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // AJOUTER ces méthodes à la fin de la classe,
-  // juste avant la méthode private showToast(...)
-  // ═══════════════════════════════════════════════════════════════════════
 
   ouvrirRejetPrerequis(detail: PrerequisDetailDTO): void {
     this.selectedPrerequisToReject = detail;
@@ -1108,23 +1120,16 @@ export class DashboardDepartementComponent implements OnInit {
     this.motifRejetPrerequis = motif;
   }
 
-  /**
-   * Confirme le score saisi dans le dialog et ferme.
-   * Le score a déjà été mis à jour via setScorePrerequis() depuis le slider du dialog.
-   * On enregistre juste le motif final si score < 50.
-   */
   confirmerRejetPrerequis(): void {
     if (!this.selectedDemande || !this.selectedPrerequisToReject) return;
 
     const detail = this.selectedPrerequisToReject;
     const score = detail.score ?? 0;
 
-    // Appliquer le motif final si score < 50
     if (score < 50 && this.motifRejetPrerequis.trim()) {
       this.setMotifPrerequis(detail, this.motifRejetPrerequis.trim());
     }
 
-    // Si aucun score n'a été attribué via slider, appliquer 0 par défaut
     if (detail.score === null || detail.score === undefined) {
       this.setScorePrerequis(detail, 0);
     }

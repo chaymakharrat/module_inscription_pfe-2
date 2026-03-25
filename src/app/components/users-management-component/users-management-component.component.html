@@ -68,6 +68,12 @@
                 </svg>
                 Nouveau compte
             </button>
+            <button class="btn-roles" (click)="openRoleModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Gestion des Rôles
+            </button>
         </div>
     </header>
 
@@ -85,10 +91,19 @@
                 <span class="tab-label">Étudiants</span>
                 <span class="tab-count">{{ roleCounts['ETUDIANT'] || 0 }}</span>
             </button>
-            <button class="role-tab enseignant" [class.active]="activeRoleFilter === 'ENSEIGNANT_RESPONSABLE'"
-                (click)="setRoleFilter('ENSEIGNANT_RESPONSABLE')">
+            <!-- Tab Enseignant simple -->
+            <button class="role-tab enseignant" [class.active]="activeRoleFilter === 'ENSEIGNANT'"
+                (click)="setRoleFilter('ENSEIGNANT')">
                 <span class="tab-icon">👨‍🏫</span>
                 <span class="tab-label">Enseignants</span>
+                <span class="tab-count">{{ roleCounts['ENSEIGNANT'] || 0 }}</span>
+            </button>
+
+            <!-- Tab Enseignant Responsable -->
+            <button class="role-tab responsable" [class.active]="activeRoleFilter === 'ENSEIGNANT_RESPONSABLE'"
+                (click)="setRoleFilter('ENSEIGNANT_RESPONSABLE')">
+                <span class="tab-icon">⭐</span>
+                <span class="tab-label">Responsables</span>
                 <span class="tab-count">{{ roleCounts['ENSEIGNANT_RESPONSABLE'] || 0 }}</span>
             </button>
             <button class="role-tab finance" [class.active]="activeRoleFilter === 'AGENT_FINANCE'"
@@ -200,8 +215,8 @@
                     </div>
 
                     <div class="col-role">
-                        <span class="role-badge" [ngClass]="getRoleClass(user.role)">
-                            {{ getRoleIcon(user.role) }} {{ getRoleLabel(user.role) }}
+                        <span class="role-badge" [ngClass]="getRoleClass(user.role.nom)">
+                            {{ getRoleIcon(user.role.nom) }} {{ getRoleLabel(user.role.nom) }}
                         </span>
                     </div>
 
@@ -292,8 +307,8 @@
                 <div class="card-body">
                     <h3 class="card-name">{{ user.prenom }} {{ user.nom }}</h3>
                     <p class="card-email">{{ user.login }}</p>
-                    <span class="role-badge" [ngClass]="getRoleClass(user.role)">
-                        {{ getRoleIcon(user.role) }} {{ getRoleLabel(user.role) }}
+                    <span class="role-badge" [ngClass]="getRoleClass(user.role.nom)">
+                        {{ getRoleIcon(user.role.nom) }} {{ getRoleLabel(user.role.nom) }}
                     </span>
                 </div>
 
@@ -365,8 +380,8 @@
                 <div>
                     <h2 class="detail-name">{{ selectedUser.prenom }} {{ selectedUser.nom }}</h2>
                     <p class="detail-email">{{ selectedUser.login }}</p>
-                    <span class="role-badge" [ngClass]="getRoleClass(selectedUser.role)">
-                        {{ getRoleIcon(selectedUser.role) }} {{ getRoleLabel(selectedUser.role) }}
+                    <span class="role-badge" [ngClass]="getRoleClass(selectedUser.role.nom)">
+                        {{ getRoleIcon(selectedUser.role.nom) }} {{ getRoleLabel(selectedUser.role.nom) }}
                     </span>
                 </div>
                 <div class="detail-status-badge" [class.active-badge]="selectedUser.actif"
@@ -482,10 +497,9 @@
                     <label>Rôle *</label>
                     <select [(ngModel)]="formData.role">
                         <option value="">-- Sélectionner --</option>
-                        <option value="ETUDIANT">🎓 Étudiant</option>
-                        <option value="ENSEIGNANT_RESPONSABLE">👨‍🏫 Enseignant responsable</option>
-                        <option value="AGENT_FINANCE">💰 Agent finance</option>
-                        <option value="ADMIN">⚡ Administrateur</option>
+                        <option *ngFor="let r of activeRoles" [value]="r.nom">
+                             {{ getRoleIcon(r.nom) }} {{ getRoleLabel(r.nom) }}
+                        </option>
                     </select>
                 </div>
             </div>
@@ -496,6 +510,42 @@
                     <span *ngIf="formLoading" class="spinner"></span>
                     {{ editMode ? 'Enregistrer' : 'Créer le compte' }}
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════ MODAL GESTION DES RÔLES ═══════════════════ -->
+    <div class="modal-overlay" *ngIf="showRoleModal" (click)="closeModals()">
+        <div class="modal role-modal" (click)="$event.stopPropagation()">
+            <button class="modal-close" (click)="closeModals()">✕</button>
+            <h3>Gestion des Rôles</h3>
+
+            <!-- Ajouter un rôle -->
+            <div class="add-role-box">
+                <input type="text" [(ngModel)]="newRoleNom" placeholder="NOM_DU_ROLE (ex: RESPONSABLE_PEDAGO)">
+                <button class="btn-create-submit" (click)="addRole()">Ajouter</button>
+            </div>
+
+            <div class="roles-list">
+                <div class="role-item" *ngFor="let r of roles">
+                    <div class="role-info">
+                        <span class="role-icon">{{ getRoleIcon(r.nom) }}</span>
+                        <span class="role-name">{{ r.nom }}</span>
+                    </div>
+                    <div class="role-status">
+                        <label class="toggle-switch">
+                            <input type="checkbox" [checked]="r.actif" (change)="toggleRoleStatus(r)">
+                            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                        </label>
+                        <span [class.text-green]="r.actif" [class.text-red]="!r.actif">
+                            {{ r.actif ? 'Actif' : 'Inactif' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-outline" (click)="closeModals()">Fermer</button>
             </div>
         </div>
     </div>

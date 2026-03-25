@@ -84,7 +84,6 @@ export interface FormulaireDashboardDTO {
   statut: StatutFormulaire;
   typePaiement?: TypePaiement;
   frequenceMois?: number;
-  paiementEnLigne?: boolean;
   dateExpiration?: string;
   commentaireAgent?: string;
   remisesDemandees: RemiseDTO[];

@@ -31,7 +31,6 @@ export interface RemiseSelection {
 }
 
 export interface PreferencesRequest {
-  paiementEnLigne: boolean;
   typePaiement: string;
   remisesSelectionnees: number[];
   notesJustificatifs: { [remiseId: number]: string };    // → justificatifNote
@@ -81,7 +80,6 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
 
   // Préférences saisies
   preferences: PreferencesRequest = {
-    paiementEnLigne: false,
     typePaiement: '',
     remisesSelectionnees: [],
     notesJustificatifs: {},
@@ -520,13 +518,11 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
 
   // ─── NAVIGATION ───────────────────────────────────────────────────────────
 
-  nextStep(): void { if (this.currentStep < 4) this.currentStep++; }
+  nextStep(): void { if (this.currentStep < 3) this.currentStep++; }
   prevStep(): void { if (this.currentStep > 1) this.currentStep--; }
   goToStep(step: number): void { this.currentStep = step; }
 
   // ─── SÉLECTIONS ───────────────────────────────────────────────────────────
-
-  selectMode(enLigne: boolean): void { this.preferences.paiementEnLigne = enLigne; }
 
   selectType(type: string): void { this.preferences.typePaiement = type; }
 
@@ -595,7 +591,6 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
   //   this.submitting = true;
 
   //   const body: PreferencesRequest = {
-  //     paiementEnLigne: this.preferences.paiementEnLigne,
   //     typePaiement: this.preferences.typePaiement,
   //     remisesSelectionnees: [...this.preferences.remisesSelectionnees]
   //   };
@@ -619,7 +614,6 @@ export class FormulairePaiementComponent implements OnInit, AfterViewInit, OnDes
     });
 
     return {
-      paiementEnLigne: this.preferences.paiementEnLigne,
       typePaiement: this.preferences.typePaiement,
       remisesSelectionnees: this.preferences.remisesSelectionnees,
       notesJustificatifs,

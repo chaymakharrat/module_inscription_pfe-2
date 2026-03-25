@@ -725,12 +725,6 @@ export class ScolariteDashboardComponent implements OnInit {
     return forkJoin(apiCalls);
   }
 
-  /** Helper pour vérifier si tous les documents obligatoires sont SOUMIS */
-  areAllDocumentsSubmitted(docs: any[] | undefined): boolean {
-    if (!docs) return false;
-    return docs.every(d => d.statut !== 'MANQUANTE' && d.statut !== 'A_FOURNIR');
-  }
-
   get hasPendingChanges(): boolean {
     return this.pendingDocChanges.size > 0;
   }
@@ -767,15 +761,6 @@ export class ScolariteDashboardComponent implements OnInit {
     }
 
     return this.selectedDemande.documents.every(doc => doc.statut === 'VALIDE');
-  }
-
-  get areAllDocumentsTreated(): boolean {
-    if (!this.selectedDemande || !this.selectedDemande.documents) return false;
-    if (this.selectedDemande.documents.length === 0) return true;
-
-    return this.selectedDemande.documents.every(doc =>
-      doc.statut === 'VALIDE' || doc.statut === 'REJETE'
-    );
   }
 
   get isAssignedToOther(): boolean {
@@ -949,6 +934,21 @@ export class ScolariteDashboardComponent implements OnInit {
     return documents.some(d => d.statut === 'MANQUANTE' || d.statut === 'REJETE');
   }
 
+  /** Retourne vrai uniquement si TOUS les documents sont VALIDE (ou REJETE en mode RELANCE) */
+  areAllDocumentsSubmitted(documents: any[]): boolean {
+    if (!documents || documents.length === 0) return false;
+
+    const isRelanceMode = this.selectedDemande && (
+      this.selectedDemande.statutActuel === 'RELANCE' ||
+      this.selectedDemande.statutActuel === 'EN_ATTENTE_DOCUMENT'
+    );
+
+    if (isRelanceMode) {
+      return documents.every(d => d.statut === 'VALIDE' || d.statut === 'REJETE');
+    }
+
+    return documents.every(d => d.statut === 'VALIDE');
+  }
 
   getCompletionPercentage(documents: any[]): number {
     if (!documents || documents.length === 0) return 0;

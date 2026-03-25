@@ -12,7 +12,6 @@ import { environment } from '../../envirements/enviremetns';
 export interface PrerequisItemDTO {
   id: number;
   nom: string;
-  // ✅ obligatoire supprimé — tous les prérequis sont obligatoires
 }
 
 export interface PrerequisConfigDTO {
@@ -21,12 +20,13 @@ export interface PrerequisConfigDTO {
   nomDiplome: string;
   langue: string;
   capaciteMax: number;
+  scoreMinimum: number;
+  tailleGroupe: number;
   prerequis: PrerequisItemDTO[];
 }
 
 export interface PrerequisFormData {
   nom: string;
-  // ✅ obligatoire supprimé
 }
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
@@ -50,6 +50,16 @@ export class ParametragePrerequisComponent implements OnInit {
   editingCapacite: Record<number, boolean> = {};
   newCapacite: Record<number, number> = {};
   savingCapacite: Record<number, boolean> = {};
+
+  // Édition score minimum
+  editingScore: Record<number, boolean> = {};
+  newScore: Record<number, number> = {};
+  savingScore: Record<number, boolean> = {};
+
+  // Édition taille groupe
+  editingTaille: Record<number, boolean> = {};
+  newTaille: Record<number, number> = {};
+  savingTaille: Record<number, boolean> = {};
 
   // Modal formulaire
   showFormModal = false;
@@ -93,6 +103,22 @@ export class ParametragePrerequisComponent implements OnInit {
     }
   }
 
+  // ─── TRACKBY ─────────────────────────────────────────────────────────────
+
+  trackByNiveau(index: number, config: PrerequisConfigDTO): number {
+    return config.niveauSpecifiqueId;
+  }
+
+  trackByPrereq(index: number, p: PrerequisItemDTO): number {
+    return p.id;
+  }
+
+  // ─── UTILITARE CAPACITÉ ──────────────────────────────────────────────────
+
+  getCapacityPercent(config: PrerequisConfigDTO): number {
+    return 0;
+  }
+
   // ─── CHARGEMENT ──────────────────────────────────────────────────────────
 
   loadConfig(): void {
@@ -112,6 +138,13 @@ export class ParametragePrerequisComponent implements OnInit {
     });
   }
 
+  private showToast(message: string, type: 'success' | 'error'): void {
+    this.toastMessage = message;
+    this.toastType = type;
+    this.toastVisible = true;
+    setTimeout(() => this.toastVisible = false, 3500);
+  }
+
   // ─── CAPACITÉ ────────────────────────────────────────────────────────────
 
   startEditCapacite(config: PrerequisConfigDTO): void {
@@ -129,12 +162,10 @@ export class ParametragePrerequisComponent implements OnInit {
       this.showToast('⚠️ Capacité invalide (minimum 1)', 'error');
       return;
     }
-
     this.savingCapacite[config.niveauSpecifiqueId] = true;
-
     this.http.put<PrerequisConfigDTO>(
       `${this.apiUrl}/niveaux/${config.niveauSpecifiqueId}/capacite`,
-      null,
+      {},
       { params: { email: this.emailEnseignant, capacite: nouvelleCapacite.toString() } }
     ).subscribe({
       next: (updated) => {
@@ -153,16 +184,90 @@ export class ParametragePrerequisComponent implements OnInit {
     });
   }
 
+  // ─── SCORE MINIMUM ───────────────────────────────────────────────────────
+
+  startEditScore(config: PrerequisConfigDTO): void {
+    this.editingScore[config.niveauSpecifiqueId] = true;
+    this.newScore[config.niveauSpecifiqueId] = config.scoreMinimum;
+  }
+
+  cancelEditScore(config: PrerequisConfigDTO): void {
+    this.editingScore[config.niveauSpecifiqueId] = false;
+  }
+
+  saveScore(config: PrerequisConfigDTO): void {
+    const s = this.newScore[config.niveauSpecifiqueId];
+    if (s === undefined || s === null || s < 0 || s > 100) {
+      this.showToast('⚠️ Score invalide (0-100)', 'error');
+      return;
+    }
+    this.savingScore[config.niveauSpecifiqueId] = true;
+    this.http.put<PrerequisConfigDTO>(
+      `${this.apiUrl}/niveaux/${config.niveauSpecifiqueId}/score-minimum`,
+      {},
+      { params: { email: this.emailEnseignant, score: s.toString() } }
+    ).subscribe({
+      next: (updated) => {
+        const idx = this.niveauxConfig.findIndex(
+          n => n.niveauSpecifiqueId === config.niveauSpecifiqueId);
+        if (idx !== -1) this.niveauxConfig[idx] = updated;
+        this.editingScore[config.niveauSpecifiqueId] = false;
+        this.savingScore[config.niveauSpecifiqueId] = false;
+        this.showToast('✅ Score minimum mis à jour', 'success');
+      },
+      error: () => {
+        this.savingScore[config.niveauSpecifiqueId] = false;
+        this.showToast('❌ Erreur mise à jour score', 'error');
+      }
+    });
+  }
+
+  // ─── TAILLE GROUPE ───────────────────────────────────────────────────────
+
+  startEditTaille(config: PrerequisConfigDTO): void {
+    this.editingTaille[config.niveauSpecifiqueId] = true;
+    this.newTaille[config.niveauSpecifiqueId] = config.tailleGroupe;
+  }
+
+  cancelEditTaille(config: PrerequisConfigDTO): void {
+    this.editingTaille[config.niveauSpecifiqueId] = false;
+  }
+
+  saveTaille(config: PrerequisConfigDTO): void {
+    const t = this.newTaille[config.niveauSpecifiqueId];
+    if (!t || t < 1) {
+      this.showToast('⚠️ Taille invalide (min 1)', 'error');
+      return;
+    }
+    this.savingTaille[config.niveauSpecifiqueId] = true;
+    this.http.put<PrerequisConfigDTO>(
+      `${this.apiUrl}/niveaux/${config.niveauSpecifiqueId}/taille-groupe`,
+      {},
+      { params: { email: this.emailEnseignant, taille: t.toString() } }
+    ).subscribe({
+      next: (updated) => {
+        const idx = this.niveauxConfig.findIndex(
+          n => n.niveauSpecifiqueId === config.niveauSpecifiqueId);
+        if (idx !== -1) this.niveauxConfig[idx] = updated;
+        this.editingTaille[config.niveauSpecifiqueId] = false;
+        this.savingTaille[config.niveauSpecifiqueId] = false;
+        this.showToast('✅ Taille groupe mise à jour', 'success');
+      },
+      error: () => {
+        this.savingTaille[config.niveauSpecifiqueId] = false;
+        this.showToast('❌ Erreur mise à jour taille', 'error');
+      }
+    });
+  }
+
   // ─── MODAL FORMULAIRE ────────────────────────────────────────────────────
 
   openAddModal(config: PrerequisConfigDTO | null): void {
     this.selectedNiveau = config ?? (this.niveauxConfig.length > 0 ? this.niveauxConfig[0] : null);
-
     if (!this.selectedNiveau) {
       this.showToast('⚠️ Aucun niveau disponible pour cette formation', 'error');
       return;
     }
-
     this.isEditMode = false;
     this.formData = this.emptyForm();
     this.formErrors = {};
@@ -174,7 +279,6 @@ export class ParametragePrerequisComponent implements OnInit {
     this.isEditMode = true;
     this.selectedNiveau = config;
     this.editingPrerequisId = prereq.id;
-    // ✅ Plus d'obligatoire dans le formData
     this.formData = { nom: prereq.nom };
     this.formErrors = {};
     this.showFormModal = true;
@@ -192,10 +296,7 @@ export class ParametragePrerequisComponent implements OnInit {
       this.showToast('❌ Aucun niveau sélectionné', 'error');
       return;
     }
-
     this.formLoading = true;
-
-    // ✅ Body sans obligatoire
     const body = { nom: this.formData.nom.trim() };
 
     if (this.isEditMode && this.editingPrerequisId) {
@@ -218,7 +319,6 @@ export class ParametragePrerequisComponent implements OnInit {
 
     } else {
       const niveauId = this.selectedNiveau!.niveauSpecifiqueId;
-
       this.http.post<PrerequisConfigDTO>(
         `${this.apiUrl}/niveaux/${niveauId}/prerequis`,
         body,
@@ -254,9 +354,7 @@ export class ParametragePrerequisComponent implements OnInit {
 
   executerSuppression(): void {
     if (!this.prereqToDelete || !this.niveauPourSuppression) return;
-
     this.deleteLoading = true;
-
     this.http.delete<PrerequisConfigDTO>(
       `${this.apiUrl}/niveaux/${this.niveauPourSuppression.niveauSpecifiqueId}/prerequis/${this.prereqToDelete.id}`,
       { params: { email: this.emailEnseignant } }
@@ -265,9 +363,11 @@ export class ParametragePrerequisComponent implements OnInit {
         const idx = this.niveauxConfig.findIndex(
           n => n.niveauSpecifiqueId === updatedConfig.niveauSpecifiqueId);
         if (idx !== -1) this.niveauxConfig[idx] = updatedConfig;
+        
         this.deleteLoading = false;
         this.showDeleteConfirm = false;
         this.prereqToDelete = null;
+        this.niveauPourSuppression = null;
         this.showToast('✅ Prérequis retiré du niveau', 'success');
       },
       error: () => {
@@ -281,38 +381,29 @@ export class ParametragePrerequisComponent implements OnInit {
 
   private validateForm(): boolean {
     this.formErrors = {};
-
     if (!this.formData.nom?.trim()) {
       this.formErrors['nom'] = 'Le nom est obligatoire';
       return false;
     }
-
     if (this.formData.nom.trim().length < 3) {
       this.formErrors['nom'] = 'Minimum 3 caractères';
       return false;
     }
-
     return true;
   }
 
   // ─── UTILITAIRES ─────────────────────────────────────────────────────────
 
   private emptyForm(): PrerequisFormData {
-    // ✅ Plus d'obligatoire
     return { nom: '' };
   }
 
   private updatePrereqInList(updated: PrerequisItemDTO): void {
     this.niveauxConfig = this.niveauxConfig.map(config => ({
       ...config,
-      prerequis: config.prerequis.map(p => p.id === updated.id ? updated : p)
+      prerequis: config.prerequis.map(p =>
+        p.id === updated.id ? { ...updated } : p
+      )
     }));
-  }
-
-  private showToast(message: string, type: 'success' | 'error'): void {
-    this.toastMessage = message;
-    this.toastType = type;
-    this.toastVisible = true;
-    setTimeout(() => this.toastVisible = false, 3500);
   }
 }

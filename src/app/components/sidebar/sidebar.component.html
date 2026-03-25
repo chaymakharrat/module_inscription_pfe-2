@@ -33,13 +33,19 @@
                     </a>
 
                     <a routerLink="/notifications" routerLinkActive="active-nav"
-                        class="flex items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl transition-all group">
-                        <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                        <span class="font-bold text-sm">Notifications</span>
+                        class="flex items-center justify-between px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl transition-all group">
+                        <span class="flex items-center">
+                            <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                            <span class="font-bold text-sm">Notifications</span>
+                        </span>
+                        <span *ngIf="unreadCount > 0" 
+                            class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                            {{ unreadCount }}
+                        </span>
                     </a>
                 </nav>
             </div>
@@ -75,6 +81,15 @@
             <div *ngIf="hasRole('ADMIN')">
                 <h2 class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">ADMINISTRATION</h2>
                 <nav class="space-y-1">
+                    <a routerLink="/admin/departements" routerLinkActive="active-nav"
+                        class="flex items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl transition-all group">
+                        <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span class="font-bold text-sm">Départements</span>
+                    </a>
                     <a routerLink="/admin/users" routerLinkActive="active-nav"
                         class="flex items-center px-4 py-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl transition-all group">
                         <svg class="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" fill="none"

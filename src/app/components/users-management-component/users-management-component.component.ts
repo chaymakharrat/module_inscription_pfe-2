@@ -5,13 +5,19 @@ import { RouterLink } from '@angular/router';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../envirements/enviremetns';
 
+export interface Role {
+  id: number;
+  nom: string;
+  actif: boolean;
+}
+
 export interface Utilisateur {
   id: number;
   login: string;
   nom: string;
   prenom: string;
   numeroDeTelephone: string;
-  role: string;
+  role: Role; // ← Changé de string à Role object
   actif: boolean;
   keycloakUserId: string;
   dateCreation: string;
@@ -50,6 +56,7 @@ export class UsersManagementComponent implements OnInit {
   todayCount = 0;
   weekCount = 0;
   roleCounts: Record<string, number> = {};
+  roles: Role[] = []; // ← NOUVEAU
 
   // ═══════ FILTRES ═══════
   activeRoleFilter = 'ALL';
@@ -65,8 +72,10 @@ export class UsersManagementComponent implements OnInit {
   showDeactivateModal = false;
   showDeleteModal = false;
   showFormModal = false;
+  showRoleModal = false; // ← NOUVEAU
   selectedUser: Utilisateur | null = null;
   deactivateReason = '';
+  newRoleNom = ''; // ← NOUVEAU
   editMode = false;
   formLoading = false;
 
@@ -87,12 +96,13 @@ export class UsersManagementComponent implements OnInit {
   Math = Math;
 
   private apiUrl = `${environment.apiUrl}/AUTHENTIFICATION-SERVICE/authentifier/utilisateurs`;
-
+  private deptApiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE`;
 
   constructor(private http: HttpClient) { }
 
   ngOnInit(): void {
     this.loadUsers();
+    this.loadRoles(); // ← NOUVEAU
     this.loadStats();
   }
 
@@ -106,9 +116,6 @@ export class UsersManagementComponent implements OnInit {
       .set('page', this.currentPage.toString())
       .set('size', this.pageSize.toString());
 
-    // Endpoint selon filtre
-    let endpoint = `${this.apiUrl}/filtre`;
-
     if (this.activeRoleFilter !== 'ALL') {
       params = params.set('role', this.activeRoleFilter);
     }
@@ -118,7 +125,7 @@ export class UsersManagementComponent implements OnInit {
       params = params.set('actif', 'false');
     }
 
-    this.http.get<PageResponse<Utilisateur>>(endpoint, { params }).subscribe({
+    this.http.get<PageResponse<Utilisateur>>(`${this.apiUrl}/filtre`, { params }).subscribe({
       next: (res) => {
         this.users = res.content;
         this.totalElements = res.totalElements;
@@ -133,8 +140,8 @@ export class UsersManagementComponent implements OnInit {
   }
 
   loadStats(): void {
-    // Charger les stats globales pour tous les rôles
-    const roles = ['ETUDIANT', 'ENSEIGNANT_RESPONSABLE', 'AGENT_FINANCE', 'ADMIN'];
+    // ✅ Les 5 rôles séparément
+    const roles = ['ETUDIANT', 'ENSEIGNANT', 'ENSEIGNANT_RESPONSABLE', 'AGENT_FINANCE', 'ADMIN'];
     roles.forEach(role => {
       this.http.get<PageResponse<Utilisateur>>(
         `${this.apiUrl}/filtre?role=${role}&page=0&size=1`
@@ -161,6 +168,17 @@ export class UsersManagementComponent implements OnInit {
     });
   }
 
+  loadRoles(): void {
+    this.http.get<Role[]>(`${environment.apiUrl}/AUTHENTIFICATION-SERVICE/authentifier/roles`).subscribe({
+      next: (res) => this.roles = res,
+      error: () => console.error('Erreur chargement rôles')
+    });
+  }
+
+  get activeRoles(): Role[] {
+    return this.roles.filter(r => r.actif);
+  }
+
   // ═══════════════════ FILTRES ═══════════════════
 
   setRoleFilter(role: string): void {
@@ -177,16 +195,14 @@ export class UsersManagementComponent implements OnInit {
 
   onSearch(): void {
     this.currentPage = 0;
-    // Si terme vide → rechargement normal
     if (!this.searchTerm.trim()) {
       this.loadUsers();
       return;
     }
-    // Filtrage local sur les données chargées (ou appel API search si disponible)
     this.loading = true;
     const params = new HttpParams()
       .set('page', '0')
-      .set('size', '100'); // Charger plus pour recherche locale
+      .set('size', '100');
 
     this.http.get<PageResponse<Utilisateur>>(`${this.apiUrl}/filtre`, { params }).subscribe({
       next: (res) => {
@@ -229,11 +245,11 @@ export class UsersManagementComponent implements OnInit {
     }
 
     pages.push(0);
-    if (current > 2) pages.push(-1); // dots
+    if (current > 2) pages.push(-1);
     for (let i = Math.max(1, current - 1); i <= Math.min(total - 2, current + 1); i++) {
       pages.push(i);
     }
-    if (current < total - 3) pages.push(-1); // dots
+    if (current < total - 3) pages.push(-1);
     pages.push(total - 1);
     return pages;
   }
@@ -244,8 +260,7 @@ export class UsersManagementComponent implements OnInit {
     event.stopPropagation();
     const checkbox = event.target as HTMLInputElement;
     if (user.actif) {
-      // Désactiver
-      checkbox.checked = true; // reset visuel en attendant confirmation
+      checkbox.checked = true;
       this.selectedUser = user;
       this.showDeactivateModal = true;
     } else {
@@ -329,7 +344,6 @@ export class UsersManagementComponent implements OnInit {
       return this.http.put(endpoint, {});
     });
 
-    // Traitement séquentiel simple
     let done = 0;
     requests.forEach(req => {
       req.subscribe({
@@ -383,18 +397,56 @@ export class UsersManagementComponent implements OnInit {
       nom: user.nom,
       prenom: user.prenom,
       numeroDeTelephone: user.numeroDeTelephone,
-      role: user.role
+      role: user.role.nom // ← Utiliser le nom du rôle pour le dropdown
     };
     this.showFormModal = true;
   }
 
   closeModals(): void {
-    this.showDetailModal = false;
-    this.showDeactivateModal = false;
     this.showDeleteModal = false;
     this.showFormModal = false;
+    this.showRoleModal = false; // ← NOUVEAU
     this.selectedUser = null;
     this.deactivateReason = '';
+  }
+
+  // ═══════════════════ GESTION DES RÔLES ═══════════════════
+
+  openRoleModal(): void {
+    this.loadRoles();
+    this.showRoleModal = true;
+  }
+
+  addRole(): void {
+    if (!this.newRoleNom.trim()) return;
+    this.http.post<Role>(`${environment.apiUrl}/AUTHENTIFICATION-SERVICE/authentifier/roles`, {
+      nom: this.newRoleNom.toUpperCase().replace(/\s+/g, '_'),
+      actif: true
+    }).subscribe({
+      next: () => {
+        this.newRoleNom = '';
+        this.loadRoles();
+        this.showToast('Rôle ajouté avec succès', 'success');
+      },
+      error: (err) => {
+        const errorMsg = err.status === 409 ? err.error : 'Erreur lors de l\'ajout';
+        this.showToast(errorMsg, 'error');
+      }
+    });
+  }
+
+  toggleRoleStatus(role: Role): void {
+    this.http.put<Role>(`${environment.apiUrl}/AUTHENTIFICATION-SERVICE/authentifier/roles/${role.id}/status`, {}).subscribe({
+      next: (updatedRole) => {
+        role.actif = updatedRole.actif;
+        this.showToast(`Rôle ${role.nom} ${role.actif ? 'activé' : 'désactivé'}`, 'success');
+        this.loadRoles();
+      },
+      error: (err) => {
+        const errorMsg = err.status === 409 ? err.error : 'Erreur lors du changement de statut';
+        this.showToast(errorMsg, 'error');
+      }
+    });
   }
 
   submitForm(): void {
@@ -404,23 +456,63 @@ export class UsersManagementComponent implements OnInit {
     }
     this.formLoading = true;
 
-    if (!this.editMode) {
-      // CRÉATION
-      this.http.post<Utilisateur>(`${this.apiUrl}/create`, this.formData).subscribe({
-        next: (user) => {
+    this.http.post<Utilisateur>(`${this.apiUrl}/create`, this.formData).subscribe({
+      next: (user) => {
+
+        // ✅ Si enseignant → créer dans dept-service
+        if (user.role.nom === 'ENSEIGNANT') {
+
+          // Valider email @itech.tn
+          const emailPattern = /^[A-Za-z0-9+_.-]+@itech\.tn$/;
+          if (!emailPattern.test(user.login)) {
+            this.http.delete(`${this.apiUrl}/${user.id}`).subscribe();
+            this.formLoading = false;
+            this.showToast('Email invalide : doit être @itech.tn pour un enseignant', 'error');
+            return;
+          }
+
+          this.http.post(`${this.deptApiUrl}/api/enseignants`, {
+            emailUniversitaire: user.login
+          }).subscribe({
+            next: () => {
+              this.formLoading = false;
+              this.closeModals();
+              this.loadUsers();
+              this.loadStats();
+              this.showToast(`Enseignant ${user.prenom} ${user.nom} créé`, 'success');
+            },
+            error: () => {
+              // Rollback : supprimer le user auth
+              this.http.delete(`${this.apiUrl}/${user.id}`).subscribe({
+                next: () => {
+                  this.formLoading = false;
+                  this.showToast('Erreur : aucun compte créé (rollback effectué)', 'error');
+                },
+                error: () => {
+                  this.formLoading = false;
+                  this.showToast(
+                    `ATTENTION : compte auth créé (id: ${user.id}) mais dept-service en échec. Suppression manuelle requise.`,
+                    'error'
+                  );
+                }
+              });
+            }
+          });
+
+        } else {
+          // Autres rôles → pas de dept-service
           this.formLoading = false;
           this.closeModals();
           this.loadUsers();
           this.loadStats();
           this.showToast(`Compte créé pour ${user.prenom} ${user.nom}`, 'success');
-        },
-        error: () => {
-          this.formLoading = false;
-          this.showToast('Erreur lors de la création', 'error');
         }
-      });
-    }
-    // L'édition peut être ajoutée selon votre API
+      },
+      error: () => {
+        this.formLoading = false;
+        this.showToast('Erreur lors de la création du compte', 'error');
+      }
+    });
   }
 
   // ═══════════════════ HELPERS UI ═══════════════════
@@ -452,7 +544,8 @@ export class UsersManagementComponent implements OnInit {
   getRoleLabel(role: string): string {
     const labels: Record<string, string> = {
       'ETUDIANT': 'Étudiant',
-      'ENSEIGNANT_RESPONSABLE': 'Enseignant',
+      'ENSEIGNANT': 'Enseignant',                         // ← simple
+      'ENSEIGNANT_RESPONSABLE': 'Ens. Responsable',       // ← responsable
       'AGENT_FINANCE': 'Finance',
       'ADMIN': 'Admin'
     };
@@ -462,7 +555,8 @@ export class UsersManagementComponent implements OnInit {
   getRoleIcon(role: string): string {
     const icons: Record<string, string> = {
       'ETUDIANT': '🎓',
-      'ENSEIGNANT_RESPONSABLE': '👨‍🏫',
+      'ENSEIGNANT': '👨‍🏫',
+      'ENSEIGNANT_RESPONSABLE': '⭐',
       'AGENT_FINANCE': '💰',
       'ADMIN': '⚡'
     };
@@ -472,7 +566,8 @@ export class UsersManagementComponent implements OnInit {
   getRoleClass(role: string): string {
     const classes: Record<string, string> = {
       'ETUDIANT': 'badge-etudiant',
-      'ENSEIGNANT_RESPONSABLE': 'badge-enseignant',
+      'ENSEIGNANT': 'badge-enseignant',
+      'ENSEIGNANT_RESPONSABLE': 'badge-responsable',
       'AGENT_FINANCE': 'badge-finance',
       'ADMIN': 'badge-admin'
     };

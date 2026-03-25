@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { KeycloakService } from 'keycloak-angular';
 import { KeycloakProfile } from 'keycloak-js';
+import { NotificationService } from '../../services/notification.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-sidebar',
@@ -17,17 +19,34 @@ export class SidebarComponent implements OnInit {
 
   constructor(
     private keycloak: KeycloakService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) { }
+
+  unreadCount: number = 0;
+  private unreadSubscription?: Subscription;
 
   async ngOnInit() {
     this.isLoggedIn = await this.keycloak.isLoggedIn();
     if (this.isLoggedIn) {
       try {
         this.userProfile = await this.keycloak.loadUserProfile();
+        if (this.userProfile?.email) {
+          this.notificationService.refreshUnreadCount(this.userProfile.email);
+        }
       } catch (error) {
         console.error('Erreur chargement profil:', error);
       }
+    }
+
+    this.unreadSubscription = this.notificationService.unreadCount$.subscribe((count: number) => {
+      this.unreadCount = count;
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.unreadSubscription) {
+      this.unreadSubscription.unsubscribe();
     }
   }
 

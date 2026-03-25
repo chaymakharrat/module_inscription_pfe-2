@@ -8,6 +8,7 @@
                 {{ dashboard?.nomDiplome || 'Dashboard Département' }}
                 <span
                     class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#2563eb] border border-[#dbe6ff] uppercase tracking-wider">
+                    <!-- ✅ En mode PAR_TYPE : affiche le type (ex: "Licence"), sinon la langue -->
                     {{ dashboard?.typeDiplome || dashboard?.langue || 'Département' }}
                 </span>
                 <span class="text-[#8b92a9] text-lg font-medium">| {{ dashboard?.nomDepartement }}</span>
@@ -17,6 +18,11 @@
                 <p class="text-[11px] font-semibold text-[#8b92a9]">
                     Bienvenue, <strong>{{ userProfile?.firstName }} {{ userProfile?.lastName }}</strong>
                 </p>
+                <!-- ✅ NOUVEAU : badge mode PAR_TYPE visible dans le header -->
+                <span *ngIf="isModeParType()"
+                    class="ml-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-200 uppercase tracking-wider">
+                    {{ getNomsDiplomesDistincts().length }} diplômes
+                </span>
             </div>
         </div>
 
@@ -132,7 +138,8 @@
                 </div>
             </div>
 
-            <div class="common-prerequis-bar mb-6">
+            <!-- ✅ PRÉREQUIS COMMUNS — mode PAR_DIPLOME (un seul diplôme) -->
+            <div class="common-prerequis-bar mb-6" *ngIf="!isModeParType()">
                 <div class="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
                     <span class="text-[10px] font-bold text-[#2563eb] uppercase tracking-widest whitespace-nowrap">
                         Prérequis Communs ({{ dashboard?.nomDiplome }}) :
@@ -149,10 +156,80 @@
                 </div>
             </div>
 
-            <div class="niveau-grid">
+            <!-- ✅ PRÉREQUIS COMMUNS — mode PAR_TYPE (intersection de tous les diplômes) -->
+            <div class="common-prerequis-bar mb-4" *ngIf="isModeParType()">
+                <div class="flex items-center gap-3 p-3 bg-amber-50/50 rounded-xl border border-amber-100/50">
+                    <span class="text-[10px] font-bold text-amber-600 uppercase tracking-widest whitespace-nowrap">
+                        Prérequis Communs à tous les diplômes :
+                    </span>
+                    <div class="flex flex-wrap gap-2" *ngIf="getCommonPrerequisType().length">
+                        <span *ngFor="let p of getCommonPrerequisType()"
+                            class="px-3 py-1 bg-white text-amber-600 text-[11px] font-bold rounded-lg border border-amber-200 shadow-sm">
+                            {{ p }}
+                        </span>
+                    </div>
+                    <span class="text-[10px] italic text-[#8b92a9]" *ngIf="!getCommonPrerequisType().length">
+                        Aucun prérequis commun à tous les diplômes
+                    </span>
+                </div>
+            </div>
+
+            <!-- ✅ MODE PAR_TYPE : affichage groupé par diplôme -->
+            <ng-container *ngIf="isModeParType()">
+                <ng-container *ngFor="let nomDiplome of getNomsDiplomesDistincts()">
+                    <!-- Header du groupe diplôme -->
+                    <div class="flex items-center gap-3 mb-3 mt-5 first:mt-0">
+                        <div class="h-px flex-1 bg-gradient-to-r from-[#e8eaf0] to-transparent"></div>
+                        <span
+                            class="px-3 py-1 bg-[#eff4ff] text-[#2563eb] text-[11px] font-bold rounded-full border border-[#dbe6ff] whitespace-nowrap">
+                            {{ nomDiplome }}
+                        </span>
+                        <!-- Prérequis spécifiques à ce diplôme -->
+                        <ng-container *ngIf="getCommonPrerequisType(nomDiplome) as prereqsDiplome">
+                            <div *ngIf="prereqsDiplome.length" class="flex gap-1.5">
+                                <span *ngFor="let p of prereqsDiplome"
+                                    class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[9px] font-bold rounded-sm border border-purple-100">
+                                    {{ p }}
+                                </span>
+                            </div>
+                        </ng-container>
+                        <div class="h-px flex-1 bg-gradient-to-l from-[#e8eaf0] to-transparent"></div>
+                    </div>
+
+                    <!-- Cartes niveau pour ce diplôme -->
+                    <div class="niveau-grid mb-4">
+                        <ng-container *ngFor="let cap of dashboard?.capacites; let i = index">
+                            <div *ngIf="cap.nomDiplome === nomDiplome" class="niveau-card animate-fadeIn"
+                                [style.animation-delay]="i * 0.1 + 's'"
+                                [class.niveau-card-active]="selectedNiveau === cap.niveau + '-' + cap.langue + '-' + cap.nomDiplome"
+                                (click)="filtrerParNiveau(cap)" style="cursor:pointer">
+                                <div class="niveau-header">
+                                    <div class="flex flex-col">
+                                        <span class="niveau-label">Niveau {{ cap.niveau }}</span>
+                                        <span class="text-[10px] text-[#2563eb] font-bold uppercase">
+                                            {{ cap.langue }}
+                                        </span>
+                                    </div>
+                                    <span class="niveau-status" [class.status-green]="cap.pourcentageRemplissage < 70"
+                                        [class.status-orange]="cap.pourcentageRemplissage >= 70 && cap.pourcentageRemplissage < 90"
+                                        [class.status-red]="cap.pourcentageRemplissage >= 90">
+                                        {{ cap.pourcentageRemplissage >= 100 ? '🔴 Complet' :
+                                        cap.pourcentageRemplissage >= 90 ? '🟠 Quasi-complet' :
+                                        cap.pourcentageRemplissage >= 70 ? '🟡 Quasi-plein' : '🟢 Disponible' }}
+                                    </span>
+                                </div>
+                                <ng-container *ngTemplateOutlet="niveauCardBody; context: { cap: cap }"></ng-container>
+                            </div>
+                        </ng-container>
+                    </div>
+                </ng-container>
+            </ng-container>
+
+            <!-- ✅ MODE PAR_DIPLOME : affichage normal (un seul diplôme) -->
+            <div class="niveau-grid" *ngIf="!isModeParType()">
                 <div class="niveau-card animate-fadeIn" *ngFor="let cap of dashboard?.capacites; let i = index"
                     [style.animation-delay]="i * 0.1 + 's'"
-                    [class.niveau-card-active]="selectedNiveau === cap.niveau + '-' + cap.langue"
+                    [class.niveau-card-active]="selectedNiveau === cap.niveau + '-' + cap.langue + '-' + cap.nomDiplome"
                     (click)="filtrerParNiveau(cap)" style="cursor:pointer">
                     <div class="niveau-header">
                         <div class="flex flex-col">
@@ -169,89 +246,95 @@
                             cap.pourcentageRemplissage >= 70 ? '🟡 Quasi-plein' : '🟢 Disponible' }}
                         </span>
                     </div>
-                    <div class="niveau-bar-wrap">
-                        <div class="niveau-bar">
-                            <div class="niveau-fill" [class.bar-green]="cap.pourcentageRemplissage < 70"
-                                [class.bar-orange]="cap.pourcentageRemplissage >= 70 && cap.pourcentageRemplissage < 90"
-                                [class.bar-red]="cap.pourcentageRemplissage >= 90"
-                                [style.width.%]="cap.pourcentageRemplissage"></div>
-                        </div>
-                        <span class="niveau-pct">{{ cap.pourcentageRemplissage | number:'1.0-0' }}%</span>
-                    </div>
-                    <div class="niveau-details">
-                        <div class="detail-item">
-                            <span class="detail-dot dot-green"></span>
-                            <span>Inscrits confirmés</span>
-                            <strong>{{ cap.inscritsConfirmes }}</strong>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-dot dot-blue"></span>
-                            <span>En cours paiement</span>
-                            <strong>{{ cap.enCoursTraitement }}</strong>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-dot dot-amber"></span>
-                            <span>À traiter (dept.)</span>
-                            <strong [class.text-orange-600]="cap.enCoursDepartement > 0">
-                                {{ cap.enCoursDepartement }}
-                            </strong>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-dot dot-amber"></span>
-                            <span>Liste d'attente</span>
-                            <strong [class.text-amber-600]="cap.listeAttente > 0">
-                                {{ cap.listeAttente }}
-                            </strong>
-                        </div>
-                        <div class="detail-item detail-restant">
-                            <span>Places restantes</span>
-                            <strong [class.text-red]="cap.placesRestantes === 0"
-                                [class.text-green]="cap.placesRestantes > 5">
-                                {{ cap.placesRestantes }} / {{ cap.capaciteMax }}
-                            </strong>
-                        </div>
-                    </div>
-
-                    <!-- Bouton rejet masse -->
-                    <div *ngIf="cap.listeAttente > 0" (click)="$event.stopPropagation()"
-                        style="margin-top:12px;padding-top:12px;border-top:1px dashed #fcd34d;">
-                        <button (click)="rejeterMasseListe(cap)"
-                            [disabled]="rejetMasseLoading && rejetMasseNiveauKey === cap.niveau + '-' + cap.langue"
-                            style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
-                                   padding:8px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;
-                                   border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;"
-                            onmouseenter="this.style.background='#dc2626';this.style.color='white'"
-                            onmouseleave="this.style.background='#fef2f2';this.style.color='#dc2626'">
-                            <span *ngIf="rejetMasseLoading && rejetMasseNiveauKey === cap.niveau + '-' + cap.langue"
-                                style="width:12px;height:12px;border:2px solid currentColor;
-                                       border-top-color:transparent;border-radius:50%;
-                                       animation:spin 0.6s linear infinite;display:inline-block;"></span>
-                            <svg *ngIf="!(rejetMasseLoading && rejetMasseNiveauKey === cap.niveau + '-' + cap.langue)"
-                                style="width:13px;height:13px;flex-shrink:0" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                    d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            {{ rejetMasseLoading && rejetMasseNiveauKey === cap.niveau + '-' + cap.langue
-                            ? 'Traitement...'
-                            : 'Rejeter liste d\'attente (' + cap.listeAttente + ')' }}
-                        </button>
-                    </div>
-
-                    <div class="niveau-prereq mt-4 pt-3 border-t border-dashed border-gray-100">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Prérequis requis
-                        </p>
-                        <div class="flex flex-wrap gap-1.5">
-                            <span *ngFor="let p of cap.prerequisNiveau"
-                                class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[9px] font-bold rounded-sm border border-purple-100">
-                                {{ p }}
-                            </span>
-                            <span *ngIf="!cap.prerequisType.length && !cap.prerequisNiveau.length"
-                                class="text-[10px] italic text-gray-400">Aucun prérequis spécifique</span>
-                        </div>
-                    </div>
+                    <ng-container *ngTemplateOutlet="niveauCardBody; context: { cap: cap }"></ng-container>
                 </div>
             </div>
+
+            <!-- ✅ TEMPLATE PARTAGÉ pour le corps des cartes niveau -->
+            <ng-template #niveauCardBody let-cap="cap">
+                <div class="niveau-bar-wrap">
+                    <div class="niveau-bar">
+                        <div class="niveau-fill" [class.bar-green]="cap.pourcentageRemplissage < 70"
+                            [class.bar-orange]="cap.pourcentageRemplissage >= 70 && cap.pourcentageRemplissage < 90"
+                            [class.bar-red]="cap.pourcentageRemplissage >= 90"
+                            [style.width.%]="cap.pourcentageRemplissage"></div>
+                    </div>
+                    <span class="niveau-pct">{{ cap.pourcentageRemplissage | number:'1.0-0' }}%</span>
+                </div>
+                <div class="niveau-details">
+                    <div class="detail-item">
+                        <span class="detail-dot dot-green"></span>
+                        <span>Inscrits confirmés</span>
+                        <strong>{{ cap.inscritsConfirmes }}</strong>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-dot dot-blue"></span>
+                        <span>En cours paiement</span>
+                        <strong>{{ cap.enCoursTraitement }}</strong>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-dot dot-amber"></span>
+                        <span>À traiter (dept.)</span>
+                        <strong [class.text-orange-600]="cap.enCoursDepartement > 0">
+                            {{ cap.enCoursDepartement }}
+                        </strong>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-dot dot-amber"></span>
+                        <span>Liste d'attente</span>
+                        <strong [class.text-amber-600]="cap.listeAttente > 0">
+                            {{ cap.listeAttente }}
+                        </strong>
+                    </div>
+                    <div class="detail-item detail-restant">
+                        <span>Places restantes</span>
+                        <strong [class.text-red]="cap.placesRestantes === 0"
+                            [class.text-green]="cap.placesRestantes > 5">
+                            {{ cap.placesRestantes }} / {{ cap.capaciteMax }}
+                        </strong>
+                    </div>
+                </div>
+
+                <!-- Bouton rejet masse -->
+                <div *ngIf="cap.listeAttente > 0" (click)="$event.stopPropagation()"
+                    style="margin-top:12px;padding-top:12px;border-top:1px dashed #fcd34d;">
+                    <button (click)="rejeterMasseListe(cap)"
+                        [disabled]="rejetMasseLoading && rejetMasseNiveauKey === cap.niveau + '-' + cap.langue + '-' + cap.nomDiplome"
+                        style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+                   padding:8px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;
+                   border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;"
+                        onmouseenter="this.style.background='#dc2626';this.style.color='white'"
+                        onmouseleave="this.style.background='#fef2f2';this.style.color='#dc2626'">
+                        <span
+                            *ngIf="rejetMasseLoading && rejetMasseNiveauKey === cap.niveau + '-' + cap.langue + '-' + cap.nomDiplome"
+                            style="width:12px;height:12px;border:2px solid currentColor;
+                     border-top-color:transparent;border-radius:50%;
+                     animation:spin 0.6s linear infinite;display:inline-block;"></span>
+                        <svg *ngIf="!(rejetMasseLoading && rejetMasseNiveauKey === cap.niveau + '-' + cap.langue + '-' + cap.nomDiplome)"
+                            style="width:13px;height:13px;flex-shrink:0" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        {{ rejetMasseLoading && rejetMasseNiveauKey === cap.niveau + '-' + cap.langue + '-' +
+                        cap.nomDiplome
+                        ? 'Traitement...'
+                        : 'Rejeter liste d\'attente (' + cap.listeAttente + ')' }}
+                    </button>
+                </div>
+
+                <div class="niveau-prereq mt-4 pt-3 border-t border-dashed border-gray-100">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Prérequis requis</p>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span *ngFor="let p of cap.prerequisNiveau"
+                            class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[9px] font-bold rounded-sm border border-purple-100">
+                            {{ p }}
+                        </span>
+                        <span *ngIf="!cap.prerequisType?.length && !cap.prerequisNiveau?.length"
+                            class="text-[10px] italic text-gray-400">Aucun prérequis spécifique</span>
+                    </div>
+                </div>
+            </ng-template>
         </div>
 
         <!-- ══ LISTE ATTENTE ══════════════════════════════════════════════════════ -->
@@ -267,7 +350,6 @@
                 <div class="attente-item animate-fadeIn" *ngFor="let d of getDemandesListeAttente(); let i = index"
                     [style.animation-delay]="i * 0.07 + 's'">
 
-                    <!-- Rang par score décroissant -->
                     <div class="attente-rank" [style.color]="i === 0 ? '#10b981' : '#8b92a9'"
                         [style.font-weight]="i === 0 ? '900' : '700'">
                         #{{ i + 1 }}
@@ -279,10 +361,19 @@
 
                     <div class="attente-info-block" style="flex:1;">
                         <span class="attente-name">{{ d.prenomEtudiant }} {{ d.nomEtudiant }}</span>
+                        <!-- ✅ NOUVEAU : affiche diplôme + niveau en mode PAR_TYPE -->
+                        <span *ngIf="isModeParType()"
+                            style="font-size:10px;color:#2563eb;font-weight:700;display:block;margin-top:1px;">
+                            {{ d.nomDiplome }} · Niv.{{ d.niveauChoisi }} · {{ d.langue }}
+                        </span>
+                        <!-- En mode PAR_DIPLOME : affiche uniquement le niveau -->
+                        <span *ngIf="!isModeParType()"
+                            style="font-size:10px;color:#8b92a9;font-weight:600;display:block;margin-top:1px;">
+                            Niveau {{ d.niveauChoisi }} · {{ d.langue }}
+                        </span>
                         <span class="attente-date">Soumis le {{ d.dateCreation | date:'dd/MM/yyyy' }}</span>
                     </div>
 
-                    <!-- Score total affiché dans la liste d'attente -->
                     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:80px;">
                         <span style="font-size:14px;font-weight:800;" [style.color]="getScoreTotalColor(d.scoreTotal)">
                             {{ d.scoreTotal }}/100
@@ -345,16 +436,23 @@
                 </div>
             </div>
 
-            <!-- Filtre niveau actif -->
-            <div *ngIf="selectedNiveau as niv" style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:#eff6ff;
-                       border:1px solid #bfdbfe;border-radius:8px;margin-bottom:12px;font-size:12px;color:#1d4ed8;">
+            <!-- ✅ Filtre niveau actif — affiche aussi le nomDiplome en mode PAR_TYPE -->
+            <div *ngIf="selectedNiveau as niv" style="display:flex;align-items:center;gap:8px;padding:8px 16px;
+                 background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;
+                 margin-bottom:12px;font-size:12px;color:#1d4ed8;">
                 <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
                 </svg>
-                <strong>Filtre actif :</strong> Niveau {{ niv.split('-')[0] }} · {{ niv.split('-')[1] }}
-                <button (click)="clearFiltreNiveau(); $event.stopPropagation()" style="margin-left:auto;padding:2px 10px;background:#1d4ed8;color:white;border:none;
-                           border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">
+                <!-- ✅ Affiche Niveau · Langue · Diplôme (le format de clé est "niveau-langue-nomDiplome") -->
+                <strong>Filtre actif :</strong>
+                Niveau {{ niv.split('-')[0] }} · {{ niv.split('-')[1] }}
+                <span *ngIf="isModeParType()" class="text-[#2563eb] font-bold">
+                    · {{ niv.split('-').slice(2).join('-') }}
+                </span>
+                <button (click)="clearFiltreNiveau(); $event.stopPropagation()" style="margin-left:auto;padding:2px 10px;
+               background:#1d4ed8;color:white;border:none;border-radius:6px;
+               font-size:11px;font-weight:700;cursor:pointer;">
                     ✕ Effacer
                 </button>
             </div>
@@ -420,44 +518,16 @@
                             </td>
                             <td>
                                 <span class="prereq-icon-badge" [ngClass]="{
-                                    'prereq-ok': getPrerequisStatutGlobal(demande) === 'OK',
-                                    'prereq-ko': getPrerequisStatutGlobal(demande) === 'A_VERIFIER',
-                                    'bg-red-50 text-red-600': getPrerequisStatutGlobal(demande) === 'REJETE'
-                                }">
+                    'prereq-ok': getPrerequisStatutGlobal(demande) === 'OK',
+                    'prereq-ko': getPrerequisStatutGlobal(demande) === 'A_VERIFIER',
+                    'bg-red-50 text-red-600': getPrerequisStatutGlobal(demande) === 'REJETE'
+                  }">
                                     {{ getPrerequisStatutGlobal(demande) === 'OK' ? '✅ OK' :
                                     getPrerequisStatutGlobal(demande) === 'REJETE' ? '❌ Rejeté' : '⚠️ À vérifier' }}
                                 </span>
                             </td>
                             <td>
-                                <span class="capacite-badge" [class.cap-ok]="!isCapaciteAtteinte(demande.niveauChoisi)"
-                                    [class.cap-warn]="isCapaciteAtteinte(demande.niveauChoisi)">
-                                    {{ getCapaciteText(demande.niveauChoisi) }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="statut-chip" [ngClass]="getStatutClass(demande.statut)">
-                                    {{ getStatutLabel(demande.statut) }}
-                                </span>
-                            </td>
-                            <td class="text-right">
-                                <div class="actions-cell" (click)="$event.stopPropagation()">
-                                    <button class="action-btn btn-view" style="width:100%;border-radius:8px;justify-content:center;gap:6px;
-                                               padding:6px 12px;background:#eff4ff;color:#2563eb;
-                                               border:1px solid #dbe6ff;font-weight:600;" (click)="openDetail(demande)"
-                                        title="Traiter le dossier">
-                                        <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px;">
-                                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                            <path fill-rule="evenodd"
-                                                d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                        <span>Traiter</span>
-                                    </button>
-                                </div>
-                            </td>
-                            <td>
                                 <div style="display:flex;flex-direction:column;gap:4px;min-width:100px;">
-                                    <!-- Score numérique + label -->
                                     <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
                                         <span style="font-size:13px;font-weight:800;"
                                             [style.color]="getScoreTotalColor(demande.scoreTotal)">
@@ -469,22 +539,49 @@
                                             {{ getScoreTotalLabel(demande.scoreTotal) }}
                                         </span>
                                     </div>
-                                    <!-- Barre de progression -->
                                     <div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;">
                                         <div style="height:100%;border-radius:3px;transition:width 0.5s ease;"
                                             [style.width.%]="demande.scoreTotal"
                                             [style.background]="getScoreTotalColor(demande.scoreTotal)">
                                         </div>
                                     </div>
-                                    <!-- Prérequis traités -->
                                     <span style="font-size:9px;color:#94a3b8;">
                                         {{ demande.prerequisTraites }}/{{ demande.prerequisTotal }} évalués
                                     </span>
                                 </div>
                             </td>
+                            <td>
+                                <!-- ✅ CORRIGÉ : passe nomDiplome et langue pour éviter les ambiguïtés en mode PAR_TYPE -->
+                                <span class="capacite-badge"
+                                    [class.cap-ok]="!isCapaciteAtteinte(demande.niveauChoisi, demande.nomDiplome, demande.langue)"
+                                    [class.cap-warn]="isCapaciteAtteinte(demande.niveauChoisi, demande.nomDiplome, demande.langue)">
+                                    {{ getCapaciteText(demande.niveauChoisi, demande.nomDiplome, demande.langue) }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="statut-chip" [ngClass]="getStatutClass(demande.statut)">
+                                    {{ getStatutLabel(demande.statut) }}
+                                </span>
+                            </td>
+                            <td class="text-right">
+                                <div class="actions-cell" (click)="$event.stopPropagation()">
+                                    <button class="action-btn btn-view" style="width:100%;border-radius:8px;justify-content:center;gap:6px;
+                             padding:6px 12px;background:#eff4ff;color:#2563eb;
+                             border:1px solid #dbe6ff;font-weight:600;" (click)="openDetail(demande)"
+                                        title="Traiter le dossier">
+                                        <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px;">
+                                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                            <path fill-rule="evenodd"
+                                                d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        <span>Traiter</span>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                         <tr *ngIf="filteredDemandes.length === 0">
-                            <td colspan="8" class="empty-state">
+                            <td colspan="9" class="empty-state">
                                 <div class="empty-content">
                                     <p>Aucune demande trouvée</p>
                                 </div>
@@ -522,12 +619,20 @@
                                     <span class="info-label">Niveau</span>
                                     <span class="info-val">Niveau {{ demande.niveauChoisi || '—' }}</span>
                                 </div>
+                                <!-- ✅ NOUVEAU : affiche la capacité dans la card avec les bons paramètres -->
+                                <div class="info-item">
+                                    <span class="info-label">Capacité</span>
+                                    <span class="info-val"
+                                        [style.color]="isCapaciteAtteinte(demande.niveauChoisi, demande.nomDiplome, demande.langue) ? '#dc2626' : '#10b981'">
+                                        {{ getCapaciteText(demande.niveauChoisi, demande.nomDiplome, demande.langue) }}
+                                    </span>
+                                </div>
                             </div>
                             <div class="card-prereq" [ngClass]="{
-                                'prereq-ok': getPrerequisStatutGlobal(demande) === 'OK',
-                                'prereq-ko': getPrerequisStatutGlobal(demande) === 'A_VERIFIER',
-                                'bg-red-50 text-red-600 border border-red-200': getPrerequisStatutGlobal(demande) === 'REJETE'
-                            }">
+                  'prereq-ok': getPrerequisStatutGlobal(demande) === 'OK',
+                  'prereq-ko': getPrerequisStatutGlobal(demande) === 'A_VERIFIER',
+                  'bg-red-50 text-red-600 border border-red-200': getPrerequisStatutGlobal(demande) === 'REJETE'
+                }">
                                 {{ getPrerequisStatutGlobal(demande) === 'OK' ? '✓ Prérequis validés' :
                                 getPrerequisStatutGlobal(demande) === 'REJETE' ? '✗ Prérequis rejetés' :
                                 '⚠ Prérequis à vérifier' }}
@@ -535,8 +640,7 @@
                         </div>
                         <div class="card-actions" (click)="$event.stopPropagation()">
                             <button class="card-btn btn-view" style="width:100%;border-radius:8px;justify-content:center;gap:6px;
-                                       background:#eff4ff;color:#2563eb;border:1px solid #dbe6ff;"
-                                (click)="openDetail(demande)">
+                     background:#eff4ff;color:#2563eb;border:1px solid #dbe6ff;" (click)="openDetail(demande)">
                                 <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px;">
                                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                                     <path fill-rule="evenodd"
@@ -647,10 +751,12 @@
                                 [attr.stroke-dasharray]="getDonutDash((dashboard?.valides || 0), (dashboard?.valides || 0) + (dashboard?.rejetes || 0)) + ' 302'"
                                 stroke-dashoffset="76" stroke-linecap="round"
                                 style="transition:stroke-dasharray 1s cubic-bezier(.4,0,.2,1);transform:rotate(-90deg);transform-origin:60px 60px;" />
-                            <text x="60" y="54" text-anchor="middle" font-size="20" font-weight="800" fill="#1e293b">{{
-                                getTauxAcceptation() }}%</text>
-                            <text x="60" y="68" text-anchor="middle" font-size="7.5" fill="#94a3b8"
-                                font-weight="600">VALIDATION</text>
+                            <text x="60" y="54" text-anchor="middle" font-size="20" font-weight="800" fill="#1e293b">
+                                {{ getTauxAcceptation() }}%
+                            </text>
+                            <text x="60" y="68" text-anchor="middle" font-size="7.5" fill="#94a3b8" font-weight="600">
+                                VALIDATION
+                            </text>
                         </svg>
                     </div>
                     <div class="donut-stats">
@@ -678,8 +784,9 @@
                         <div class="donut-stat-item">
                             <div class="donut-stat-dot" style="background:#64748b"></div>
                             <div>
-                                <span class="donut-stat-num" style="color:#64748b">{{ (dashboard?.valides || 0) +
-                                    (dashboard?.rejetes || 0) }}</span>
+                                <span class="donut-stat-num" style="color:#64748b">
+                                    {{ (dashboard?.valides || 0) + (dashboard?.rejetes || 0) }}
+                                </span>
                                 <span class="donut-stat-label">Traités</span>
                             </div>
                         </div>
@@ -705,6 +812,11 @@
                 <div class="identity-meta">
                     <span class="dossier-tag">#{{ selectedDemande.id }}</span>
                     <span class="langue-tag">{{ selectedDemande.langue }}</span>
+                    <!-- ✅ NOUVEAU : badge nomDiplome en mode PAR_TYPE -->
+                    <span *ngIf="isModeParType()" style="background:#eff4ff;color:#2563eb;border:1px solid #dbe6ff;border-radius:9999px;
+                   padding:1px 8px;font-size:9px;font-weight:700;">
+                        {{ selectedDemande.nomDiplome }}
+                    </span>
                 </div>
                 <h2 class="identity-name">{{ selectedDemande.prenomEtudiant }}<br>{{ selectedDemande.nomEtudiant }}</h2>
                 <p class="identity-sub">{{ selectedDemande.emailEtudiant }}</p>
@@ -735,10 +847,12 @@
                     </p>
                 </div>
             </div>
+
+            <!-- Score total -->
             <div style="margin:12px 0;padding:12px 14px;background:#f8fafc;border-radius:12px;
-            border:1px solid #e8eaf0;text-align:center;">
+                  border:1px solid #e8eaf0;text-align:center;">
                 <p style="font-size:10px;font-weight:700;color:#8b92a9;text-transform:uppercase;
-              letter-spacing:.6px;margin:0 0 6px;">Score total</p>
+                  letter-spacing:.6px;margin:0 0 6px;">Score total</p>
                 <span style="font-size:28px;font-weight:900;line-height:1;"
                     [style.color]="getScoreTotalColor(selectedDemande.scoreTotal)">
                     {{ selectedDemande.scoreTotal }}
@@ -820,8 +934,8 @@
                         </div>
                         <div class="step-content">
                             <span class="step-name">Inscrit</span>
-                            <span class="step-date">{{ isStepDone('INSCRIT') ? 'Finalisé' : (isStepActive('INSCRIT') ?
-                                'En cours' : '—') }}</span>
+                            <span class="step-date">{{ isStepDone('INSCRIT') ? 'Finalisé' :
+                                (isStepActive('INSCRIT') ? 'En cours' : '—') }}</span>
                         </div>
                     </div>
                 </div>
@@ -870,10 +984,10 @@
 
             <div class="modal-body">
 
-                <!-- ══ TAB PRÉREQUIS ══════════════════════════════════════════════ -->
+                <!-- ══ TAB PRÉREQUIS ══ -->
                 <div *ngIf="activeTab === 'prerequis'" class="prereq-split-layout" [class.show-preview]="showPreview">
-
                     <div class="prereq-list-pane">
+
                         <!-- Résumé Étudiant -->
                         <div class="prereq-student-summary animate-fadeIn" *ngIf="selectedDemande">
                             <div class="summary-details">
@@ -915,10 +1029,10 @@
 
                         <!-- Bannière résultat global -->
                         <div class="prereq-banner" [ngClass]="{
-                            'banner-ok':      getPrerequisStatutGlobal(selectedDemande) === 'OK',
-                            'banner-ko':      getPrerequisStatutGlobal(selectedDemande) === 'REJETE',
-                            'banner-pending': getPrerequisStatutGlobal(selectedDemande) === 'A_VERIFIER'
-                        }">
+                'banner-ok':      getPrerequisStatutGlobal(selectedDemande) === 'OK',
+                'banner-ko':      getPrerequisStatutGlobal(selectedDemande) === 'REJETE',
+                'banner-pending': getPrerequisStatutGlobal(selectedDemande) === 'A_VERIFIER'
+              }">
                             <svg *ngIf="getPrerequisStatutGlobal(selectedDemande) === 'OK'" viewBox="0 0 20 20"
                                 fill="currentColor">
                                 <path fill-rule="evenodd"
@@ -945,12 +1059,12 @@
                                     :
                                     'Vérification en cours' }}
                                 </strong>
-                                <p>{{ selectedDemande.prerequisDetails.length }} critère(s) · {{
-                                    getCountPrerequisOk(selectedDemande) }} confirmé(s)</p>
+                                <p>{{ selectedDemande.prerequisDetails.length }} critère(s) ·
+                                    {{ getCountPrerequisOk(selectedDemande) }} confirmé(s)</p>
                             </div>
                         </div>
 
-                        <!-- SECTION A : Prérequis TYPE → automatique -->
+                        <!-- SECTION A : Prérequis TYPE -->
                         <ng-container *ngIf="getPrerequisBySource(selectedDemande, 'TYPE') as prereqsType">
                             <div class="prereq-section" *ngIf="prereqsType.length > 0">
                                 <div class="prereq-section-header">
@@ -976,7 +1090,6 @@
                                         [class.prereq-card-ko]="!detail.conforme">
                                         <div class="prereq-card-main">
                                             <div class="prereq-card-title-area">
-                                                <!-- ✅ Badge "Obligatoire" supprimé — tous sont obligatoires -->
                                                 <strong class="prereq-card-title">{{ detail.prerequisRequis }}</strong>
                                             </div>
                                         </div>
@@ -995,7 +1108,7 @@
                             </div>
                         </ng-container>
 
-                        <!-- SECTION B : Prérequis NIVEAU → confirmation manuelle -->
+                        <!-- SECTION B : Prérequis NIVEAU -->
                         <ng-container *ngIf="getPrerequisBySource(selectedDemande, 'NIVEAU') as prereqsNiveau">
                             <div class="prereq-section" *ngIf="prereqsNiveau.length > 0">
                                 <div class="prereq-section-header">
@@ -1023,20 +1136,17 @@
                                         [class.prereq-card-ko]="detail.score !== null && detail.score !== undefined && detail.score < 50"
                                         [class.prereq-card-pending]="detail.score === null || detail.score === undefined">
 
-                                        <!-- Titre du prérequis -->
                                         <div class="prereq-card-main">
                                             <div class="prereq-card-title-area">
                                                 <strong class="prereq-card-title">{{ detail.prerequisRequis }}</strong>
                                             </div>
-                                            <!-- Motif affiché si score < 50 -->
                                             <div *ngIf="detail.score !== null && detail.score !== undefined && detail.score < 50 && detail.motifRejet"
                                                 style="margin-top:6px;font-size:11px;color:#dc2626;background:#fef2f2;
-                        padding:6px 10px;border-radius:6px;border:1px solid #fecaca;display:inline-block;">
+                               padding:6px 10px;border-radius:6px;border:1px solid #fecaca;display:inline-block;">
                                                 <strong>Motif :</strong> {{ detail.motifRejet }}
                                             </div>
                                         </div>
 
-                                        <!-- Badge statut calculé depuis le score -->
                                         <div class="prereq-card-status">
                                             <span [ngClass]="getStatutScoreClass(detail.score)"
                                                 style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid;">
@@ -1044,12 +1154,9 @@
                                             </span>
                                         </div>
 
-                                        <!-- Slider + boutons rapides + motif — visible si demande actionnable -->
                                         <div class="prereq-card-actions" *ngIf="isActionnable(selectedDemande)">
                                             <div
                                                 style="display:flex;flex-direction:column;gap:8px;width:100%;min-width:200px;">
-
-                                                <!-- Slider 0→100 avec couleur dynamique -->
                                                 <div style="display:flex;align-items:center;gap:10px;">
                                                     <input type="range" min="0" max="100" step="5"
                                                         [value]="detail.score ?? 0"
@@ -1062,29 +1169,25 @@
                                                         {{ detail.score ?? '—' }}
                                                     </span>
                                                 </div>
-
-                                                <!-- Boutons rapides : 0 / 50 / 75 / 100 -->
                                                 <div style="display:flex;gap:4px;">
                                                     <button *ngFor="let v of [0, 50, 75, 100]"
                                                         (click)="setScorePrerequis(detail, v)" style="flex:1;padding:3px 0;font-size:10px;font-weight:700;
-                                   border-radius:5px;cursor:pointer;border:1.5px solid;transition:all 0.15s;"
+                                     border-radius:5px;cursor:pointer;border:1.5px solid;transition:all 0.15s;"
                                                         [style.background]="detail.score === v ? getScoreColor(v) : 'transparent'"
                                                         [style.color]="detail.score === v ? 'white' : getScoreColor(v)"
                                                         [style.border-color]="getScoreColor(v)">
                                                         {{ v === 0 ? '✗ 0' : v === 100 ? '✓ 100' : v }}
                                                     </button>
                                                 </div>
-
-                                                <!-- Textarea motif — obligatoire si score < 50 -->
                                                 <div
                                                     *ngIf="detail.score !== null && detail.score !== undefined && detail.score < 50">
                                                     <textarea
                                                         [value]="motifEnCours.get(detail.prerequisId) || detail.motifRejet || ''"
                                                         (input)="setMotifPrerequis(detail, $any($event.target).value)"
                                                         placeholder="Motif obligatoire si score < 50…" rows="2" style="width:100%;font-size:11px;padding:6px 8px;
-                               border:1px solid #fecaca;border-radius:6px;resize:none;
-                               color:#dc2626;background:#fef2f2;box-sizing:border-box;">
-                    </textarea>
+                                   border:1px solid #fecaca;border-radius:6px;resize:none;
+                                   color:#dc2626;background:#fef2f2;box-sizing:border-box;">
+                          </textarea>
                                                     <p style="font-size:10px;color:#dc2626;margin:2px 0 0;">
                                                         ⚠ Motif requis pour score inférieur à 50
                                                     </p>
@@ -1153,11 +1256,9 @@
                     </div>
                 </div>
 
-                <!-- ══ TAB DÉCISION ══════════════════════════════════════════════ -->
-                <!-- ══ TAB DÉCISION ══════════════════════════════════════════════ -->
+                <!-- ══ TAB DÉCISION ══ -->
                 <ng-container *ngIf="activeTab === 'decision'">
 
-                    <!-- Dossier déjà traité -->
                     <div *ngIf="!isActionnable(selectedDemande)" class="decision-readonly">
                         <div class="readonly-icon">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1169,10 +1270,9 @@
                         <p>Ce dossier a déjà été traité automatiquement.</p>
                     </div>
 
-                    <!-- Alerte prérequis non traités -->
                     <div *ngIf="isActionnable(selectedDemande) && !tousPrerequisNiveauTraites()" style="margin-bottom:16px;padding:14px 16px;background:#fffbeb;
-           border:1px solid #fcd34d;border-radius:12px;
-           display:flex;align-items:flex-start;gap:12px;">
+                   border:1px solid #fcd34d;border-radius:12px;
+                   display:flex;align-items:flex-start;gap:12px;">
                         <svg style="width:20px;height:20px;flex-shrink:0;color:#d97706;margin-top:1px"
                             viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd"
@@ -1184,25 +1284,23 @@
                                 {{ getNombrePrerequisEnAttente() }} prérequis en attente de confirmation
                             </p>
                             <p style="font-size:12px;color:#92400e;margin:0">
-                                Confirmez tous les prérequis dans l'onglet
-                                <strong>Prérequis</strong> avant de soumettre.
+                                Confirmez tous les prérequis dans l'onglet <strong>Prérequis</strong> avant de
+                                soumettre.
                             </p>
                         </div>
                         <button (click)="activeTab = 'prerequis'" style="margin-left:auto;white-space:nowrap;padding:6px 12px;
-             background:#d97706;color:white;border:none;
-             border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;">
+                   background:#d97706;color:white;border:none;border-radius:8px;
+                   font-size:11px;font-weight:700;cursor:pointer;">
                             → Aller aux prérequis
                         </button>
                     </div>
 
-                    <!-- Zone de soumission — tous les prérequis traités -->
                     <div *ngIf="isActionnable(selectedDemande) && tousPrerequisNiveauTraites()">
 
-                        <!-- Récapitulatif score -->
                         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;
-                padding:20px 24px;margin-bottom:16px;">
+                        padding:20px 24px;margin-bottom:16px;">
                             <p style="font-size:11px;font-weight:700;color:#8b92a9;
-                text-transform:uppercase;letter-spacing:.6px;margin:0 0 12px;">
+                        text-transform:uppercase;letter-spacing:.6px;margin:0 0 12px;">
                                 Récapitulatif de l'évaluation
                             </p>
                             <div style="display:flex;align-items:center;gap:16px;">
@@ -1225,27 +1323,28 @@
                                             [style.background]="getScoreTotalColor(selectedDemande.scoreTotal)">
                                         </div>
                                     </div>
-                                    <div style="display:flex;gap:16px;font-size:11px;color:#64748b;">
-                                        <span>
-                                            Niveau : <strong>{{ selectedDemande.niveauChoisi }}</strong>
+                                    <div style="display:flex;gap:16px;font-size:11px;color:#64748b;flex-wrap:wrap;">
+                                        <span>Niveau : <strong>{{ selectedDemande.niveauChoisi }}</strong></span>
+                                        <span>Langue : <strong>{{ selectedDemande.langue }}</strong></span>
+                                        <!-- ✅ NOUVEAU : affiche le diplôme en mode PAR_TYPE -->
+                                        <span *ngIf="isModeParType()">
+                                            Diplôme : <strong style="color:#2563eb">{{ selectedDemande.nomDiplome
+                                                }}</strong>
                                         </span>
-                                        <span>
-                                            Langue : <strong>{{ selectedDemande.langue }}</strong>
-                                        </span>
-                                        <span>
-                                            Prérequis : <strong>{{ selectedDemande.prerequisTraites }}/{{
-                                                selectedDemande.prerequisTotal }}</strong> évalués
+                                        <span>Prérequis :
+                                            <strong>{{ selectedDemande.prerequisTraites }}/{{
+                                                selectedDemande.prerequisTotal }}</strong>
+                                            évalués
                                         </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Info décision automatique -->
                         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;
-                padding:16px 20px;margin-bottom:16px;">
+                        padding:16px 20px;margin-bottom:16px;">
                             <p style="font-size:11px;font-weight:700;color:#1d4ed8;
-                text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;">
+                        text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;">
                                 💡 Décision automatique
                             </p>
                             <ul style="margin:0;padding-left:18px;font-size:12px;color:#1e40af;line-height:1.85;">
@@ -1266,10 +1365,9 @@
                             </ul>
                         </div>
 
-                        <!-- Email automatique -->
                         <div style="display:flex;align-items:center;gap:10px;background:#f8fafc;
-                border:0.5px solid #e2e8f0;border-radius:10px;
-                padding:12px 16px;margin-bottom:20px;">
+                        border:0.5px solid #e2e8f0;border-radius:10px;
+                        padding:12px 16px;margin-bottom:20px;">
                             <svg style="width:14px;height:14px;color:#64748b;flex-shrink:0" viewBox="0 0 20 20"
                                 fill="currentColor">
                                 <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
@@ -1281,16 +1379,15 @@
                             </span>
                         </div>
 
-                        <!-- Bouton unique Soumettre -->
                         <button (click)="soumettreEvaluation()" [disabled]="actionLoading" style="width:100%;padding:14px 24px;background:#2563eb;color:white;
-             border:none;border-radius:12px;font-size:14px;font-weight:700;
-             cursor:pointer;display:flex;align-items:center;justify-content:center;
-             gap:10px;transition:all 0.2s;" [style.opacity]="actionLoading ? '0.7' : '1'"
+                     border:none;border-radius:12px;font-size:14px;font-weight:700;
+                     cursor:pointer;display:flex;align-items:center;justify-content:center;
+                     gap:10px;transition:all 0.2s;" [style.opacity]="actionLoading ? '0.7' : '1'"
                             onmouseenter="if(!this.disabled) this.style.background='#1d4ed8'"
                             onmouseleave="if(!this.disabled) this.style.background='#2563eb'">
                             <span *ngIf="actionLoading" style="width:16px;height:16px;border:2px solid white;
-               border-top-color:transparent;border-radius:50%;
-               animation:spin 0.6s linear infinite;display:inline-block;">
+                       border-top-color:transparent;border-radius:50%;
+                       animation:spin 0.6s linear infinite;display:inline-block;">
                             </span>
                             <svg *ngIf="!actionLoading" style="width:18px;height:18px" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
@@ -1301,7 +1398,6 @@
                         </button>
 
                     </div>
-
                 </ng-container>
             </div>
         </main>
@@ -1386,7 +1482,6 @@
 <!-- ══ DIALOG REJET PRÉREQUIS ══════════════════════════════════════════════ -->
 <div *ngIf="showRejetPrerequisDialog" class="viewer-backdrop" (click)="fermerRejetPrerequis()" style="z-index:1001">
     <div class="reject-doc-shell" (click)="$event.stopPropagation()" [@modalAnim]>
-
         <div class="reject-doc-header">
             <div class="reject-doc-icon-box" style="background:#fee2e2">
                 <svg fill="none" stroke="#dc2626" viewBox="0 0 24 24">
@@ -1406,38 +1501,29 @@
                 </svg>
             </button>
         </div>
-
         <div class="reject-doc-body">
-
-            <!-- Score slider -->
             <div style="margin-bottom:16px;">
-                <p style="font-size:11px;font-weight:700;color:#374151;margin:0 0 8px;">
-                    Score attribué
-                </p>
+                <p style="font-size:11px;font-weight:700;color:#374151;margin:0 0 8px;">Score attribué</p>
                 <div style="display:flex;align-items:center;gap:12px;">
                     <input type="range" min="0" max="100" step="5" [value]="selectedPrerequisToReject?.score ?? 0"
-                        (input)="selectedPrerequisToReject && setScorePrerequis(
-                            selectedPrerequisToReject,
-                            +$any($event.target).value)" style="flex:1;"
-                        [style.accent-color]="getScoreColor(selectedPrerequisToReject?.score)">
+                        (input)="selectedPrerequisToReject && setScorePrerequis(selectedPrerequisToReject, +$any($event.target).value)"
+                        style="flex:1;" [style.accent-color]="getScoreColor(selectedPrerequisToReject?.score)">
                     <span style="font-size:18px;font-weight:900;min-width:36px;text-align:right;"
                         [style.color]="getScoreColor(selectedPrerequisToReject?.score)">
                         {{ selectedPrerequisToReject?.score ?? 0 }}
                     </span>
                 </div>
-                <!-- Boutons rapides -->
                 <div style="display:flex;gap:6px;margin-top:8px;">
                     <button *ngFor="let v of [0, 25, 50, 75, 100]"
                         (click)="selectedPrerequisToReject && setScorePrerequis(selectedPrerequisToReject, v)" style="flex:1;padding:4px 0;font-size:11px;font-weight:700;
-                         border-radius:6px;cursor:pointer;border:1.5px solid;transition:all 0.15s;" [style.background]="selectedPrerequisToReject?.score === v
-                                       ? getScoreColor(v) : 'transparent'" [style.color]="selectedPrerequisToReject?.score === v
-                                  ? 'white' : getScoreColor(v)" [style.border-color]="getScoreColor(v)">
+                   border-radius:6px;cursor:pointer;border:1.5px solid;transition:all 0.15s;"
+                        [style.background]="selectedPrerequisToReject?.score === v ? getScoreColor(v) : 'transparent'"
+                        [style.color]="selectedPrerequisToReject?.score === v ? 'white' : getScoreColor(v)"
+                        [style.border-color]="getScoreColor(v)">
                         {{ v }}
                     </button>
                 </div>
             </div>
-
-            <!-- Motifs rapides -->
             <div *ngIf="selectedPrerequisToReject?.score !== null
                   && selectedPrerequisToReject?.score !== undefined
                   && selectedPrerequisToReject!.score! < 50">
@@ -1457,17 +1543,14 @@
                     placeholder="Expliquez pourquoi ce prérequis est insuffisant..." rows="3"></textarea>
                 <div class="reject-char-counter">{{ motifRejetPrerequis.length }} / 200</div>
             </div>
-
         </div>
-
         <div class="reject-divider"></div>
-
         <div class="reject-doc-actions">
             <button class="reject-btn-confirm" (click)="confirmerRejetPrerequis()" [disabled]="prerequisActionLoading ||
-                          (selectedPrerequisToReject?.score !== null
-                           && selectedPrerequisToReject?.score !== undefined
-                           && selectedPrerequisToReject!.score! < 50
-                           && !motifRejetPrerequis.trim())">
+                    (selectedPrerequisToReject?.score !== null
+                     && selectedPrerequisToReject?.score !== undefined
+                     && selectedPrerequisToReject!.score! < 50
+                     && !motifRejetPrerequis.trim())">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:15px;height:15px">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                 </svg>
@@ -1475,7 +1558,6 @@
             </button>
             <button class="reject-btn-cancel" (click)="fermerRejetPrerequis()">Annuler</button>
         </div>
-
     </div>
 </div>
 

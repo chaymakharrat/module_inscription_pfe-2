@@ -1,0 +1,748 @@
+<div class="dept-page">
+
+    <!-- ═══════════════════ TOPBAR ═══════════════════ -->
+    <header class="dept-header">
+        <div class="header-left">
+            <button class="back-btn" routerLink="/dashboard-admin">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <div class="header-brand">
+                <span class="header-eyebrow">Gestion Académique</span>
+                <h1 class="header-title">Départements</h1>
+            </div>
+
+            <div class="header-divider"></div>
+
+            <div class="header-stats">
+                <div class="stat-chip">
+                    <div class="stat-chip-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div class="stat-chip-info">
+                        <div class="stat-chip-num">{{ departements.length }}</div>
+                        <div class="stat-chip-lbl">Départements</div>
+                    </div>
+                </div>
+                <div class="stat-chip">
+                    <div class="stat-chip-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                        </svg>
+                    </div>
+                    <div class="stat-chip-info">
+                        <div class="stat-chip-num">{{ getTotalDiplomesResponsables() }}</div>
+                        <div class="stat-chip-lbl">Diplômes</div>
+                    </div>
+                </div>
+                <div class="stat-chip">
+                    <div class="stat-chip-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M2 12h20" />
+                            <path
+                                d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+                        </svg>
+                    </div>
+                    <div class="stat-chip-info">
+                        <div class="stat-chip-num">{{ getTotalVariantes() }}</div>
+                        <div class="stat-chip-lbl">Variantes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <!-- ✅ NEW: Switcher de vue -->
+            <div class="view-switcher">
+                <button class="view-btn" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'"
+                    title="Vue grille">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                </button>
+                <button class="view-btn" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'"
+                    title="Vue liste">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6" />
+                        <line x1="8" y1="12" x2="21" y2="12" />
+                        <line x1="8" y1="18" x2="21" y2="18" />
+                        <line x1="3" y1="6" x2="3.01" y2="6" />
+                        <line x1="3" y1="12" x2="3.01" y2="12" />
+                        <line x1="3" y1="18" x2="3.01" y2="18" />
+                    </svg>
+                </button>
+            </div>
+
+            <button class="btn-secondary" (click)="openAdminConfigModal()" title="Gérer les types et niveaux">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                </svg>
+                Configurations
+            </button>
+
+            <button class="btn-create" (click)="openCreateDeptModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Nouveau département
+            </button>
+        </div>
+    </header>
+
+    <!-- Loading Bar -->
+    <div class="loading-bar" *ngIf="loading">
+        <div class="loading-progress"></div>
+    </div>
+
+    <!-- ═══════════════════ MAIN ═══════════════════ -->
+    <main class="dept-main">
+
+        <div class="section-label">
+            <div class="section-label-line"></div>
+            <span class="section-label-text">Tous les départements</span>
+            <div class="section-label-line"></div>
+        </div>
+
+        <!-- ═══ GRILLE / LISTE ═══ -->
+        <div [class]="viewMode === 'grid' ? 'dept-grid' : 'dept-list'" *ngIf="!loading">
+
+            <div class="dept-card" *ngFor="let dept of departements; let di = index"
+                [class.expanded]="expandedDeptId === dept.id" [class.inactive-card]="!dept.actif">
+
+                <!-- Card Header -->
+                <div class="dept-card-header" (click)="toggleDept(dept.id)">
+                    <div class="dept-monogram" [style.background]="getDeptGradient(di)">
+                        {{ dept.nom.charAt(0).toUpperCase() }}
+                    </div>
+                    <div class="dept-info">
+                        <div class="dept-name-container">
+                            <h3 class="dept-name">{{ dept.nom }}</h3>
+                            <!-- ✅ Badge inactif -->
+                            <span class="badge-inactif" *ngIf="!dept.actif">Inactif</span>
+                            <label class="toggle-switch-sm" (click)="$event.stopPropagation()">
+                                <input type="checkbox" [checked]="dept.actif" (change)="toggleDeptStatus(dept)">
+                                <span class="toggle-track-sm"><span class="toggle-thumb-sm"></span></span>
+                            </label>
+                        </div>
+                        <p class="dept-meta">
+                            {{ getDiplomesCountForDept(dept.id) }} diplôme(s)
+                            <span class="dept-meta-dot"></span>
+                            {{ getDiplomesForDept(dept.id).length > 0 ? (getTotalVariantesForDept(dept.id)) + '
+                            variante(s)' : 'Aucune variante' }}
+                        </p>
+                    </div>
+                    <div class="dept-actions-header">
+                        <button class="icon-btn add-btn"
+                            (click)="$event.stopPropagation(); openCreateDiplomeModal(dept)" title="Ajouter un diplôme">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                        </button>
+                        <button class="icon-btn expand-btn" [class.rotated]="expandedDeptId === dept.id">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ✅ NEW: Empty state incitatif directement visible si 0 diplômes et pas expanded -->
+                <div class="inline-empty-hint"
+                    *ngIf="getDiplomesCountForDept(dept.id) === 0 && expandedDeptId !== dept.id">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    Aucun diplôme —
+                    <button class="link-btn" (click)="$event.stopPropagation(); openCreateDiplomeModal(dept)">
+                        Ajouter le premier
+                    </button>
+                </div>
+
+                <!-- Diplômes (expanded) -->
+                <div class="diplomes-list" *ngIf="expandedDeptId === dept.id">
+
+                    <div class="diplomes-loading" *ngIf="loadingDiplomes[dept.id]">
+                        <div class="spinner-sm"></div> Chargement des diplômes…
+                    </div>
+
+                    <div class="diplome-item" *ngFor="let dr of getDiplomesForDept(dept.id); let ri = index"
+                        [style.animation-delay]="(ri * 50) + 'ms'" [class.diplome-inactive]="!dr.actif">
+
+                        <div class="diplome-header">
+                            <div class="diplome-type-pill" [ngClass]="getTypeClass(dr.typeNom)">
+                                <span [innerHTML]="getTypeIconSVG(dr.typeNom)"></span>
+                                {{ dr.typeNom || 'Diplôme' }}
+                            </div>
+                            <div class="diplome-info">
+                                <span class="diplome-name">{{ dr.nomDiplome }}</span>
+                                <div class="diplome-teacher" *ngIf="dr.enseignantResponsable">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                        <circle cx="12" cy="7" r="4" />
+                                    </svg>
+                                    <span>Resp: {{ dr.enseignantResponsable }}</span>
+                                </div>
+                                <label class="toggle-switch-sm" (click)="$event.stopPropagation()"
+                                    style="margin-left: 10px;">
+                                    <input type="checkbox" [checked]="dr.actif" (change)="toggleDiplomeStatus(dr)">
+                                    <span class="toggle-track-sm"><span class="toggle-thumb-sm"></span></span>
+                                </label>
+                            </div>
+                            <button class="add-variante-btn" (click)="openCreateVarianteModal(dr)"
+                                title="Ajouter une variante (langue & niveaux)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                                Ajouter une variante
+                            </button>
+                        </div>
+
+                        <!-- ✅ NEW: Variantes en mini-cards au lieu de chips -->
+                        <div class="variantes-cards" *ngIf="dr.variantes && dr.variantes.length > 0">
+                            <div class="variante-card" *ngFor="let v of dr.variantes"
+                                [class.variante-card-actif]="v.actif" [class.variante-card-inactif]="!v.actif">
+
+                                <div class="variante-card-top">
+                                    <div class="variante-card-langue">
+                                        <span class="langue-flag">{{ getLangueFlag(v.langue) }}</span>
+                                        <span class="langue-nom">{{ v.langue | titlecase }}</span>
+                                    </div>
+                                    <div class="variante-card-actions">
+                                        <label class="toggle-switch-sm" (click)="$event.stopPropagation()">
+                                            <input type="checkbox" [checked]="v.actif"
+                                                (change)="toggleVarianteStatus(v, dept.id)">
+                                            <span class="toggle-track-sm"><span class="toggle-thumb-sm"></span></span>
+                                        </label>
+                                        <button class="action-btn-sm edit-btn"
+                                            (click)="openEditVarianteModal(v, dept.id)" title="Modifier la variante">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2.5">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="variante-card-bottom">
+                                    <!-- ✅ Niveaux triés (ordre croissant garanti par le TS) -->
+                                    <div class="variante-levels-inline" *ngIf="v.niveaux && v.niveaux.length > 0">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <path d="M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0-4-4H2z" />
+                                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a4 4 0 0 1 4-4h6z" />
+                                        </svg>
+                                        <span *ngFor="let n of v.niveaux; let last = last">
+                                            {{ n.niveau }}{{ n.niveau === 1 ? 're' : 'e' }}{{ last ? '' : ',' }}
+                                        </span>
+                                        année(s)
+                                    </div>
+                                    <span class="frais-badge">{{ v.fraisInscription | number:'1.0-0' }} TND</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="no-variantes" *ngIf="!dr.variantes || dr.variantes.length === 0">
+                            Aucune variante —
+                            <button class="link-btn" (click)="openCreateVarianteModal(dr)">Ajouter une langue</button>
+                        </div>
+                    </div>
+
+                    <!-- Empty -->
+                    <div class="empty-diplomes"
+                        *ngIf="getDiplomesForDept(dept.id).length === 0 && !loadingDiplomes[dept.id]">
+                        <div class="empty-diplomes-icon">🎓</div>
+                        <p>Aucun diplôme pour ce département</p>
+                        <button class="btn-add-first" (click)="openCreateDiplomeModal(dept)">
+                            + Ajouter le premier diplôme
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty global -->
+            <div class="empty-state-global" *ngIf="departements.length === 0">
+                <div class="empty-icon">🏛️</div>
+                <p>Aucun département créé pour le moment</p>
+                <button class="btn-create" (click)="openCreateDeptModal()">Créer le premier département</button>
+            </div>
+        </div>
+    </main>
+
+
+    <!-- ═══════════════════ MODAL — CRÉER DÉPARTEMENT ═══════════════════ -->
+    <div class="modal-overlay" *ngIf="showCreateDeptModal" (click)="closeModals()">
+        <div class="modal" (click)="$event.stopPropagation()">
+            <button class="modal-close" (click)="closeModals()">✕</button>
+            <div class="modal-icon-title">
+                <div class="modal-icon">🏛️</div>
+                <h3>Nouveau département</h3>
+            </div>
+            <div class="form-group">
+                <label>Nom du département *</label>
+                <input type="text" [(ngModel)]="deptForm.nom" placeholder="Ex: Informatique, Gestion…"
+                    [class.error]="formErrors['nom']" (input)="formErrors['nom'] = false">
+                <span class="error-msg" *ngIf="formErrors['nom']">Ce champ est obligatoire</span>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" (click)="closeModals()">Annuler</button>
+                <button class="btn-submit" (click)="createDepartement()" [disabled]="formLoading">
+                    <span class="spinner-sm" *ngIf="formLoading"></span>
+                    {{ formLoading ? 'Création…' : 'Créer le département' }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ═══════════════════ MODAL — NOUVEAU DIPLÔME ═══════════════════ -->
+    <div class="modal-overlay" *ngIf="showCreateDiplomeModal" (click)="closeModals()">
+        <div class="modal-content modal-lg-custom" (click)="$event.stopPropagation()">
+
+            <div class="modal-header">
+                <div class="modal-title-with-icon">
+                    <div class="header-icon">🎓</div>
+                    <div>
+                        <h3>Nouveau diplôme</h3>
+                        <p class="modal-subtitle">Département · {{ selectedDept?.nom }}</p>
+                    </div>
+                </div>
+                <button class="close-btn" (click)="closeModals()">✕</button>
+            </div>
+
+            <div class="modal-body custom-scrollbar">
+                <div class="form-container">
+
+                    <div class="form-section">
+                        <div class="section-badge">1</div>
+                        <div style="flex:1">
+                            <h4 class="section-title">Informations générales</h4>
+                            <div class="form-group">
+                                <label>Intitulé du diplôme *</label>
+                                <input type="text" [(ngModel)]="diplomeForm.nomDiplome"
+                                    placeholder="Ex: Licence en Informatique" [class.error]="formErrors['nomDiplome']">
+                                <span class="error-msg" *ngIf="formErrors['nomDiplome']">Obligatoire</span>
+                            </div>
+                            <div class="form-group">
+                                <label>Type de diplôme *</label>
+                                <div class="type-selector-grid">
+                                    <div class="type-option-card" *ngFor="let type of types"
+                                        [class.selected]="diplomeForm.typeId === type.id"
+                                        (click)="diplomeForm.typeId = type.id; onTypeChange()">
+                                        <div class="type-icon-wrapper" [innerHTML]="getTypeIconSVG(type.nom)"></div>
+                                        <span>{{ type.nom }}</span>
+                                    </div>
+                                </div>
+                                <span class="error-msg" *ngIf="formErrors['typeId']">Sélectionnez un type</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-separator"></div>
+
+                    <div class="form-section">
+                        <div class="section-badge">2</div>
+                        <div style="flex:1">
+                            <h4 class="section-title">Variantes langues &amp; niveaux</h4>
+                            <p class="section-hint">Activez les langues souhaitées, définissez les frais et les niveaux d'étude.</p>
+
+                            <div class="langs-config-list">
+                                <div class="lang-config-item" *ngFor="let lang of languesSelection"
+                                    [class.selected]="lang.selected">
+                                    <div class="lang-item-header" (click)="lang.selected = !lang.selected">
+                                        <div class="lang-info">
+                                            <span class="lang-flag">{{ getLangueFlag(lang.langue) }}</span>
+                                            <span>{{ lang.langue | titlecase }}</span>
+                                        </div>
+                                        <div class="lang-check" [class.checked]="lang.selected">
+                                            <span *ngIf="lang.selected">✓</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="lang-item-body" *ngIf="lang.selected" (click)="$event.stopPropagation()">
+                                        <div class="frais-row">
+                                            <label>Frais d'inscription (TND)</label>
+                                            <input type="number" [(ngModel)]="lang.fraisInscription" placeholder="0.00">
+                                        </div>
+
+                                        <div class="niveaux-selection-box">
+                                            <label class="niveaux-label">Niveaux d'étude</label>
+                                            <div class="niveaux-options-list">
+                                                <div class="niveau-option-row" *ngFor="let n of lang.niveaux">
+                                                    <div class="niveau-main">
+                                                        <label class="niveau-checkbox" [class.disabled]="!isLevelEnabled(lang, n.niveauInt)">
+                                                            <input type="checkbox" [(ngModel)]="n.selected"
+                                                                [disabled]="!isLevelEnabled(lang, n.niveauInt)"
+                                                                (change)="onLevelToggle(lang, n)">
+                                                            <span class="custom-check"></span>
+                                                            <span class="niveau-num">
+                                                                {{ n.niveauInt }}<sup>{{ n.niveauInt === 1 ? 're' : 'e' }}</sup> année
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                    <div class="niveau-inputs" *ngIf="n.selected">
+                                                        <div class="input-mini">
+                                                            <span>Capacité max</span>
+                                                            <input type="number" [(ngModel)]="n.capaciteMax">
+                                                        </div>
+                                                        <div class="input-mini">
+                                                            <span>Taille groupe</span>
+                                                            <input type="number" [(ngModel)]="n.tailleGroupe">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-separator"></div>
+
+                    <div class="form-section">
+                        <div class="section-badge">3</div>
+                        <div style="flex:1">
+                            <h4 class="section-title">Enseignant responsable</h4>
+
+                            <!-- Auto-assigné (même enseignant qu'une autre licence) -->
+                            <div class="auto-assign-card" *ngIf="isEnseignantAutoAssigned">
+                                <div class="auto-assign-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                                        <polyline points="22 4 12 14.01 9 11.01" />
+                                    </svg>
+                                </div>
+                                <div class="auto-assign-content">
+                                    <span class="auto-assign-title">Attribution automatique</span>
+                                    <span class="auto-assign-desc">
+                                        Enseignant responsable : <strong>{{ enseignantAutoAssigne?.emailUniversitaire }}</strong>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Sélection manuelle Premium -->
+                            <div class="form-group" *ngIf="showEnseignantDropdown">
+                                <label class="p-label">Choisir l'enseignant responsable *</label>
+                                
+                                <div class="teacher-selection-list">
+                                    <div class="teacher-card" 
+                                         *ngFor="let e of enseignantsLibres"
+                                         [class.selected]="diplomeForm.enseignantId === e.id"
+                                         (click)="diplomeForm.enseignantId = e.id">
+                                        
+                                        <div class="teacher-avatar">
+                                            {{ e.emailUniversitaire.substring(0, 2).toUpperCase() }}
+                                        </div>
+
+                                        <div class="teacher-info">
+                                            <span class="teacher-email">{{ e.emailUniversitaire }}</span>
+                                            <span class="teacher-status">Enseignant disponible</span>
+                                        </div>
+
+                                        <div class="selection-indicator"></div>
+                                    </div>
+                                </div>
+
+                                <p class="section-hint" *ngIf="enseignantsLibres.length === 0 && !loadingEnseignants" style="margin-top: 10px;">
+                                    Aucun enseignant libre disponible. 
+                                    <a routerLink="/admin/users" style="color: var(--blue); font-weight: 700; margin-left: 4px;">Créer un enseignant</a>
+                                </p>
+                                <div class="loading-spinner-inline" *ngIf="loadingEnseignants">
+                                    Chargement des enseignants...
+                                </div>
+                                <span class="error-msg" *ngIf="formErrors['enseignantId']">Veuillez sélectionner un responsable</span>
+                            </div>
+
+                            <!-- Message si type pas encore sélectionné -->
+                            <p class="section-hint" *ngIf="diplomeForm.typeId === 0">
+                                Sélectionnez d'abord le type de diplôme pour voir les enseignants disponibles.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-cancel" (click)="closeModals()">Annuler</button>
+                <button class="btn-create" (click)="createDiplomeResponsable()" [disabled]="formLoading">
+                    <span class="spinner-sm" *ngIf="formLoading"></span>
+                    {{ formLoading ? 'Création en cours…' : 'Confirmer la création' }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ═══════════════════ MODAL — AJOUTER VARIANTE ═══════════════════ -->
+    <div class="modal-overlay" *ngIf="showCreateVarianteModal" (click)="closeModals()">
+        <div class="modal-content small-modal" (click)="$event.stopPropagation()">
+
+            <div class="modal-header">
+                <div class="modal-title-with-icon">
+                    <div class="header-icon">🌍</div>
+                    <div>
+                        <h3>Nouvelle variante</h3>
+                        <p class="modal-subtitle">{{ selectedDiplomeResponsable?.nomDiplome }}</p>
+                    </div>
+                </div>
+                <button class="close-btn" (click)="closeModals()">✕</button>
+            </div>
+
+            <div class="modal-body custom-scrollbar">
+                <div class="form-group">
+                    <label>Langue de la variante *</label>
+                    <select [(ngModel)]="varianteForm.langue" [class.error]="formErrors['varLangue']">
+                        <option value="">— Choisir une langue —</option>
+                        <option *ngFor="let l of languesDisponibles" [value]="l">{{ l | titlecase }}</option>
+                    </select>
+                    <span class="error-msg" *ngIf="formErrors['varLangue']">Obligatoire</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Frais d'inscription (TND) *</label>
+                    <input type="number" [(ngModel)]="varianteForm.fraisInscription" placeholder="Ex: 2500"
+                        [class.error]="formErrors['varFrais']">
+                    <span class="error-msg" *ngIf="formErrors['varFrais']">Doit être supérieur à 0</span>
+                </div>
+
+                <div class="nested-config-section">
+                    <label class="config-label">Configuration des niveaux</label>
+                    <div class="niveaux-config-stack">
+                        <div class="config-row" *ngFor="let n of varianteForm.niveaux">
+                            <label class="config-checkbox"
+                                [class.disabled]="!isLevelEnabled(varianteForm, n.niveauInt)">
+                                <input type="checkbox" [(ngModel)]="n.selected"
+                                    [disabled]="!isLevelEnabled(varianteForm, n.niveauInt)"
+                                    (change)="onLevelToggle(varianteForm, n)">
+                                <span class="check-box"></span>
+                                <span class="niveau-lbl">{{ n.niveauInt }}<sup>e</sup> année</span>
+                            </label>
+                            <div class="config-params" *ngIf="n.selected">
+                                <div class="p-field">
+                                    <span class="p-label">Capacité</span>
+                                    <input type="number" [(ngModel)]="n.capaciteMax">
+                                </div>
+                                <div class="p-field">
+                                    <span class="p-label">Taille gr.</span>
+                                    <input type="number" [(ngModel)]="n.tailleGroupe">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-cancel" (click)="closeModals()">Annuler</button>
+                <button class="btn-create" (click)="createVariante()" [disabled]="formLoading">
+                    <span class="spinner-sm" *ngIf="formLoading"></span>
+                    {{ formLoading ? 'Ajout…' : 'Ajouter la variante' }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div> <!-- Fin dept-page -->
+
+<!-- ═══════════════════ TOAST ═══════════════════ -->
+<div class="toast" [class.show]="toastVisible" [class.toast-success]="toastType === 'success'"
+    [class.toast-error]="toastType === 'error'">
+    <span class="toast-text">{{ toastMessage }}</span>
+</div>
+
+<!-- MODAL : MODIFIER UNE VARIANTE -->
+<div class="modal-overlay" *ngIf="showEditVarianteModal" (click)="closeModals()">
+    <div class="modal-content modal-lg-custom" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title-with-icon">
+                <div class="header-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3>Modifier la variante</h3>
+                    <p class="modal-subtitle">Configuration pour {{ editVarianteForm.langue | titlecase }}</p>
+                </div>
+            </div>
+            <button class="close-btn" (click)="closeModals()">&times;</button>
+        </div>
+
+        <div class="modal-body custom-scrollbar">
+            <div class="form-container">
+                <div class="form-row split">
+                    <div class="form-group">
+                        <label>Frais d'inscription (TND) *</label>
+                        <input type="number" [(ngModel)]="editVarianteForm.fraisInscription"
+                            [class.error]="formErrors['editFrais']">
+                    </div>
+                </div>
+
+                <div class="section-separator"></div>
+
+                <div class="nested-config-section">
+                    <label class="section-title">Configuration des niveaux</label>
+                    <div class="niveaux-config-stack">
+                        <div class="config-row" *ngFor="let n of editVarianteForm.niveaux">
+                            <div class="config-row-header">
+                                <label class="config-checkbox">
+                                    <input type="checkbox" [(ngModel)]="n.selected">
+                                    <span class="check-box"></span>
+                                    <span class="niveau-lbl">{{ n.niveauInt }}<sup>e</sup> année</span>
+                                </label>
+                            </div>
+
+                            <div class="config-params" *ngIf="n.selected">
+                                <div class="p-field">
+                                    <span class="p-label">Score Min</span>
+                                    <input type="number" [(ngModel)]="n.scoreMinimum" class="p-input">
+                                </div>
+                                <div class="p-field">
+                                    <span class="p-label">Taille Groupe</span>
+                                    <input type="number" [(ngModel)]="n.tailleGroupe" class="p-input">
+                                </div>
+                                <div class="p-field">
+                                    <span class="p-label">Capacité Max</span>
+                                    <input type="number" [(ngModel)]="n.capaciteMax" class="p-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-outline" (click)="closeModals()">Annuler</button>
+            <button class="btn-submit" [disabled]="formLoading" (click)="updateVariante()">
+                <span *ngIf="!formLoading">Sauvegarder les modifications</span>
+                <span *ngIf="formLoading" class="loader-sm"></span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL CONFIGURATION ADMIN (TYPES & NIVEAUX) ══ -->
+<div class="modal-overlay" *ngIf="showAdminConfigModal" (click)="closeModals()">
+    <div class="modal-content modal-lg-custom" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title-with-icon">
+                <div class="header-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path
+                            d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3>Configuration des types et niveaux</h3>
+                    <p class="modal-subtitle">Gérez les options globales disponibles pour les diplômes.</p>
+                </div>
+            </div>
+            <button class="close-btn" (click)="closeModals()">&times;</button>
+        </div>
+
+        <div class="modal-body custom-scrollbar">
+            <div class="config-grid">
+
+                <!-- Section Types -->
+                <div class="config-sec">
+                    <h3 class="config-sec-title">Types de diplômes</h3>
+
+                    <div class="config-add-row">
+                        <input type="text" [(ngModel)]="newTypeForm.nom" placeholder="Ex: Licence, Master..."
+                            class="config-input">
+                        <button class="btn-add-inline" (click)="addType()"
+                            [disabled]="formLoading || !newTypeForm.nom.trim()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="3">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="config-list">
+                        <div class="config-item" *ngFor="let t of adminConfig.types">
+                            <span class="config-item-name" [class.inactive]="!t.actif">{{ t.nom }}</span>
+                            <div class="config-item-actions">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" [checked]="t.actif" (change)="toggleTypeActif(t)">
+                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Niveaux -->
+                <div class="config-sec">
+                    <h3 class="config-sec-title">Niveaux d'études</h3>
+
+                    <div class="config-add-row">
+                        <input type="number" [(ngModel)]="newNiveauForm.niveau" min="1" max="10"
+                            class="config-input config-input-num">
+                        <button class="btn-add-inline" (click)="addNiveau()" [disabled]="formLoading">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="3">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="config-list">
+                        <div class="config-item" *ngFor="let n of adminConfig.niveaux">
+                            <span class="config-item-name" [class.inactive]="!n.actif">Niveau {{ n.niveau }}</span>
+                            <div class="config-item-actions">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" [checked]="n.actif" (change)="toggleNiveauActif(n)">
+                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="info-banner warning-banner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <p>La désactivation est impossible pour les éléments déjà utilisés par des formations actives.</p>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-primary" (click)="closeModals()">Terminer</button>
+        </div>
+    </div>
+</div>

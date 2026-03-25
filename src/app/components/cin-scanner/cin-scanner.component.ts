@@ -33,8 +33,8 @@ interface EditableResult {
   <ng-container *ngIf="state === 'idle'">
     <div class="idle-card">
       <!-- Illustration de guidage -->
-      <div class="guidance-illustration mb-4">
-        <svg width="120" height="80" viewBox="0 0 120 80" fill="none" class="mx-auto">
+      <div class="guidance-illustration mb-2">
+        <svg width="100" height="66" viewBox="0 0 120 80" fill="none" class="mx-auto">
           <rect x="10" y="10" width="100" height="60" rx="8" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4 4"/>
           <rect x="30" y="25" width="60" height="35" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" class="animate-float-slow"/>
           <path d="M95 55L105 70M85 55L75 70" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
@@ -42,7 +42,7 @@ interface EditableResult {
       </div>
 
       <div class="cin-icon-wrap">
-        <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <rect x="2" y="5" width="20" height="14" rx="3" stroke-width="2"/>
           <path d="M7 10h10M7 14h5" stroke-width="2" stroke-linecap="round"/>
         </svg>
@@ -69,7 +69,7 @@ interface EditableResult {
       </div>
       
       <!-- Mention Sécurité & Conseils -->
-      <div class="security-assurance mt-4 p-3 rounded-xl border border-blue-50 bg-blue-50/30 flex items-center gap-2">
+      <div class="security-assurance mt-2 p-2 rounded-xl border border-blue-50 bg-blue-50/30 flex items-center gap-2">
         <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
         </svg>
@@ -78,7 +78,7 @@ interface EditableResult {
         </p>
       </div>
 
-      <p class="idle-tip">💡 Photo nette · Bonne luminosité · Sans reflets</p>
+      <p class="idle-tip mt-2">💡 Photo nette · Bonne luminosité · Sans reflets</p>
     </div>
   </ng-container>
 
@@ -349,38 +349,38 @@ interface EditableResult {
   styles: [`
     .cin-scanner-wrapper {
       font-family: 'Segoe UI', system-ui, sans-serif;
-      max-width: 520px; margin: 0 auto 2rem;
+      max-width: 520px; margin: 0 auto 1.5rem;
     }
     .hidden { display: none !important; }
 
     /* ── IDLE ── */
     .idle-card {
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
       border: none; border-radius: 20px;
-      background: #f8fafc; padding: 32px 24px; text-align: center;
+      background: #f8fafc; padding: 24px 20px; text-align: center;
     }
     .cin-icon-wrap {
-      width: 64px; height: 64px; border-radius: 16px;
+      width: 52px; height: 52px; border-radius: 14px;
       background: #dbeafe; color: #2563eb;
       display: flex; align-items: center; justify-content: center;
     }
-    .idle-title { font-weight: 900; font-size: 15px; color: #1e293b; margin: 0; }
-    .idle-sub   { font-size: 12px; color: #64748b; margin: 0; line-height: 1.5; }
-    .idle-tip   { font-size: 10px; color: #94a3b8; margin: 6px 0 0; text-align: center; }
-    .idle-btns  { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .idle-title { font-weight: 900; font-size: 14px; color: #1e293b; margin: 0; }
+    .idle-sub   { font-size: 11px; color: #64748b; margin: 0; line-height: 1.4; }
+    .idle-tip   { font-size: 10px; color: #94a3b8; margin: 4px 0 0; text-align: center; }
+    .idle-btns  { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 
     /* ── Buttons ── */
     .btn-primary {
       display: flex; align-items: center; justify-content: center;
-      padding: 10px 24px; background: #2563eb; color: #fff;
-      border: none; border-radius: 12px; font-weight: 800; font-size: 13px;
+      padding: 8px 20px; background: #2563eb; color: #fff;
+      border: none; border-radius: 12px; font-weight: 800; font-size: 12px;
       letter-spacing: .02em; cursor: pointer; transition: all .2s;
     }
     .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.2); }
     .btn-secondary {
       display: flex; align-items: center; justify-content: center;
-      padding: 10px 24px; background: white; color: #475569;
-      border: 1.5px solid #e2e8f0; border-radius: 12px; font-weight: 800; font-size: 13px;
+      padding: 8px 20px; background: white; color: #475569;
+      border: 1.5px solid #e2e8f0; border-radius: 12px; font-weight: 800; font-size: 12px;
       cursor: pointer; transition: all .2s;
     }
     .btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
