@@ -27,6 +27,10 @@ export class EnrollmentService {
         return this.submitDemande(demande);
     }
 
+    startWorkflow(demandeId: number): Observable<void> {
+        return this.http.post<void>(`${this.apiUrl}/${demandeId}/start-workflow`, {});
+    }
+
     getPendingEnrollments(): Observable<Enrollment[]> {
         return this.http.get<Enrollment[]>(`${this.apiUrl}`);
     }

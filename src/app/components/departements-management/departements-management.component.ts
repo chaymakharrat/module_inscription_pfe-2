@@ -670,7 +670,7 @@ export class DepartementsManagementComponent implements OnInit {
                 role: 'ENSEIGNANT_RESPONSABLE'
               }).subscribe({
                 next: () => {
-                  this.finalizeDiplomeCreation(deptId);
+                  this.finalizeDiplomeCreation(deptId, enseignant.emailUniversitaire);
                 },
                 error: () => {
                   this.rollbackCreation(diplomeId, deptId, `Impossible de mettre à jour le rôle pour ${enseignant.emailUniversitaire}. Création annulée.`);
@@ -706,7 +706,7 @@ export class DepartementsManagementComponent implements OnInit {
   }
 
   // ✅ NOUVEAU — Finaliser après création
-  private finalizeDiplomeCreation(deptId: number): void {
+  private finalizeDiplomeCreation(deptId: number, enseignantEmail?: string): void {
     this.formLoading = false;
     this.closeModals();
     this.diplomesByDept.delete(deptId);
@@ -778,17 +778,6 @@ export class DepartementsManagementComponent implements OnInit {
           this.loadDiplomesForDept(deptId);
         }
         this.showToast(`Variante ${this.varianteForm.langue} ajoutée`, 'success');
-
-        // ✅ Notification à l'enseignant responsable
-        if (this.selectedDiplomeResponsable?.enseignantResponsable) {
-          const msg = `Une nouvelle variante en ${this.varianteForm.langue} a été ajoutée au diplôme "${this.selectedDiplomeResponsable.nomDiplome}" par l'administration.`;
-          this.notificationService.sendInternalNotification(
-            this.adminEmail,
-            this.selectedDiplomeResponsable.enseignantResponsable,
-            msg,
-            'Nouvelle variante ajoutée'
-          ).subscribe();
-        }
       },
       error: (err) => {
         this.formLoading = false;
@@ -803,6 +792,7 @@ export class DepartementsManagementComponent implements OnInit {
     this.http.patch(`${this.diplomeUrl}/${variante.id}/toggle`, {}).subscribe({
       next: () => {
         this.showToast(`Statut mis à jour pour ${variante.langue}`, 'success');
+        
         if (deptId) {
           this.diplomesByDept.delete(deptId);
           this.loadDiplomesForDept(deptId);
@@ -836,17 +826,6 @@ export class DepartementsManagementComponent implements OnInit {
     this.http.patch(`${this.deptUrl}/diplomes-responsables/${dr.id}/toggle`, {}).subscribe({
       next: () => {
         this.showToast(`${dr.nomDiplome} est désormais ${dr.actif ? 'actif' : 'inactif'}`, 'success');
-
-        // ✅ Notification au responsable
-        if (dr.enseignantResponsable) {
-          const msg = `Le diplôme "${dr.nomDiplome}" a été ${dr.actif ? 'rendu actif' : 'désactivé'} par l'administration.`;
-          this.notificationService.sendInternalNotification(
-            this.adminEmail,
-            dr.enseignantResponsable,
-            msg,
-            'Changement de statut du diplôme'
-          ).subscribe();
-        }
 
         this.diplomesByDept.delete(dr.departementId);
         this.loadDiplomesForDept(dr.departementId);
@@ -902,9 +881,6 @@ export class DepartementsManagementComponent implements OnInit {
         this.formLoading = false;
         this.showToast('Variante mise à jour', 'success');
 
-        // ✅ Notification des changements
-        this.notifyVarianteChanges();
-
         this.closeModals();
         const deptId = this.editVarianteForm.deptId;
         if (deptId) {
@@ -919,66 +895,6 @@ export class DepartementsManagementComponent implements OnInit {
         this.showToast(err.error?.message ?? 'Erreur lors de la mise à jour', 'error');
       }
     });
-  }
-
-  private notifyVarianteChanges(): void {
-    if (!this.originalVariante || !this.adminEmail) return;
-
-    let changes: string[] = [];
-
-    // 1. Frais
-    if (this.originalVariante.fraisInscription !== this.editVarianteForm.fraisInscription) {
-      changes.push(`Frais : ${this.originalVariante.fraisInscription} TND → ${this.editVarianteForm.fraisInscription} TND`);
-    }
-
-    // 2. Statut global
-    if (this.originalVariante.actif !== this.editVarianteForm.actif) {
-      changes.push(`Statut : ${this.originalVariante.actif ? 'Actif' : 'Inactif'} → ${this.editVarianteForm.actif ? 'Actif' : 'Inactif'}`);
-    }
-
-    // 3. Niveaux
-    this.editVarianteForm.niveaux.forEach((newNiv: any) => {
-      const oldNiv = this.originalVariante.niveaux.find((n: any) => n.niveauId === newNiv.niveauId);
-      if (oldNiv) {
-        let nivChanges: string[] = [];
-        if (oldNiv.selected !== newNiv.selected) {
-          nivChanges.push(newNiv.selected ? 'Activé' : 'Désactivé');
-        }
-        if (newNiv.selected) {
-          if (oldNiv.capaciteMax !== newNiv.capaciteMax) nivChanges.push(`Capacité: ${oldNiv.capaciteMax} → ${newNiv.capaciteMax}`);
-          if (oldNiv.tailleGroupe !== newNiv.tailleGroupe) nivChanges.push(`Taille Groupe: ${oldNiv.tailleGroupe} → ${newNiv.tailleGroupe}`);
-          if (oldNiv.scoreMinimum !== newNiv.scoreMinimum) nivChanges.push(`Score Min: ${oldNiv.scoreMinimum} → ${newNiv.scoreMinimum}`);
-        }
-
-        if (nivChanges.length > 0) {
-          changes.push(`Niveau ${newNiv.niveauInt} : ${nivChanges.join(', ')}`);
-        }
-      }
-    });
-
-    if (changes.length > 0) {
-      // Trouver le responsable
-      let responsableEmail = '';
-      let nomDiplome = '';
-      for (const dept of this.diplomesByDept.values()) {
-        const dr = dept.find(d => d.variantes.some(v => v.id === this.editVarianteForm.id));
-        if (dr) {
-          responsableEmail = dr.enseignantResponsable || '';
-          nomDiplome = dr.nomDiplome;
-          break;
-        }
-      }
-
-      if (responsableEmail) {
-        const msg = `La variante ${this.editVarianteForm.langue} du diplôme "${nomDiplome}" a été modifiée par l'administration.\nChangements :\n- ${changes.join('\n- ')}`;
-        this.notificationService.sendInternalNotification(
-          this.adminEmail,
-          responsableEmail,
-          msg,
-          'Modification de variante'
-        ).subscribe();
-      }
-    }
   }
 
   closeModals(): void {

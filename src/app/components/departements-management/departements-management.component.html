@@ -365,7 +365,8 @@
                         <div class="section-badge">2</div>
                         <div style="flex:1">
                             <h4 class="section-title">Variantes langues &amp; niveaux</h4>
-                            <p class="section-hint">Activez les langues souhaitées, définissez les frais et les niveaux d'étude.</p>
+                            <p class="section-hint">Activez les langues souhaitées, définissez les frais et les niveaux
+                                d'étude.</p>
 
                             <div class="langs-config-list">
                                 <div class="lang-config-item" *ngFor="let lang of languesSelection"
@@ -380,7 +381,8 @@
                                         </div>
                                     </div>
 
-                                    <div class="lang-item-body" *ngIf="lang.selected" (click)="$event.stopPropagation()">
+                                    <div class="lang-item-body" *ngIf="lang.selected"
+                                        (click)="$event.stopPropagation()">
                                         <div class="frais-row">
                                             <label>Frais d'inscription (TND)</label>
                                             <input type="number" [(ngModel)]="lang.fraisInscription" placeholder="0.00">
@@ -391,13 +393,15 @@
                                             <div class="niveaux-options-list">
                                                 <div class="niveau-option-row" *ngFor="let n of lang.niveaux">
                                                     <div class="niveau-main">
-                                                        <label class="niveau-checkbox" [class.disabled]="!isLevelEnabled(lang, n.niveauInt)">
+                                                        <label class="niveau-checkbox"
+                                                            [class.disabled]="!isLevelEnabled(lang, n.niveauInt)">
                                                             <input type="checkbox" [(ngModel)]="n.selected"
                                                                 [disabled]="!isLevelEnabled(lang, n.niveauInt)"
                                                                 (change)="onLevelToggle(lang, n)">
                                                             <span class="custom-check"></span>
                                                             <span class="niveau-num">
-                                                                {{ n.niveauInt }}<sup>{{ n.niveauInt === 1 ? 're' : 'e' }}</sup> année
+                                                                {{ n.niveauInt }}<sup>{{ n.niveauInt === 1 ? 're' : 'e'
+                                                                    }}</sup> année
                                                             </span>
                                                         </label>
                                                     </div>
@@ -430,7 +434,8 @@
                             <!-- Auto-assigné (même enseignant qu'une autre licence) -->
                             <div class="auto-assign-card" *ngIf="isEnseignantAutoAssigned">
                                 <div class="auto-assign-icon">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5">
                                         <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
                                         <polyline points="22 4 12 14.01 9 11.01" />
                                     </svg>
@@ -438,7 +443,8 @@
                                 <div class="auto-assign-content">
                                     <span class="auto-assign-title">Attribution automatique</span>
                                     <span class="auto-assign-desc">
-                                        Enseignant responsable : <strong>{{ enseignantAutoAssigne?.emailUniversitaire }}</strong>
+                                        Enseignant responsable : <strong>{{ enseignantAutoAssigne?.emailUniversitaire
+                                            }}</strong>
                                     </span>
                                 </div>
                             </div>
@@ -446,13 +452,12 @@
                             <!-- Sélection manuelle Premium -->
                             <div class="form-group" *ngIf="showEnseignantDropdown">
                                 <label class="p-label">Choisir l'enseignant responsable *</label>
-                                
+
                                 <div class="teacher-selection-list">
-                                    <div class="teacher-card" 
-                                         *ngFor="let e of enseignantsLibres"
-                                         [class.selected]="diplomeForm.enseignantId === e.id"
-                                         (click)="diplomeForm.enseignantId = e.id">
-                                        
+                                    <div class="teacher-card" *ngFor="let e of enseignantsLibres"
+                                        [class.selected]="diplomeForm.enseignantId === e.id"
+                                        (click)="diplomeForm.enseignantId = e.id">
+
                                         <div class="teacher-avatar">
                                             {{ e.emailUniversitaire.substring(0, 2).toUpperCase() }}
                                         </div>
@@ -466,14 +471,18 @@
                                     </div>
                                 </div>
 
-                                <p class="section-hint" *ngIf="enseignantsLibres.length === 0 && !loadingEnseignants" style="margin-top: 10px;">
-                                    Aucun enseignant libre disponible. 
-                                    <a routerLink="/admin/users" style="color: var(--blue); font-weight: 700; margin-left: 4px;">Créer un enseignant</a>
+                                <p class="section-hint" *ngIf="enseignantsLibres.length === 0 && !loadingEnseignants"
+                                    style="margin-top: 10px;">
+                                    Aucun enseignant libre disponible.
+                                    <a routerLink="/admin/users"
+                                        style="color: var(--blue); font-weight: 700; margin-left: 4px;">Créer un
+                                        enseignant</a>
                                 </p>
                                 <div class="loading-spinner-inline" *ngIf="loadingEnseignants">
                                     Chargement des enseignants...
                                 </div>
-                                <span class="error-msg" *ngIf="formErrors['enseignantId']">Veuillez sélectionner un responsable</span>
+                                <span class="error-msg" *ngIf="formErrors['enseignantId']">Veuillez sélectionner un
+                                    responsable</span>
                             </div>
 
                             <!-- Message si type pas encore sélectionné -->

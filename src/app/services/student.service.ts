@@ -24,18 +24,23 @@ export class StudentService {
     }
 
     // ✅ PUBLIC — appelé depuis mon-dossier sans login
-    getDocumentsStatus(etudiantId: number): Observable<any[]> {
+    getDocumentsStatus(etudiantId: number, enrollmentId?: number): Observable<any[]> {
+        const params = enrollmentId ? `?enrollmentId=${enrollmentId}` : '';
         return this.httpNoAuth.get<any[]>(
-            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}/status`
+            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}/status${params}`
         );
     }
 
     // ✅ PUBLIC — upload depuis mon-dossier sans login
-    uploadDocumentRelance(studentId: number, type: string, file: File): Observable<any> {
+    uploadDocumentRelance(studentId: number, type: string, file: File, enrollmentId?: number): Observable<any> {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', type);
         formData.append('etudiantId', studentId.toString());
+        // SEULEMENT lier à l'enrollment si c'est un relevé de notes de niveau (spécifique au diplôme)
+        if (enrollmentId && type === 'RELEVE_NOTES_NIVEAU') {
+            formData.append('enrollmentId', enrollmentId.toString());
+        }
         return this.httpNoAuth.post(
             `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/upload-relance`,
             formData
@@ -61,20 +66,25 @@ export class StudentService {
         return this.http.patch<Student>(`${this.apiUrl}/${id}/contact`, data);
     }
 
-    uploadDocument(studentId: number, type: string, file: File): Observable<any> {
+    uploadDocument(studentId: number, type: string, file: File, enrollmentId?: number): Observable<any> {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', type);
         formData.append('etudiantId', studentId.toString());
+        // SEULEMENT lier à l'enrollment si c'est un relevé de notes de niveau (spécifique au diplôme)
+        if (enrollmentId && type === 'RELEVE_NOTES_NIVEAU') {
+            formData.append('enrollmentId', enrollmentId.toString());
+        }
         return this.http.post(
             `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/upload`,
             formData
         );
     }
 
-    getDocumentsByEtudiant(etudiantId: number): Observable<any[]> {
+    getDocumentsByEtudiant(etudiantId: number, enrollmentId?: number): Observable<any[]> {
+        const params = enrollmentId ? `?enrollmentId=${enrollmentId}` : '';
         return this.http.get<any[]>(
-            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}`
+            `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}${params}`
         );
     }
 

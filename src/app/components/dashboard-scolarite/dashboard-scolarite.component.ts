@@ -162,6 +162,15 @@ export class ScolariteDashboardComponent implements OnInit {
   toastMessage = '';
   toastType: 'success' | 'error' = 'success';
 
+  // 🆕 Nouveaux états pour les améliorations
+  filterMode: 'all' | 'mine' = 'all';
+  studentHistory: DemandeDetailDTO[] = [];
+  tauxValidation = 92;
+  tendanceAujourdhui = 5;
+  hoveredDemandeId: number | null = null;
+  reliabilityScore: number = 100;
+  studentHistoryStats = { total: 0, valides: 0, rejetes: 0, enCours: 0 };
+
 
   constructor(
     private scolariteService: ScolariteService,
@@ -286,12 +295,12 @@ export class ScolariteDashboardComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  // Dans setFilter()
   setFilter(filter: 'tous' | 'nouveaux' | 'urgents' | 'valides' | 'rejetes' | 'enAttente' | 'relances') {
     this.currentFilter = filter;
     this.currentPage = 0;
     this.loadDemandes();
   }
+
   getStatutBadge(demande: DemandeDetailDTO): { label: string; css: string } {
     const s = demande.statutActuel;
 
@@ -315,17 +324,151 @@ export class ScolariteDashboardComponent implements OnInit {
   onSearch() {
     this.currentPage = 0;
     if (this.searchTerm.trim()) {
-      this.scolariteService.searchByDiplome(this.searchTerm, this.currentPage, this.pageSize).subscribe({
+      this.scolariteService.searchGlobal(this.searchTerm, this.currentPage, this.pageSize).subscribe({
         next: (response) => {
           this.demandes = response.content;
           this.totalElements = response.totalElements;
           this.totalPages = response.totalPages;
         },
-        error: (error) => console.error('Erreur recherche:', error)
+        error: (error) => console.error('Erreur recherche globale:', error)
       });
     } else {
       this.loadDemandes();
     }
+  }
+
+  // 🆕 Indicateur de risque IA
+  // calculateAIRisk(demande: DemandeDetailDTO): { label: string; level: 'low' | 'medium' | 'high'; score: number; color: string } {
+  //   let score = 0;
+  //   const missingDocs = this.getDocsManquantsOuRejetes(demande.documents).length;
+  //   score += missingDocs * 25;
+
+  //   if (demande.enAttenteDepuis > 72) score += 30;
+  //   else if (demande.enAttenteDepuis > 48) score += 15;
+
+  //   score = Math.min(score, 100);
+
+  //   if (score > 70) return { label: 'Risque Élevé', level: 'high', score, color: '#ef4444' };
+  //   if (score > 35) return { label: 'Risque Modéré', level: 'medium', score, color: '#f59e0b' };
+  //   return { label: 'Profil Clean', level: 'low', score, color: '#10b981' };
+  // }
+
+  // 🆕 SLA Timer
+  getSLAPercentage(demande: DemandeDetailDTO): number {
+    const maxHours = 72; // 3 jours
+    return Math.min((demande.enAttenteDepuis / maxHours) * 100, 100);
+  }
+
+  getSLAColor(demande: DemandeDetailDTO): string {
+    const p = this.getSLAPercentage(demande);
+    if (p > 85) return '#ef4444';
+    if (p > 50) return '#f59e0b';
+    return '#10b981';
+  }
+
+
+  get filteredDemandesList(): DemandeDetailDTO[] {
+    if (this.filterMode === 'all') return this.demandes;
+    const currentUser = this.userProfile?.email || this.userProfile?.username;
+    return this.demandes.filter(d => d.taskAssignee === currentUser);
+  }
+
+
+  // 🆕 Charger l'historique de l'étudiant
+  loadStudentHistory(etudiantId: number) {
+    this.scolariteService.getStudentHistory(etudiantId).subscribe({
+      next: (history) => {
+        // Trier par date décroissante (plus récent en haut)
+        this.studentHistory = history.sort((a, b) =>
+          new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime()
+        );
+        this.reliabilityScore = this.calculateReliabilityScore();
+        this.studentHistoryStats = this.getStudentHistoryStats();
+      }
+    });
+  }
+  getDocumentLabel(type: string): string {
+    const labels: Record<string, string> = {
+      'DIPLOME_LICENCE': 'Diplôme de Licence',
+      'CARTE_IDENTITE': "Carte d'Identité",
+      'RELEVE_NOTES': 'Relevé de Notes',
+      'RELEVE_NOTES_NIVEAU': 'Relevé de Notes (Niveau)',
+      'RELEVE_NOTES_SUPERIEUR': 'Relevé de Notes (Supérieur)',
+      'DIPLOME_BAC': 'Diplôme du Baccalauréat',
+      'PHOTO_IDENTITE': "Photo d'Identité",
+      'ACTE_NAISSANCE': 'Acte de Naissance'
+    };
+    return labels[type] || type;
+  }
+
+  // 🆕 Score de fiabilité (basé sur l'historique)
+  calculateReliabilityScore(): number {
+    if (!this.studentHistory || this.studentHistory.length === 0) return 100;
+    const total = this.studentHistory.length;
+    const rejections = this.studentHistory.filter(d =>
+      d.statutActuel.startsWith('REJETE') || d.statutActuel === 'ARCHIVE'
+    ).length;
+    return Math.round(((total - rejections) / total) * 100);
+  }
+
+  /** Retourne les stats globales des demandes de l'étudiant (incluant la courante) */
+  getStudentHistoryStats() {
+    // Inclure studentHistory + selectedDemande s'il existe
+    const allDemandes = [...this.studentHistory];
+    if (this.selectedDemande) {
+      // Éviter les doublons si selectedDemande est déjà dans studentHistory (normalement filtré à line 381)
+      if (!allDemandes.find(d => d.id === this.selectedDemande?.id)) {
+        allDemandes.push(this.selectedDemande);
+      }
+    }
+
+    const total = allDemandes.length;
+    const valides = allDemandes.filter(h =>
+      h.statutActuel === 'SCOLARITE_VALIDEE' ||
+      h.statutActuel === 'EN_COURS_DEPARTEMENT' ||
+      h.statutActuel === 'DEPARTEMENT_VALIDE' ||
+      h.statutActuel === 'EN_ATTENTE_PAIEMENT' ||
+      h.statutActuel === 'PAIEMENT_VALIDE' ||
+      h.statutActuel === 'INSCRIT'
+    ).length;
+
+    const rejetes = allDemandes.filter(h =>
+      h.statutActuel.startsWith('REJETE') ||
+      h.statutActuel === 'ARCHIVE'
+    ).length;
+
+    const enCours = total - valides - rejetes;
+
+    return { total, valides, rejetes, enCours };
+  }
+
+  /** Formate les statuts techniques en libellés lisibles */
+  formatStatus(status: string): string {
+    if (!status) return 'Inconnu';
+
+    // Remplacements spécifiques
+    const mapping: { [key: string]: string } = {
+      'SCOLARITE_VALIDEE': 'Validé par Scolarité',
+      'EN_COURS_SCOLARITE': 'En cours (Scolarité)',
+      'EN_COURS_DEPARTEMENT': 'En cours (Département)',
+      'DEPARTEMENT_VALIDE': 'Validé par Département',
+      'EN_ATTENTE_DOCUMENT': 'Pièces manquantes',
+      'EN_ATTENTE_PAIEMENT': 'En attente paiement',
+      'PAIEMENT_VALIDE': 'Paiement effectué',
+      'INSCRIT': 'Étudiant Inscrit',
+      'REJETE_SCOLARITE': 'Refusé (Scolarité)',
+      'REJETE_DEPARTEMENT': 'Refusé (Département)',
+      'REJETE_FINANCE': 'Refusé (Finance)',
+      'ARCHIVE': 'Dossier Archivé',
+      'SOUMIS': 'Dossier Soumis'
+    };
+
+    if (mapping[status]) return mapping[status];
+
+    // Fallback : remplacer underscores par espaces et capitaliser
+    return status.split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   }
 
   goToPage(page: number) {
@@ -340,9 +483,8 @@ export class ScolariteDashboardComponent implements OnInit {
     return documents.filter(d => d.statut === 'REJETE' || d.statut === 'MANQUANTE');
   }
 
-  //activeTab: 'documents' | 'action' = 'documents'; // Onglet actif du modal
 
-  openDemandeDetail(demande: DemandeDetailDTO, initialTab: 'documents' | 'action' = 'documents', actionType?: 'validation' | 'rejet' | 'pieces') {
+  openDemandeDetail(demande: DemandeDetailDTO, initialTab: 'documents' | 'etudiant' | 'action' = 'documents', actionType?: 'validation' | 'rejet' | 'pieces') {
     this.pendingDossierId = demande.id;
 
     // Cloner la demande pour ne pas muter l'objet de la liste
@@ -381,6 +523,7 @@ export class ScolariteDashboardComponent implements OnInit {
     if (actionType === 'pieces') {
       this.preparePieceRequestComment();
     }
+    this.loadStudentHistory(demande.etudiant.id);
   }
 
   preparePieceRequestComment() {
@@ -921,6 +1064,18 @@ export class ScolariteDashboardComponent implements OnInit {
   getDocumentsRejeteCount(documents: any[]): number {
     if (!documents) return 0;
     return documents.filter(d => d.statut === 'REJETE').length;
+  }
+
+  /** Compte les documents avec statut VALIDE */
+  getDocumentsValidesCount(documents: any[]): number {
+    if (!documents) return 0;
+    return documents.filter(d => d.statut === 'VALIDE').length;
+  }
+
+  /** Compte les documents "En cours" (SOUMIS ou RELANCE but not yet validated/rejected) */
+  getDocumentsEnCoursCount(documents: any[]): number {
+    if (!documents) return 0;
+    return documents.filter(d => (d.statut === 'SOUMIS' || d.statut === 'RELANCE') && !d.isValidated).length;
   }
 
   /** Compte les documents déjà traités (VALIDE + REJETE) */

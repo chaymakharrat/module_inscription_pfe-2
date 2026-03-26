@@ -771,8 +771,8 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
         return false;
     }
   }
-  private uploadWithAutoValidation(studentId: number, type: string, file: File): Observable<any> {
-    return this.studentService.uploadDocument(studentId, type, file).pipe(
+  private uploadWithAutoValidation(studentId: number, type: string, file: File, enrollmentId?: number): Observable<any> {
+    return this.studentService.uploadDocument(studentId, type, file, enrollmentId).pipe(
       switchMap((uploadedDoc) => {
         const docId = uploadedDoc?.document?.id ?? uploadedDoc?.id;
 
@@ -1857,53 +1857,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       this.submitDemande(savedStudent.id!, fv);
     });
   }
-  // private submitDemande(studentId: number, fv: any, filesToUpload?: Map<string, File>): void {
-  //   let files = filesToUpload ?? this.selectedFiles;
-
-  //   // Si candidat existant, on ne ré-upload que les documents rejetés ou manquants
-  //   if (this.studentMode === 'existing') {
-  //     const filteredFiles = new Map<string, File>();
-  //     for (const [type, file] of files.entries()) {
-  //       if (this.shouldUploadDocument(type)) {
-  //         filteredFiles.set(type, file);
-  //       }
-  //     }
-  //     files = filteredFiles;
-  //   }
-
-  //   const uploads = Array.from(files.entries()).map(([type, file]) =>
-  //     this.uploadWithAutoValidation(studentId, type, file)
-  //   );
-
-  //   const uploadObs = uploads.length > 0 ? forkJoin(uploads) : of([]);
-
-  //   uploadObs.pipe(
-  //     switchMap(() => {
-  //       const demande: DemandeInscription = {
-  //         etudiantId: studentId,
-  //         nomDiplome: fv.academicInfo.diplomeVise,
-  //         typeDeDiplome: fv.academicInfo.typeVise,
-  //         langueDiplome: fv.academicInfo.langueVise,
-  //         niveauChoisi: fv.academicInfo.niveauVise,
-  //         dateCreation: new Date().toISOString()
-  //       };
-  //       return this.enrollmentService.postDemande(demande);
-  //     })
-  //   ).subscribe({
-  //     next: () => {
-  //       this.isSubmitting = false;
-  //       localStorage.removeItem(this.DRAFT_KEY);
-  //       this.alertService.success('Inscription réussie !');
-  //       this.resetForm();
-  //     },
-  //     error: () => {
-  //       this.isSubmitting = false;
-  //       this.alertService.error('Erreur lors de la soumission.');
-  //     }
-  //   });
-  // }  // ← UNE SEULE accolade fermante ici
-  private submitDemande(studentId: number, fv: any,
-    filesToUpload?: Map<string, File>): void {
+  private submitDemande(studentId: number, fv: any, filesToUpload?: Map<string, File>): void {
     let files = filesToUpload ?? this.selectedFiles;
 
     if (this.studentMode === 'existing') {
@@ -1914,35 +1868,34 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       files = filteredFiles;
     }
 
-    const uploads = Array.from(files.entries()).map(([type, file]) =>
-      this.uploadWithAutoValidation(studentId, type, file)
+    // On crée d'abord la demande pour avoir un ID
+    const niveauChoisiVal = fv.academicInfo.niveauVise;
+    const niveauObj = this.levels.find(n =>
+      String(n.niveau) === String(niveauChoisiVal)
     );
 
-    const uploadObs = uploads.length > 0 ? forkJoin(uploads) : of([]);
+    const demande: DemandeInscription = {
+      etudiantId: studentId,
+      niveauSpecifiqueId: niveauObj?.id ?? null,
+      typeDeDiplome: fv.academicInfo.typeVise,
+      dateCreation: new Date().toISOString()
+    };
 
-    uploadObs.pipe(
-      switchMap(() => {
+    this.enrollmentService.postDemande(demande).pipe(
+      switchMap((demandeSaved) => {
+        const enrollmentId = demandeSaved.id;
 
-        // ✅ Trouver le niveauSpecifiqueId depuis this.levels
-        const niveauChoisiVal = fv.academicInfo.niveauVise;
-        const niveauObj = this.levels.find(n =>
-          String(n.niveau) === String(niveauChoisiVal)
+        // Ensuite on upload les documents en les rattachant à cet ID
+        const uploads = Array.from(files.entries()).map(([type, file]) =>
+          this.uploadWithAutoValidation(studentId, type, file, enrollmentId)
         );
 
-        if (!niveauObj?.id) {
-          // Log pour débug
-          console.warn('niveauSpecifiqueId introuvable pour niveau:',
-            niveauChoisiVal, 'dans levels:', this.levels);
-        }
-
-        const demande: DemandeInscription = {
-          etudiantId: studentId,
-          niveauSpecifiqueId: niveauObj?.id ?? null,  // ✅ ID stable
-          typeDeDiplome: fv.academicInfo.typeVise,    // ✅ conservé
-          dateCreation: new Date().toISOString()
-        };
-
-        return this.enrollmentService.postDemande(demande);
+        // On s'assure de retourner l'enrollmentId une fois les uploads terminés
+        return uploads.length > 0 ? forkJoin(uploads).pipe(switchMap(() => of(enrollmentId))) : of(enrollmentId);
+      }),
+      switchMap((enrollmentId) => {
+        // 🚀 Démarrer le workflow Camunda UNIQUEMENT après l'upload de tous les documents
+        return this.enrollmentService.startWorkflow(enrollmentId as number);
       })
     ).subscribe({
       next: () => {
@@ -1958,6 +1911,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       }
     });
   }
+
 
   // ════════════════════════════════════════════════════════════════════════
   // DRAFT / SAVE

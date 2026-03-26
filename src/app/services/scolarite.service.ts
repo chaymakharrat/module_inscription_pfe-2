@@ -20,6 +20,7 @@ export interface DemandeDetailDTO {
     enAttenteDepuis: number;
     priorite: string;
     taskId?: string; // ID de la tâche Camunda
+    taskAssignee?: string; // 🆕 Assigné de la tâche
     tokenAcces?: string; // 🆕 UUID Token
 }
 
@@ -346,5 +347,29 @@ export class ScolariteService {
     generateToken(id: number): Observable<string> {
         const demandesUrl = `${environment.apiUrl}/INSCRIPTION-SERVICE/api/demandes`;
         return this.http.post(`${demandesUrl}/${id}/token`, {}, { responseType: 'text' });
+    }
+
+    /**
+     * Recherche globale (nom, prénom, CIN, dossier)
+     */
+    searchGlobal(term: string, page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
+        const params = new HttpParams()
+            .set('term', term)
+            .set('page', page.toString())
+            .set('size', size.toString());
+
+        return this.http.get<PageResponse<DemandeDetailDTO>>(
+            `${this.enrollmentApiUrl}/demandes/search`,
+            { params }
+        );
+    }
+
+    /**
+     * Récupérer l'historique complet d'un étudiant
+     */
+    getStudentHistory(etudiantId: number): Observable<DemandeDetailDTO[]> {
+        return this.http.get<DemandeDetailDTO[]>(
+            `${this.enrollmentApiUrl}/demandes/etudiant/${etudiantId}/history`
+        );
     }
 }

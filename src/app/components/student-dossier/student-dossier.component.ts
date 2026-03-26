@@ -181,7 +181,7 @@ export class StudentDossierComponent implements OnInit, OnDestroy, AfterViewInit
                             return of(null);
                         })
                     ),
-                    documents: this.studentService.getDocumentsStatus(studentId).pipe(
+                    documents: this.studentService.getDocumentsStatus(studentId, (enrollment as any).id).pipe(
                         catchError(e => {
                             console.error('❌ Erreur getDocumentsStatus:', e.status, e.message);
                             return of([]);
@@ -217,13 +217,23 @@ export class StudentDossierComponent implements OnInit, OnDestroy, AfterViewInit
                 if (!student.id) return of(null);
                 return forkJoin({
                     enrollment: this.enrollmentService.getDemandeByEtudiantId(student.id).pipe(catchError(() => of(null))),
-                    documents: this.studentService.getDocumentsStatus(student.id).pipe(catchError(() => of([])))
+                    student: of(student)
+                });
+            }),
+            switchMap((data: any) => {
+                if (!data || !data.student || !data.enrollment) return of(null);
+
+                return forkJoin({
+                    enrollment: of(data.enrollment),
+                    student: of(data.student),
+                    documents: this.studentService.getDocumentsStatus(data.student.id!, data.enrollment.id!).pipe(catchError(() => of([])))
                 });
             })
         ).subscribe({
             next: (data) => {
-                if (data) {
+                if (data && data.enrollment) {
                     this.enrollment = data.enrollment;
+                    this.student = data.student;
                     this.documents = this.deduplicateDocuments(data.documents);
                 }
                 this.loading = false;
@@ -558,7 +568,7 @@ export class StudentDossierComponent implements OnInit, OnDestroy, AfterViewInit
 
         this.submitting = true;
         const uploads = Array.from(this.selectedFiles.entries()).map(([type, file]) =>
-            this.studentService.uploadDocumentRelance(studentId, type, file)
+            this.studentService.uploadDocumentRelance(studentId, type, file, this.enrollment?.id)
         );
 
         forkJoin(uploads).pipe(
