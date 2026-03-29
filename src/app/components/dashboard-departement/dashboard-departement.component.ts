@@ -29,7 +29,7 @@ export interface DashboardDeptDTO {
 }
 
 export interface CapaciteNiveauDTO {
-  niveau: number; nomDiplome: string; typeDiplome?: string; langue: string;
+  niveau: number; nomDiplome: string; nomDiplomeResponsable: string; typeDiplome?: string; langue: string;
   capaciteMax: number; inscritsConfirmes: number; enCoursTraitement: number;
   enCoursDepartement: number; listeAttente: number; placesRestantes: number;
   pourcentageRemplissage: number; prerequisNiveau: string[]; prerequisType: string[];
@@ -1065,9 +1065,8 @@ export class DashboardDepartementComponent implements OnInit {
     this.http.post(`${environment.workflowServiceUrl}/api/process/rejet-masse`, null, {
       params: {
         emailEnseignant: this.emailEnseignant.trim().toLowerCase(),
-        // ✅ Utilise le nomDiplome de la capacité, pas dashboard?.nomDiplome
-        //    (important en mode PAR_TYPE pour cibler le bon diplôme)
-        nomDiplome: cap.nomDiplome,
+        // ✅ Utilise le nomDiplomeResponsable (root) pour le filtrage exact dans inscription-service
+        nomDiplome: cap.nomDiplomeResponsable || cap.nomDiplome,
         langue: cap.langue, niveau: cap.niveau.toString()
       }
     }).subscribe({

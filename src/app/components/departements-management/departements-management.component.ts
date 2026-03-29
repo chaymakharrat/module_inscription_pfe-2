@@ -14,7 +14,17 @@ export interface Departement {
   id: number;
   nom: string;
   actif: boolean;
+  createdAt?: string;
   diplomes: DiplomeVariante[];
+  diplomesCount?: number;
+}
+
+export interface PredictionDTO {
+  departementNom: string;
+  diplomeNom: string;
+  langue: string;
+  niveauCible: number;
+  fluxEstime: number;
 }
 
 export interface DiplomeVariante {
@@ -84,6 +94,16 @@ export interface EnseignantDTO {
   typeId?: number | null;
 }
 
+export interface AnneeUniversitaire {
+  id: number;
+  annee: string;
+  courante: boolean;
+  verrouillee: boolean;
+  dateOuverture?: string;
+  dateFermeture?: string;
+  scellee: boolean;
+}
+
 @Component({
   selector: 'app-departements-management',
   standalone: true,
@@ -107,6 +127,11 @@ export class DepartementsManagementComponent implements OnInit {
   enseignantAutoAssigne: EnseignantDTO | null = null;
   loadingEnseignants = false;
 
+  // ✅ NOUVEAU — Année Universitaire
+  anneeUniversitaire: string = '';
+  anneesDisponibles: AnneeUniversitaire[] = [];
+  cloneLoading: boolean = false;
+
   loading = false;
   expandedDeptId: number | null = null;
   viewMode: 'grid' | 'list' = 'grid';
@@ -119,7 +144,22 @@ export class DepartementsManagementComponent implements OnInit {
   showCreateVarianteModal = false;
   showEditVarianteModal = false;
   showAdminConfigModal = false;
+  showYearSettingsModal = false;
+  showUnlockConfirmationModal = false; // ✅ Security
+  showCloneErrorModal = false;         // ✅ Clone Error Popup
+  showConfirmModal = false;            // ✅ Professional Confirm Modal
+  confirmConfig = {
+    title: '',
+    message: '',
+    confirmText: 'Confirmer',
+    cancelText: 'Annuler',
+    isAlert: false,
+    resolve: (val: boolean) => { }
+  };
+  cloneErrorMessage = '';              // ✅ Error message from backend
   formLoading = false;
+
+  yearToUnlock: AnneeUniversitaire | null = null; // ✅ Security
 
   selectedDept: Departement | null = null;
   selectedDiplomeResponsable: DiplomeResponsableDetail | null = null;
@@ -163,6 +203,9 @@ export class DepartementsManagementComponent implements OnInit {
   toastMessage = '';
   toastType: 'success' | 'error' = 'success';
 
+  predictions: PredictionDTO[] = [];
+  predictionsLoading = false;
+
   // ─── URLs ──────────────────────────────────────────────────────────────────
   private baseUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE`;
   private deptUrl = `${this.baseUrl}/api/departements`;
@@ -181,7 +224,7 @@ export class DepartementsManagementComponent implements OnInit {
   ) { }
 
   async ngOnInit() {
-    this.loadDepartements();
+    this.loadAnneesUniversitaires();
     this.loadTypes();
     this.loadNiveaux();
 
@@ -194,22 +237,289 @@ export class DepartementsManagementComponent implements OnInit {
 
   // ─── Chargement ────────────────────────────────────────────────────────────
 
+  // ✅ NOUVEAU — Gérer changement année
+  loadAnneesUniversitaires(): void {
+    this.http.get<AnneeUniversitaire[]>(`${this.deptUrl}/annees-universitaires`).subscribe({
+      next: (res) => {
+        this.anneesDisponibles = res.sort((a, b) => b.annee.localeCompare(a.annee));
+        this.http.get(`${this.deptUrl}/annee-courante`, { responseType: 'text' }).subscribe({
+          next: (courante) => {
+            this.anneeUniversitaire = courante;
+            this.loadDepartements();
+            this.loadPredictions();
+          },
+          error: () => {
+            if (this.anneesDisponibles.length > 0) {
+              this.anneeUniversitaire = this.anneesDisponibles[0].annee;
+            }
+            this.loadDepartements();
+          }
+        });
+      },
+      error: (err) => {
+        this.showToast(this.extractErrorMessage(err), 'error');
+        this.loadDepartements();
+      }
+    });
+  }
+
+  get isReadOnly(): boolean {
+    const selected = this.anneesDisponibles.find(a => a.annee === this.anneeUniversitaire);
+    return selected ? selected.verrouillee : false;
+  }
+
+  // ✅ Getter pour la bannière de sécurité
+  get isPastYearUnlocked(): boolean {
+    if (this.anneesDisponibles.length === 0) return false;
+    return !this.isLatestYear && !this.isReadOnly;
+  }
+
+  get isLatestYear(): boolean {
+    if (this.anneesDisponibles.length === 0) return false;
+    return this.anneeUniversitaire === this.anneesDisponibles[0].annee;
+  }
+
+  openYearSettingsModal(): void {
+    this.showYearSettingsModal = true;
+  }
+
+  toggleYearLock(annee: AnneeUniversitaire): void {
+    if (annee.verrouillee) {
+      // Tentative de déverrouillage -> Sécurité
+      this.yearToUnlock = annee;
+      this.showUnlockConfirmationModal = true;
+    } else {
+      // Verrouillage immédiat
+      this.executeToggleLock(annee);
+    }
+  }
+
+  confirmUnlock(): void {
+    if (this.yearToUnlock) {
+      this.executeToggleLock(this.yearToUnlock);
+      this.showUnlockConfirmationModal = false;
+      this.yearToUnlock = null;
+    }
+  }
+
+  relockCurrentYear(): void {
+    const selected = this.anneesDisponibles.find(a => a.annee === this.anneeUniversitaire);
+    if (selected) {
+      this.executeToggleLock(selected);
+    }
+  }
+
+  private executeToggleLock(annee: AnneeUniversitaire): void {
+    const newStatus = !annee.verrouillee;
+
+    this.http.patch<AnneeUniversitaire>(`${this.deptUrl}/annees-universitaires/${annee.id}`, {
+      verrouillee: newStatus,
+      courante: annee.courante,
+      dateOuverture: annee.dateOuverture,
+      dateFermeture: annee.dateFermeture
+    }).subscribe({
+      next: (res) => {
+        annee.verrouillee = res.verrouillee;
+        annee.scellee = res.scellee;
+        this.showToast(`Année ${annee.annee} ${res.verrouillee ? 'verrouillée' : 'déverrouillée'}`, 'success');
+        this.loadAnneesUniversitaires(); // Refresh for scellee status
+      },
+      error: (err) => {
+        this.showToast(this.extractErrorMessage(err), 'error');
+      }
+    });
+  }
+
+  canCloneYear(annee: AnneeUniversitaire): boolean {
+    if (!annee.courante || annee.scellee) return false;
+    if (!annee.dateFermeture) return false;
+    const now = new Date();
+    const closeDate = new Date(annee.dateFermeture);
+    return now > closeDate;
+  }
+
+  async cloneYear(annee: AnneeUniversitaire): Promise<void> {
+    if (!this.canCloneYear(annee)) return;
+
+    const confirmed = await this.askConfirmation(
+      `Clôture de l'Année Académique`,
+      `Voulez-vous clôturer l'année ${annee.annee} et cloner vers l'année suivante ? Cette action est irréversible.`,
+      `Confirmer le Clonage`
+    );
+
+    if (!confirmed) return;
+
+    this.formLoading = true;
+    this.http.post<AnneeUniversitaire>(`${this.deptUrl}/annees-universitaires/${annee.id}/cloner`, {}).subscribe({
+      next: (res) => {
+        this.formLoading = false;
+        this.showToast(`Clonage réussi ! L'année ${res.annee} est maintenant l'année courante.`, 'success');
+        this.loadAnneesUniversitaires();
+      },
+      error: (err) => {
+        this.formLoading = false;
+        this.cloneErrorMessage = err?.error?.message ?? err?.message ?? 'Impossible de cloner l\'année. Vérifiez que la campagne est clôturée et que tous les dossiers sont finalisés.';
+        this.showCloneErrorModal = true;
+      }
+    });
+  }
+
+  saveCampaignDates(annee: AnneeUniversitaire): void {
+    this.http.patch<AnneeUniversitaire>(`${this.deptUrl}/annees-universitaires/${annee.id}`, {
+      courante: annee.courante,
+      verrouillee: annee.verrouillee,
+      dateOuverture: annee.dateOuverture,
+      dateFermeture: annee.dateFermeture
+    }).subscribe({
+      next: (res) => {
+        annee.scellee = res.scellee;
+        annee.verrouillee = res.verrouillee;
+        this.showToast(`Dates de campagne mises à jour pour ${annee.annee}`, 'success');
+      },
+      error: (err) => this.showToast(this.extractErrorMessage(err), 'error')
+    });
+  }
+
+  onAnneeChange(): void {
+    this.expandedDeptId = null;
+    this.diplomesByDept.clear();
+    this.loadDepartements();
+    this.loadPredictions();
+  }
+
+  loadPredictions(): void {
+    if (!this.anneesDisponibles || this.anneesDisponibles.length < 2) {
+      this.predictions = [];
+      return;
+    }
+
+    const isCouranteNew = this.anneeUniversitaire === this.anneesDisponibles[0].annee;
+    if (!isCouranteNew) {
+      this.predictions = [];
+      return;
+    }
+
+    // Si l'année sélectionnée est la plus récente, on compare avec l'année N-1
+    const anneeCible = this.anneesDisponibles[0].annee;
+    const anneeSource = this.anneesDisponibles[1].annee;
+
+    this.predictionsLoading = true;
+    this.http.get<PredictionDTO[]>(`${this.deptUrl}/predictions-ouvertures?ancienneAnnee=${anneeSource}&nouvelleAnnee=${anneeCible}`).subscribe({
+      next: (res) => {
+        this.predictions = res;
+        this.predictionsLoading = false;
+      },
+      error: () => {
+        this.predictionsLoading = false;
+      }
+    });
+  }
+
+  async clonerCampagne(): Promise<void> {
+    const currentIdx = this.anneesDisponibles.findIndex(a => a.annee === this.anneeUniversitaire);
+    let nouvelleAnnee = '';
+
+    if (currentIdx === 0) {
+      // ✅ NOUVEAU : Calculer l'année suivante (ex: 2025-2026 -> 2026-2027)
+      const parts = this.anneeUniversitaire.split('-');
+      if (parts.length === 2) {
+        const start = parseInt(parts[0]) + 1;
+        const end = parseInt(parts[1]) + 1;
+        nouvelleAnnee = `${start}-${end}`;
+      } else {
+        this.showToast('Format d\'année invalide', 'error');
+        return;
+      }
+    } else {
+      nouvelleAnnee = this.anneesDisponibles[currentIdx - 1].annee;
+    }
+
+    const confirmed = await this.askConfirmation(
+      `Clonage des Configurations`,
+      `Voulez-vous cloner les configurations actives de l'année ${this.anneeUniversitaire} vers ${nouvelleAnnee} ?`,
+      `Cloner maintenant`
+    );
+
+    if (!confirmed) return;
+
+    this.cloneLoading = true;
+    this.http.post(`${this.deptUrl}/cloner-campagne?ancienneAnnee=${this.anneeUniversitaire}&nouvelleAnnee=${nouvelleAnnee}`, {}).subscribe({
+      next: () => {
+        this.cloneLoading = false;
+        this.showToast(`Campagne clonée avec succès !`, 'success');
+
+        // Rafraîchir la liste des années pour voir la nouvelle créée
+        this.http.get<AnneeUniversitaire[]>(`${this.deptUrl}/annees-universitaires`).subscribe(res => {
+          this.anneesDisponibles = res.sort((a, b) => b.annee.localeCompare(a.annee));
+          this.anneeUniversitaire = nouvelleAnnee;
+          this.loadDepartements();
+          this.loadPredictions();
+        });
+      },
+      error: (err) => {
+        this.cloneLoading = false;
+        // On affiche le modal explicatif au lieu d'un simple message d'erreur
+        this.showCloneErrorModal = true;
+      }
+    });
+  }
+
+  askConfirmation(title: string, message: string, confirmText: string = 'Confirmer', isAlert: boolean = false): Promise<boolean> {
+    this.showConfirmModal = true;
+    this.confirmConfig = {
+      ...this.confirmConfig,
+      title,
+      message,
+      confirmText,
+      cancelText: isAlert ? '' : 'Annuler',
+      isAlert
+    };
+    return new Promise((res) => {
+      this.confirmConfig.resolve = (val: boolean) => {
+        this.showConfirmModal = false;
+        res(val);
+      };
+    });
+  }
+
+  extractErrorMessage(err: any): string {
+    if (typeof err === 'string') return err;
+    if (err?.error?.message) return err.error.message;
+    if (err?.error && typeof err.error === 'string') return err.error;
+    
+    // Si c'est un code 409 (Conflict) mais sans message clair
+    if (err?.status === 409) return 'Cette action est impossible car des contraintes d\'intégrité ne sont pas respectées.';
+    
+    // Au cas où Angular renvoie une erreur de parsing (Unexpected token), on vérifie le contenu brut
+    const technicalMsg = err?.message || '';
+    if (technicalMsg.includes('Unexpected token') || technicalMsg.includes('is not valid JSON')) {
+      if (err.error && typeof err.error === 'string') return err.error;
+      // Si on ne trouve rien dans .error, on peut essayer d'extraire entre les guillemets dans le message technique
+    }
+
+    // Filtrer les messages techniques d'Angular
+    if (err?.message && !err.message.includes('Http failure response')) return err.message;
+    if (err?.statusText && err.statusText !== 'OK') return `Erreur ${err.status}: ${err.statusText}`;
+
+    return 'Une erreur inattendue est survenue';
+  }
+
   loadDepartements(): void {
     this.loading = true;
-    this.http.get<Departement[]>(this.deptUrl).subscribe({
+    this.http.get<Departement[]>(`${this.deptUrl}?annee=${this.anneeUniversitaire}`).subscribe({
       next: (res) => {
         this.departements = res;
         this.loading = false;
-        res.forEach(d => {
+        this.departements.forEach(d => {
           if (d.diplomes && d.diplomes.length > 0) {
             const grouped = this.groupVariantesByResponsable(d.diplomes, d.id);
             this.diplomesByDept.set(d.id, grouped);
           }
         });
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.showToast('Erreur lors du chargement des départements', 'error');
+        this.showToast(this.extractErrorMessage(err), 'error');
       }
     });
   }
@@ -295,7 +605,7 @@ export class DepartementsManagementComponent implements OnInit {
         this.adminConfig.types = res.types;
         this.adminConfig.niveaux = res.niveaux.sort((a, b) => a.niveau - b.niveau);
       },
-      error: () => this.showToast('Erreur lors du chargement de la configuration admin', 'error')
+      error: (err) => this.showToast(this.extractErrorMessage(err), 'error')
     });
   }
 
@@ -319,7 +629,7 @@ export class DepartementsManagementComponent implements OnInit {
       },
       error: (err) => {
         this.formLoading = false;
-        this.showToast(err.error || 'Erreur lors de l\'ajout', 'error');
+        this.showToast(this.extractErrorMessage(err), 'error');
       }
     });
   }
@@ -337,7 +647,7 @@ export class DepartementsManagementComponent implements OnInit {
       },
       error: (err) => {
         this.formLoading = false;
-        this.showToast(err.error || 'Erreur lors de l\'ajout', 'error');
+        this.showToast(this.extractErrorMessage(err), 'error');
       }
     });
   }
@@ -349,7 +659,14 @@ export class DepartementsManagementComponent implements OnInit {
         this.loadTypes();
         this.showToast('Statut mis à jour', 'success');
       },
-      error: (err) => this.showToast(err.error || 'Erreur lors de la mise à jour', 'error')
+      error: (err) => {
+        const msg = this.extractErrorMessage(err);
+        if (msg.includes('demandes d\'inscription')) {
+          this.askConfirmation('Action Bloquée', msg, 'J\'ai compris', true);
+        } else {
+          this.showToast(msg, 'error');
+        }
+      }
     });
   }
 
@@ -360,7 +677,14 @@ export class DepartementsManagementComponent implements OnInit {
         this.loadNiveaux();
         this.showToast('Statut mis à jour', 'success');
       },
-      error: (err) => this.showToast(err.error || 'Erreur lors de la mise à jour', 'error')
+      error: (err) => {
+        const msg = this.extractErrorMessage(err);
+        if (msg.includes('demandes d\'inscription')) {
+          this.askConfirmation('Action Bloquée', msg, 'J\'ai compris', true);
+        } else {
+          this.showToast(msg, 'error');
+        }
+      }
     });
   }
 
@@ -396,7 +720,7 @@ export class DepartementsManagementComponent implements OnInit {
 
   loadDiplomesForDept(deptId: number): void {
     this.loadingDiplomes[deptId] = true;
-    this.http.get<any[]>(`${this.diplomeUrl}/departement/${deptId}`).subscribe({
+    this.http.get<any[]>(`${this.diplomeUrl}/departement/${deptId}?annee=${this.anneeUniversitaire}`).subscribe({
       next: (res) => {
         const grouped = this.groupVariantesByResponsable(res, deptId);
         this.diplomesByDept.set(deptId, grouped);
@@ -542,7 +866,7 @@ export class DepartementsManagementComponent implements OnInit {
       return;
     }
     this.formLoading = true;
-    this.http.post<Departement>(this.deptUrl, { nom: this.deptForm.nom }).subscribe({
+    this.http.post<Departement>(`${this.deptUrl}?annee=${this.anneeUniversitaire}`, { nom: this.deptForm.nom }).subscribe({
       next: (dept) => {
         this.departements.push(dept);
         this.formLoading = false;
@@ -605,10 +929,12 @@ export class DepartementsManagementComponent implements OnInit {
       nomDiplome: this.diplomeForm.nomDiplome,
       typeId: this.diplomeForm.typeId,
       departementId: this.selectedDept!.id,
+      anneeUniversitaire: this.anneeUniversitaire, // ✅ Ajouté pour le DiplomeResponsable
       variantes: selectedLangs.map(l => ({
         langue: l.langue,
         fraisInscription: l.fraisInscription,
         actif: true,
+        anneeUniversitaire: this.anneeUniversitaire,
         niveaux: l.niveaux.filter(n => n.selected).map(n => ({
           niveauId: n.niveauId,
           capaciteMax: n.capaciteMax,
@@ -759,6 +1085,7 @@ export class DepartementsManagementComponent implements OnInit {
       langue: this.varianteForm.langue,
       fraisInscription: this.varianteForm.fraisInscription,
       actif: true,
+      anneeUniversitaire: this.anneeUniversitaire,
       niveaux: selectedNiveaux.map(n => ({
         niveauId: n.niveauId,
         capaciteMax: n.capaciteMax,
@@ -781,7 +1108,7 @@ export class DepartementsManagementComponent implements OnInit {
       },
       error: (err) => {
         this.formLoading = false;
-        this.showToast(err.error?.message ?? 'Erreur lors de l\'ajout', 'error');
+        this.showToast(this.extractErrorMessage(err), 'error');
       }
     });
   }
@@ -792,15 +1119,15 @@ export class DepartementsManagementComponent implements OnInit {
     this.http.patch(`${this.diplomeUrl}/${variante.id}/toggle`, {}).subscribe({
       next: () => {
         this.showToast(`Statut mis à jour pour ${variante.langue}`, 'success');
-        
+
         if (deptId) {
           this.diplomesByDept.delete(deptId);
           this.loadDiplomesForDept(deptId);
         }
       },
-      error: () => {
+      error: (err) => {
         variante.actif = oldStatus;
-        this.showToast('Erreur lors de la mise à jour du statut', 'error');
+        this.showToast(this.extractErrorMessage(err), 'error');
       }
     });
   }
@@ -813,9 +1140,9 @@ export class DepartementsManagementComponent implements OnInit {
         this.showToast(`Département ${dept.nom} est désormais ${dept.actif ? 'actif' : 'inactif'}`, 'success');
         this.loadDepartements();
       },
-      error: () => {
+      error: (err) => {
         dept.actif = oldStatus;
-        this.showToast('Erreur lors de la mise à jour du statut', 'error');
+        this.showToast(this.extractErrorMessage(err), 'error');
       }
     });
   }
@@ -830,9 +1157,9 @@ export class DepartementsManagementComponent implements OnInit {
         this.diplomesByDept.delete(dr.departementId);
         this.loadDiplomesForDept(dr.departementId);
       },
-      error: () => {
+      error: (err) => {
         dr.actif = oldStatus;
-        this.showToast('Erreur lors de la mise à jour du statut', 'error');
+        this.showToast(this.extractErrorMessage(err), 'error');
       }
     });
   }
@@ -892,7 +1219,7 @@ export class DepartementsManagementComponent implements OnInit {
       },
       error: (err) => {
         this.formLoading = false;
-        this.showToast(err.error?.message ?? 'Erreur lors de la mise à jour', 'error');
+        this.showToast(this.extractErrorMessage(err), 'error');
       }
     });
   }
@@ -903,6 +1230,10 @@ export class DepartementsManagementComponent implements OnInit {
     this.showCreateVarianteModal = false;
     this.showEditVarianteModal = false;
     this.showAdminConfigModal = false;
+    this.showYearSettingsModal = false;
+    this.showUnlockConfirmationModal = false;
+    this.showCloneErrorModal = false;
+    this.cloneErrorMessage = '';
     this.selectedDept = null;
     this.selectedDiplomeResponsable = null;
     this.enseignantsLibres = [];

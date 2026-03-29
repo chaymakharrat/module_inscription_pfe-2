@@ -44,6 +44,10 @@ export class ParametragePrerequisComponent implements OnInit {
   loading = false;
   emailEnseignant = '';
 
+  stopPropagation(event: Event): void {
+    event.stopPropagation();
+  }
+
   private apiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/prerequis-config`;
 
   // Édition capacité
@@ -67,15 +71,26 @@ export class ParametragePrerequisComponent implements OnInit {
   formLoading = false;
   selectedNiveau: PrerequisConfigDTO | null = null;
   editingPrerequisId: number | null = null;
+  availableItems: PrerequisItemDTO[] = [];
+  filteredAvailableItems: PrerequisItemDTO[] = [];
+  selectedNames: Set<string> = new Set<string>();
 
   formData: PrerequisFormData = this.emptyForm();
   formErrors: Record<string, string> = {};
 
-  // Suppression
-  showDeleteConfirm = false;
-  deleteLoading = false;
-  prereqToDelete: PrerequisItemDTO | null = null;
-  niveauPourSuppression: PrerequisConfigDTO | null = null;
+  // Actions en cours
+  actionLoading: Record<number, boolean> = {};
+
+  // Confirmation Modal
+  showConfirmModal = false;
+  confirmConfig = {
+    title: '',
+    message: '',
+    confirmText: 'Confirmer',
+    cancelText: 'Annuler',
+    isAlert: false,
+    resolve: (val: boolean) => { }
+  };
 
   // Toast
   toastVisible = false;
@@ -145,6 +160,45 @@ export class ParametragePrerequisComponent implements OnInit {
     setTimeout(() => this.toastVisible = false, 3500);
   }
 
+  askConfirmation(title: string, message: string, confirmText: string = 'Confirmer', isAlert: boolean = false): Promise<boolean> {
+    this.showConfirmModal = true;
+    this.confirmConfig = {
+      ...this.confirmConfig,
+      title,
+      message,
+      confirmText,
+      cancelText: isAlert ? '' : 'Annuler',
+      isAlert
+    };
+    return new Promise((res) => {
+      this.confirmConfig.resolve = (val: boolean) => {
+        this.showConfirmModal = false;
+        res(val);
+      };
+    });
+  }
+
+  extractErrorMessage(err: any): string {
+    if (typeof err === 'string') return err;
+    if (err?.error?.message) return err.error.message;
+    if (err?.error && typeof err.error === 'string') return err.error;
+
+    // Si c'est un code 409 (Conflict) mais sans message clair
+    if (err?.status === 409) return 'Cette action est impossible car des contraintes d\'intégrité ne sont pas respectées.';
+
+    // Au cas où Angular renvoie une erreur de parsing (Unexpected token), on vérifie le contenu brut
+    const technicalMsg = err?.message || '';
+    if (technicalMsg.includes('Unexpected token') || technicalMsg.includes('is not valid JSON')) {
+      if (err.error && typeof err.error === 'string') return err.error;
+    }
+
+    // Filtrer les messages techniques d'Angular
+    if (err?.message && !err.message.includes('Http failure response')) return err.message;
+    if (err?.statusText && err.statusText !== 'OK') return `Erreur ${err.status}: ${err.statusText}`;
+
+    return 'Une erreur inattendue est survenue';
+  }
+
   // ─── CAPACITÉ ────────────────────────────────────────────────────────────
 
   startEditCapacite(config: PrerequisConfigDTO): void {
@@ -171,7 +225,10 @@ export class ParametragePrerequisComponent implements OnInit {
       next: (updated) => {
         const idx = this.niveauxConfig.findIndex(
           n => n.niveauSpecifiqueId === config.niveauSpecifiqueId);
-        if (idx !== -1) this.niveauxConfig[idx] = updated;
+        if (idx !== -1) {
+          this.niveauxConfig[idx] = { ...updated };
+          this.niveauxConfig = [...this.niveauxConfig];
+        }
         this.editingCapacite[config.niveauSpecifiqueId] = false;
         this.savingCapacite[config.niveauSpecifiqueId] = false;
         this.showToast('✅ Capacité mise à jour', 'success');
@@ -179,7 +236,12 @@ export class ParametragePrerequisComponent implements OnInit {
       error: (err) => {
         console.error('Erreur capacité:', err);
         this.savingCapacite[config.niveauSpecifiqueId] = false;
-        this.showToast('❌ Erreur lors de la mise à jour', 'error');
+        const msg = this.extractErrorMessage(err);
+        if (err.status === 409) {
+          this.askConfirmation('Action Bloquée', msg, 'J\'ai compris', true);
+        } else {
+          this.showToast(msg, 'error');
+        }
       }
     });
   }
@@ -210,14 +272,22 @@ export class ParametragePrerequisComponent implements OnInit {
       next: (updated) => {
         const idx = this.niveauxConfig.findIndex(
           n => n.niveauSpecifiqueId === config.niveauSpecifiqueId);
-        if (idx !== -1) this.niveauxConfig[idx] = updated;
+        if (idx !== -1) {
+          this.niveauxConfig[idx] = { ...updated };
+          this.niveauxConfig = [...this.niveauxConfig];
+        }
         this.editingScore[config.niveauSpecifiqueId] = false;
         this.savingScore[config.niveauSpecifiqueId] = false;
         this.showToast('✅ Score minimum mis à jour', 'success');
       },
-      error: () => {
+      error: (err) => {
         this.savingScore[config.niveauSpecifiqueId] = false;
-        this.showToast('❌ Erreur mise à jour score', 'error');
+        const msg = this.extractErrorMessage(err);
+        if (err.status === 409) {
+          this.askConfirmation('Action Bloquée', msg, 'J\'ai compris', true);
+        } else {
+          this.showToast(msg, 'error');
+        }
       }
     });
   }
@@ -248,14 +318,22 @@ export class ParametragePrerequisComponent implements OnInit {
       next: (updated) => {
         const idx = this.niveauxConfig.findIndex(
           n => n.niveauSpecifiqueId === config.niveauSpecifiqueId);
-        if (idx !== -1) this.niveauxConfig[idx] = updated;
+        if (idx !== -1) {
+          this.niveauxConfig[idx] = { ...updated };
+          this.niveauxConfig = [...this.niveauxConfig];
+        }
         this.editingTaille[config.niveauSpecifiqueId] = false;
         this.savingTaille[config.niveauSpecifiqueId] = false;
         this.showToast('✅ Taille groupe mise à jour', 'success');
       },
-      error: () => {
+      error: (err) => {
         this.savingTaille[config.niveauSpecifiqueId] = false;
-        this.showToast('❌ Erreur mise à jour taille', 'error');
+        const msg = this.extractErrorMessage(err);
+        if (err.status === 409) {
+          this.askConfirmation('Action Bloquée', msg, 'J\'ai compris', true);
+        } else {
+          this.showToast(msg, 'error');
+        }
       }
     });
   }
@@ -273,6 +351,35 @@ export class ParametragePrerequisComponent implements OnInit {
     this.formErrors = {};
     this.editingPrerequisId = null;
     this.showFormModal = true;
+
+    // Initialiser les noms sélectionnés avec ceux déjà présents pour ce niveau
+    this.selectedNames.clear();
+    if (this.selectedNiveau && this.selectedNiveau.prerequis) {
+      this.selectedNiveau.prerequis.forEach(p => this.selectedNames.add(p.nom));
+    }
+
+    this.loadAvailablePrerequis();
+  }
+
+  loadAvailablePrerequis(): void {
+    this.http.get<PrerequisItemDTO[]>(`${this.apiUrl}/available`).subscribe({
+      next: (data) => {
+        this.availableItems = data;
+        this.filteredAvailableItems = [...data];
+      },
+      error: (err) => console.error('Erreur chargement suggestions', err)
+    });
+  }
+
+  onSearchChange(): void {
+    const val = this.formData.nom.toLowerCase();
+    if (!val) {
+      this.filteredAvailableItems = [...this.availableItems];
+    } else {
+      this.filteredAvailableItems = this.availableItems.filter(item =>
+        item.nom.toLowerCase().includes(val)
+      );
+    }
   }
 
   openEditModal(config: PrerequisConfigDTO, prereq: PrerequisItemDTO): void {
@@ -290,16 +397,25 @@ export class ParametragePrerequisComponent implements OnInit {
     this.formErrors = {};
   }
 
-  submitForm(): void {
-    if (!this.validateForm()) return;
-    if (!this.selectedNiveau && !this.isEditMode) {
-      this.showToast('❌ Aucun niveau sélectionné', 'error');
-      return;
+  toggleSelection(name: string): void {
+    if (this.selectedNames.has(name)) {
+      this.selectedNames.delete(name);
+    } else {
+      this.selectedNames.add(name);
     }
-    this.formLoading = true;
-    const body = { nom: this.formData.nom.trim() };
+  }
+
+  isPrereqSelected(name: string): boolean {
+    return this.selectedNames.has(name);
+  }
+
+  submitForm(): void {
+    if (!this.selectedNiveau) return;
 
     if (this.isEditMode && this.editingPrerequisId) {
+      // 📝 MODE ÉDITION (Update simple)
+      const body = { nom: this.formData.nom.trim() };
+      this.formLoading = true;
       this.http.put<PrerequisItemDTO>(
         `${this.apiUrl}/prerequis/${this.editingPrerequisId}`,
         body,
@@ -313,66 +429,84 @@ export class ParametragePrerequisComponent implements OnInit {
         },
         error: (err) => {
           this.formLoading = false;
-          this.showToast(`❌ ${err?.error?.message || 'Erreur serveur'}`, 'error');
+          this.showToast(this.extractErrorMessage(err), 'error');
         }
       });
-
-    } else {
-      const niveauId = this.selectedNiveau!.niveauSpecifiqueId;
-      this.http.post<PrerequisConfigDTO>(
-        `${this.apiUrl}/niveaux/${niveauId}/prerequis`,
-        body,
-        { params: { email: this.emailEnseignant } }
-      ).subscribe({
-        next: (updatedConfig) => {
-          const idx = this.niveauxConfig.findIndex(
-            n => n.niveauSpecifiqueId === updatedConfig.niveauSpecifiqueId);
-          if (idx !== -1) this.niveauxConfig[idx] = updatedConfig;
-          this.formLoading = false;
-          this.closeFormModal();
-          this.showToast('✅ Prérequis ajouté avec succès', 'success');
-        },
-        error: (err) => {
-          this.formLoading = false;
-          let msg = "Erreur lors de l'ajout";
-          if (err?.status === 409) msg = 'Ce prérequis existe déjà sur ce niveau';
-          else if (err?.status === 404) msg = 'Niveau non trouvé';
-          else if (err?.error?.message) msg = err.error.message;
-          this.showToast(`❌ ${msg}`, 'error');
-        }
-      });
+      return;
     }
-  }
 
-  // ─── SUPPRESSION ─────────────────────────────────────────────────────────
+    // ➕ MODE AJOUT GROUPÉ (Bulk)
+    const listToSubmit = Array.from(this.selectedNames);
+    const newPrereq = this.formData.nom.trim();
+    if (newPrereq && !this.selectedNames.has(newPrereq)) {
+      listToSubmit.push(newPrereq);
+    }
 
-  confirmerSuppression(config: PrerequisConfigDTO, prereq: PrerequisItemDTO): void {
-    this.prereqToDelete = prereq;
-    this.niveauPourSuppression = config;
-    this.showDeleteConfirm = true;
-  }
+    if (listToSubmit.length === 0) {
+      this.showToast('⚠️ Sélectionnez des prérequis ou saisissez-en un nouveau', 'error');
+      return;
+    }
 
-  executerSuppression(): void {
-    if (!this.prereqToDelete || !this.niveauPourSuppression) return;
-    this.deleteLoading = true;
-    this.http.delete<PrerequisConfigDTO>(
-      `${this.apiUrl}/niveaux/${this.niveauPourSuppression.niveauSpecifiqueId}/prerequis/${this.prereqToDelete.id}`,
+    this.formLoading = true;
+    const body = { noms: listToSubmit };
+
+    this.http.post<PrerequisConfigDTO>(
+      `${this.apiUrl}/niveaux/${this.selectedNiveau.niveauSpecifiqueId}/prerequis/bulk`,
+      body,
       { params: { email: this.emailEnseignant } }
     ).subscribe({
       next: (updatedConfig) => {
         const idx = this.niveauxConfig.findIndex(
           n => n.niveauSpecifiqueId === updatedConfig.niveauSpecifiqueId);
-        if (idx !== -1) this.niveauxConfig[idx] = updatedConfig;
-        
-        this.deleteLoading = false;
-        this.showDeleteConfirm = false;
-        this.prereqToDelete = null;
-        this.niveauPourSuppression = null;
-        this.showToast('✅ Prérequis retiré du niveau', 'success');
+
+        if (idx !== -1) {
+          // Reactivité Angular par remplacement de référence
+          this.niveauxConfig[idx] = { ...updatedConfig };
+          this.niveauxConfig = [...this.niveauxConfig];
+          this.selectedNiveau = this.niveauxConfig[idx];
+
+          // Re-synchroniser les noms sélectionnés pour que les checkboxes reflètent l'état actuel
+          this.selectedNames.clear();
+          if (this.selectedNiveau.prerequis) {
+            this.selectedNiveau.prerequis.forEach(p => this.selectedNames.add(p.nom));
+          }
+        }
+
+        this.formLoading = false;
+        this.formData = this.emptyForm();
+        this.showToast('✅ Configuration synchronisée avec succès', 'success');
+        this.loadAvailablePrerequis();
       },
-      error: () => {
-        this.deleteLoading = false;
-        this.showToast('❌ Erreur lors de la suppression', 'error');
+      error: (err) => {
+        this.formLoading = false;
+        this.showToast(this.extractErrorMessage(err), 'error');
+      }
+    });
+  }
+
+  // ─── DÉSACTIVATION (Instant Toggle) ──────────────────────────────────────
+
+  togglePrerequisStatus(config: PrerequisConfigDTO, prereq: PrerequisItemDTO): void {
+    const niveauId = config.niveauSpecifiqueId;
+    
+    // On pourrait ajouter un état "loading" par ligne si nécessaire
+    this.http.delete<PrerequisConfigDTO>(
+      `${this.apiUrl}/niveaux/${niveauId}/prerequis/${prereq.id}`,
+      { params: { email: this.emailEnseignant } }
+    ).subscribe({
+      next: (updatedConfig) => {
+        const idx = this.niveauxConfig.findIndex(n => n.niveauSpecifiqueId === updatedConfig.niveauSpecifiqueId);
+        if (idx !== -1) {
+          this.niveauxConfig[idx] = { ...updatedConfig };
+          this.niveauxConfig = [...this.niveauxConfig];
+        }
+        this.showToast('✅ Prérequis désactivé', 'success');
+        this.loadAvailablePrerequis();
+      },
+      error: (err) => {
+        this.showToast('❌ Erreur lors de la désactivation', 'error');
+        // On pourrait recharger la config ici pour remettre le toggle à ON si l'API échoue
+        this.loadConfig();
       }
     });
   }
