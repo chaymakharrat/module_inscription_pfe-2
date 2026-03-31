@@ -44,9 +44,10 @@ export class DiplomaService {
     getTypes(): Observable<TypeDiplome[]> {
         return this.http.get<TypeDiplome[]>(this.typesUrl);
     }
-    getNiveauxByDiplomeNameAndLangue(nomDiplome: string, langue: string): Observable<NiveauDiplomeSpecifique[]> {
+    getNiveauxByDiplomeNameAndLangue(nomDiplome: string, langue: string, annee?: string): Observable<NiveauDiplomeSpecifique[]> {
+        const params = annee ? `?annee=${annee}` : '';
         return this.http.get<NiveauDiplomeSpecifique[]>(
-            `${this.apiUrl}/nom/${encodeURIComponent(nomDiplome)}/langue/${langue}/niveaux`
+            `${this.apiUrl}/nom/${encodeURIComponent(nomDiplome)}/langue/${langue}/niveaux${params}`
         );
     }
 }

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { KeycloakService } from 'keycloak-angular';
 import { KeycloakProfile } from 'keycloak-js';
+import { AnneeUniversitaire } from '../../models/academic-year.model';
 import { environment } from '../../envirements/enviremetns';
 import { trigger, style, animate, transition } from '@angular/animations';
 
@@ -169,6 +170,11 @@ export class DashboardFinanceComponent implements OnInit {
   userProfile: KeycloakProfile | null = null;
   emailAgent = '';
 
+  // ── Année Universitaire ──────────────────────────────────────────────────
+  anneesUniversitaires: AnneeUniversitaire[] = [];
+  selectedAnnee: string = '';
+  isCurrentYear: boolean = true;
+
   stats: DashboardFinanceDTO | null = null;
   loading = false;
 
@@ -247,18 +253,52 @@ export class DashboardFinanceComponent implements OnInit {
       this.userProfile = await this.keycloak.loadUserProfile();
       this.emailAgent = this.userProfile?.email || '';
       if (this.emailAgent) {
-        this.loadStats();
-        this.loadFormulaires();
-        this.loadRemises();
+        this.loadAcademicYears();
       }
     } catch (e) {
       console.error('Keycloak error:', e);
     }
   }
 
+  loadAcademicYears(): void {
+    this.scolariteService.getAnneesUniversitairesList().subscribe({
+      next: (years) => {
+        this.anneesUniversitaires = years;
+        const current = years.find(y => y.courante);
+        if (current) {
+          this.selectedAnnee = current.annee;
+          this.isCurrentYear = true;
+        } else if (years.length > 0) {
+          this.selectedAnnee = years[0].annee;
+          this.isCurrentYear = years[0].courante;
+        }
+        this.loadStats();
+        this.loadFormulaires();
+        this.loadRemises();
+      },
+      error: (err) => {
+        console.error('❌ Erreur chargement années:', err);
+        this.loadStats();
+        this.loadFormulaires();
+        this.loadRemises();
+      }
+    });
+  }
+
+  onAnneeChange(): void {
+    const year = this.anneesUniversitaires.find(y => y.annee === this.selectedAnnee);
+    this.isCurrentYear = year ? year.courante : true;
+    this.currentPage = 0;
+    this.loadStats();
+    this.loadFormulaires();
+  }
+
   loadStats(): void {
     this.http.get<DashboardFinanceDTO>(`${this.apiUrl}/stats`, {
-      params: { email: this.emailAgent }
+      params: { 
+        email: this.emailAgent,
+        annee: this.selectedAnnee
+      }
     }).subscribe({
       next: s => this.stats = s,
       error: e => console.error('Stats error:', e)
@@ -269,7 +309,8 @@ export class DashboardFinanceComponent implements OnInit {
     this.loading = true;
     const params: any = {
       page: this.currentPage.toString(),
-      size: this.pageSize.toString()
+      size: this.pageSize.toString(),
+      annee: this.selectedAnnee
     };
     if (this.currentFilter !== 'tous') params['statut'] = this.currentFilter;
     if (this.searchTerm.trim()) params['search'] = this.searchTerm.trim();
@@ -379,7 +420,7 @@ export class DashboardFinanceComponent implements OnInit {
   }
 
   async confirmerDecision(): Promise<void> {
-    if (!this.selectedFormulaire || this.actionLoading) return;
+    if (!this.selectedFormulaire || this.actionLoading || !this.isCurrentYear) return;
     this.actionLoading = true;
 
     const accepte = this.pendingDecision === 'VALIDER';
@@ -519,7 +560,7 @@ export class DashboardFinanceComponent implements OnInit {
   //   });
   // }
   confirmerPaiement(): void {
-    if (!this.selectedEcheance || !this.montantPaiement || !this.selectedFormulaire) return;
+    if (!this.selectedEcheance || !this.montantPaiement || !this.selectedFormulaire || !this.isCurrentYear) return;
     this.paiementLoading = true;
 
     this.scolariteService.getTasksForEnrollment(this.selectedFormulaire.enrollmentId)
@@ -811,6 +852,7 @@ export class DashboardFinanceComponent implements OnInit {
   }
 
   ouvrirCreerRemise(): void {
+    if (!this.isCurrentYear) return;
     this.remiseEditMode = 'create';
     this.selectedRemise = null;
     this.remiseForm = this.emptyRemiseForm();
@@ -819,6 +861,7 @@ export class DashboardFinanceComponent implements OnInit {
   }
 
   ouvrirModifierRemise(r: RemiseAdminDTO): void {
+    if (!this.isCurrentYear) return;
     this.remiseEditMode = 'edit';
     this.selectedRemise = r;
     this.remiseForm = {
@@ -833,6 +876,7 @@ export class DashboardFinanceComponent implements OnInit {
   }
 
   sauvegarderRemise(): void {
+    if (!this.isCurrentYear) return;
     if (!this.remiseForm.motif.trim() || !this.remiseForm.descriptionJustificatif.trim()) {
       this.remiseFormError = 'Le motif et la description du justificatif sont obligatoires.';
       return;
@@ -870,6 +914,7 @@ export class DashboardFinanceComponent implements OnInit {
   }
 
   toggleRemiseActif(r: RemiseAdminDTO): void {
+    if (!this.isCurrentYear) return;
     this.http.patch<RemiseAdminDTO>(`${this.remisesUrl}/${r.id}/toggle`, {}).subscribe({
       next: () => {
         this.loadRemises();
@@ -880,6 +925,7 @@ export class DashboardFinanceComponent implements OnInit {
   }
 
   demanderSuppressionRemise(r: RemiseAdminDTO): void {
+    if (!this.isCurrentYear) return;
     this.remiseToDelete = r;
     this.showConfirmDelete = true;
   }
@@ -926,7 +972,7 @@ export class DashboardFinanceComponent implements OnInit {
   }
 
   deciderRemise(remise: RemiseDTO, acceptee: boolean): void {
-    if (!this.selectedFormulaire) return;
+    if (!this.selectedFormulaire || !this.isCurrentYear) return;
 
     if (acceptee) {
       const commentaire = `Remise "${remise.motif}" acceptée.`;

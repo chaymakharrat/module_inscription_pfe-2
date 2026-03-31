@@ -6,12 +6,22 @@ import { HttpClient } from '@angular/common/http';
 import { KeycloakService } from 'keycloak-angular';
 import { KeycloakProfile } from 'keycloak-js';
 import { environment } from '../../envirements/enviremetns';
+import { ScolariteService } from '../../services/scolarite.service';
+import { AnneeUniversitaire } from '../../models/academic-year.model';
 
 // ─── MODELS ───────────────────────────────────────────────────────────────────
 
 export interface PrerequisItemDTO {
   id: number;
   nom: string;
+  createdBy?: string;
+  createdAt?: string;
+  deactivatedBy?: string;
+  deactivatedAt?: string;
+  actif?: boolean;
+  isDeletable?: boolean;
+  usages?: string[];
+  isTypeLinked?: boolean;
 }
 
 export interface PrerequisConfigDTO {
@@ -23,6 +33,7 @@ export interface PrerequisConfigDTO {
   scoreMinimum: number;
   tailleGroupe: number;
   prerequis: PrerequisItemDTO[];
+  isCurrentYear: boolean;
 }
 
 export interface PrerequisFormData {
@@ -43,6 +54,11 @@ export class ParametragePrerequisComponent implements OnInit {
   niveauxConfig: PrerequisConfigDTO[] = [];
   loading = false;
   emailEnseignant = '';
+
+  // Gestion Année Académique
+  anneesUniversitaires: AnneeUniversitaire[] = [];
+  selectedAnnee: string = '';
+  isCurrentYear: boolean = true;
 
   stopPropagation(event: Event): void {
     event.stopPropagation();
@@ -81,6 +97,14 @@ export class ParametragePrerequisComponent implements OnInit {
   // Actions en cours
   actionLoading: Record<number, boolean> = {};
 
+  // Chargement par item dans la modal (pour éviter double-clic)
+  modalItemLoading: Record<string, boolean> = {};
+
+  // ✅ NOUVEAU — Gestion de ses propres prérequis
+  myPrerequis: PrerequisItemDTO[] = [];
+  showMyPrerequisModal = false;
+  loadingMyPrerequis = false;
+
   // Confirmation Modal
   showConfirmModal = false;
   confirmConfig = {
@@ -100,7 +124,8 @@ export class ParametragePrerequisComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private keycloak: KeycloakService,
-    private router: Router
+    private router: Router,
+    private scolariteService: ScolariteService
   ) { }
 
   async ngOnInit(): Promise<void> {
@@ -111,7 +136,7 @@ export class ParametragePrerequisComponent implements OnInit {
         (this.keycloak.getKeycloakInstance().tokenParsed as any)?.email || '';
 
       if (this.emailEnseignant) {
-        this.loadConfig();
+        await this.loadAcademicYears();
       }
     } catch (e) {
       console.error('Erreur Keycloak:', e);
@@ -136,13 +161,48 @@ export class ParametragePrerequisComponent implements OnInit {
 
   // ─── CHARGEMENT ──────────────────────────────────────────────────────────
 
+  loadAcademicYears(): Promise<void> {
+    return new Promise((resolve) => {
+      this.scolariteService.getAnneesUniversitairesList().subscribe({
+        next: (years) => {
+          this.anneesUniversitaires = years;
+          const current = years.find(y => y.courante);
+          this.isCurrentYear = true; // Toujours vrai pour cet écran
+          if (current) {
+            this.selectedAnnee = current.annee;
+          } else if (years.length > 0) {
+            // Fallback: prendre la plus récente si aucune n'est marquée "courante"
+            this.selectedAnnee = years[0].annee;
+          }
+          this.loadConfig();
+          resolve();
+        },
+        error: (err) => {
+          console.error('Erreur années:', err);
+          this.loadConfig();
+          resolve();
+        }
+      });
+    });
+  }
+
+  onAnneeChange(): void {
+    const yearObj = this.anneesUniversitaires.find(y => y.annee === this.selectedAnnee);
+    this.isCurrentYear = yearObj ? yearObj.courante : false;
+    this.loadConfig();
+  }
+
   loadConfig(): void {
     this.loading = true;
     this.http.get<PrerequisConfigDTO[]>(this.apiUrl, {
-      params: { email: this.emailEnseignant }
+      params: {
+        email: this.emailEnseignant,
+        annee: this.selectedAnnee
+      }
     }).subscribe({
       next: (data) => {
         this.niveauxConfig = data;
+        this.isCurrentYear = true; // Forcé en frontend pour garantir l'édition
         this.loading = false;
       },
       error: (err) => {
@@ -352,11 +412,9 @@ export class ParametragePrerequisComponent implements OnInit {
     this.editingPrerequisId = null;
     this.showFormModal = true;
 
-    // Initialiser les noms sélectionnés avec ceux déjà présents pour ce niveau
-    this.selectedNames.clear();
-    if (this.selectedNiveau && this.selectedNiveau.prerequis) {
-      this.selectedNiveau.prerequis.forEach(p => this.selectedNames.add(p.nom));
-    }
+    // Initialiser avec les prérequis ACTIFS du niveau (pas les inactifs)
+    this.syncSelectedNamesFromNiveau();
+    this.modalItemLoading = {};
 
     this.loadAvailablePrerequis();
   }
@@ -397,12 +455,159 @@ export class ParametragePrerequisComponent implements OnInit {
     this.formErrors = {};
   }
 
-  toggleSelection(name: string): void {
-    if (this.selectedNames.has(name)) {
-      this.selectedNames.delete(name);
+  // ─── TOGGLE INSTANTANÉ DANS LA MODAL ───────────────────────────────────
+  // Cocher → ajoute ou réactive le prérequis sur ce niveau
+  // Décocher → désactive le prérequis sur ce niveau
+
+  toggleSelection(item: PrerequisItemDTO): void {
+    if (!this.selectedNiveau || this.modalItemLoading[item.nom]) return;
+
+    const niveauId = this.selectedNiveau.niveauSpecifiqueId;
+    const isSelected = this.selectedNames.has(item.nom);
+
+    // Trouver si ce prérequis est déjà lié à ce niveau
+    const existingLink = this.selectedNiveau.prerequis.find(
+      p => p.nom.toLowerCase() === item.nom.toLowerCase()
+    );
+
+    this.modalItemLoading[item.nom] = true;
+
+    if (isSelected) {
+      // ─ DÉCOCHER → désactiver sur ce niveau
+      if (!existingLink) { this.modalItemLoading[item.nom] = false; return; }
+      this.selectedNames.delete(item.nom); // optimistic
+
+      this.http.put<PrerequisConfigDTO>(
+        `${this.apiUrl}/niveaux/${niveauId}/prerequis/${existingLink.id}/toggle`,
+        {},
+        { params: { email: this.emailEnseignant, active: 'false' } }
+      ).subscribe({
+        next: (updated) => {
+          this.updateNiveauConfigFromServer(updated);
+          this.modalItemLoading[item.nom] = false;
+          this.showToast(`✅ "${item.nom}" désactivé`, 'success');
+        },
+        error: (err) => {
+          this.selectedNames.add(item.nom); // rollback
+          this.modalItemLoading[item.nom] = false;
+          this.showToast(this.extractErrorMessage(err), 'error');
+        }
+      });
+
     } else {
-      this.selectedNames.add(name);
+      // ─ COCHER → ajouter ou réactiver
+      this.selectedNames.add(item.nom); // optimistic
+
+      if (existingLink && existingLink.actif === false) {
+        // Déjà lié mais inactif → réactiver
+        this.http.put<PrerequisConfigDTO>(
+          `${this.apiUrl}/niveaux/${niveauId}/prerequis/${existingLink.id}/toggle`,
+          {},
+          { params: { email: this.emailEnseignant, active: 'true' } }
+        ).subscribe({
+          next: (updated) => {
+            this.updateNiveauConfigFromServer(updated);
+            this.modalItemLoading[item.nom] = false;
+            this.showToast(`✅ "${item.nom}" réactivé`, 'success');
+          },
+          error: (err) => {
+            this.selectedNames.delete(item.nom);
+            this.modalItemLoading[item.nom] = false;
+            this.showToast(this.extractErrorMessage(err), 'error');
+          }
+        });
+      } else if (!existingLink) {
+        // Pas encore lié → ajouter
+        this.http.post<PrerequisConfigDTO>(
+          `${this.apiUrl}/niveaux/${niveauId}/prerequis`,
+          { nom: item.nom },
+          { params: { email: this.emailEnseignant } }
+        ).subscribe({
+          next: (updated) => {
+            this.updateNiveauConfigFromServer(updated);
+            this.modalItemLoading[item.nom] = false;
+            this.showToast(`✅ "${item.nom}" ajouté`, 'success');
+          },
+          error: (err) => {
+            this.selectedNames.delete(item.nom);
+            this.modalItemLoading[item.nom] = false;
+            this.showToast(this.extractErrorMessage(err), 'error');
+          }
+        });
+      } else {
+        // Déjà lié et actif – rien à faire
+        this.modalItemLoading[item.nom] = false;
+      }
     }
+  }
+
+  /** Synchronise selectedNames avec les prérequis ACTIFS du niveau sélectionné */
+  private syncSelectedNamesFromNiveau(): void {
+    this.selectedNames.clear();
+    if (this.selectedNiveau?.prerequis) {
+      this.selectedNiveau.prerequis
+        .filter(p => p.actif !== false)
+        .forEach(p => this.selectedNames.add(p.nom));
+    }
+  }
+
+  /** Met à jour niveauxConfig et selectedNiveau après réponse serveur */
+  private updateNiveauConfigFromServer(updatedConfig: PrerequisConfigDTO): void {
+    const idx = this.niveauxConfig.findIndex(n => n.niveauSpecifiqueId === updatedConfig.niveauSpecifiqueId);
+    if (idx !== -1) {
+      this.niveauxConfig[idx] = { ...updatedConfig };
+      this.niveauxConfig = [...this.niveauxConfig];
+      if (this.selectedNiveau?.niveauSpecifiqueId === updatedConfig.niveauSpecifiqueId) {
+        this.selectedNiveau = this.niveauxConfig[idx];
+        this.syncSelectedNamesFromNiveau();
+      }
+    }
+  }
+
+  // ─── GESTION SES PROPRES PRÉREQUIS ──────────────────────────────────────
+
+  openMyPrerequisModal(): void {
+    this.showMyPrerequisModal = true;
+    this.loadMyPrerequis();
+  }
+
+  loadMyPrerequis(): void {
+    if (!this.emailEnseignant) return;
+    this.loadingMyPrerequis = true;
+    this.http.get<PrerequisItemDTO[]>(`${this.apiUrl}/my-prerequis`, {
+      params: { email: this.emailEnseignant }
+    }).subscribe({
+      next: (res) => {
+        this.myPrerequis = res;
+        this.loadingMyPrerequis = false;
+      },
+      error: (err) => {
+        this.loadingMyPrerequis = false;
+        this.showToast(this.extractErrorMessage(err), 'error');
+      }
+    });
+  }
+
+  toggleMyPrerequisStatus(p: PrerequisItemDTO): void {
+    if (!this.emailEnseignant) return;
+    const newStatus = !p.actif;
+
+    this.http.put(`${this.apiUrl}/available/${p.id}/toggle-status`, {}, {
+      params: {
+        email: this.emailEnseignant,
+        active: newStatus.toString()
+      }
+    }).subscribe({
+      next: () => {
+        p.actif = newStatus;
+        this.showToast(`Prérequis "${p.nom}" ${newStatus ? 'activé' : 'désactivé'}`, 'success');
+        this.loadMyPrerequis();
+        this.loadAvailablePrerequis(); // Refresh available list for current session
+      },
+      error: (err) => {
+        this.showToast(this.extractErrorMessage(err), 'error');
+      }
+    });
   }
 
   isPrereqSelected(name: string): boolean {
@@ -435,46 +640,37 @@ export class ParametragePrerequisComponent implements OnInit {
       return;
     }
 
-    // ➕ MODE AJOUT GROUPÉ (Bulk)
-    const listToSubmit = Array.from(this.selectedNames);
+    // ➕ MODE TEXTE LIBRE — ajouter un tout nouveau prérequis saisi manuellement
     const newPrereq = this.formData.nom.trim();
-    if (newPrereq && !this.selectedNames.has(newPrereq)) {
-      listToSubmit.push(newPrereq);
-    }
 
-    if (listToSubmit.length === 0) {
-      this.showToast('⚠️ Sélectionnez des prérequis ou saisissez-en un nouveau', 'error');
+    if (!newPrereq) {
+      // Rien à soumettre — les checkboxes ont déjà tout fait en temps réel
+      this.closeFormModal();
       return;
     }
 
-    this.formLoading = true;
-    const body = { noms: listToSubmit };
+    // Si le nom correspond à un item existant → le toggle instantané l'a géré
+    const alreadyHandled = this.availableItems.find(
+      i => i.nom.toLowerCase() === newPrereq.toLowerCase()
+    );
+    if (alreadyHandled) {
+      this.toggleSelection(alreadyHandled);
+      this.formData = this.emptyForm();
+      return;
+    }
 
+    // Nouveau prérequis qui n'existe pas encore du tout
+    this.formLoading = true;
     this.http.post<PrerequisConfigDTO>(
-      `${this.apiUrl}/niveaux/${this.selectedNiveau.niveauSpecifiqueId}/prerequis/bulk`,
-      body,
+      `${this.apiUrl}/niveaux/${this.selectedNiveau.niveauSpecifiqueId}/prerequis`,
+      { nom: newPrereq },
       { params: { email: this.emailEnseignant } }
     ).subscribe({
       next: (updatedConfig) => {
-        const idx = this.niveauxConfig.findIndex(
-          n => n.niveauSpecifiqueId === updatedConfig.niveauSpecifiqueId);
-
-        if (idx !== -1) {
-          // Reactivité Angular par remplacement de référence
-          this.niveauxConfig[idx] = { ...updatedConfig };
-          this.niveauxConfig = [...this.niveauxConfig];
-          this.selectedNiveau = this.niveauxConfig[idx];
-
-          // Re-synchroniser les noms sélectionnés pour que les checkboxes reflètent l'état actuel
-          this.selectedNames.clear();
-          if (this.selectedNiveau.prerequis) {
-            this.selectedNiveau.prerequis.forEach(p => this.selectedNames.add(p.nom));
-          }
-        }
-
+        this.updateNiveauConfigFromServer(updatedConfig);
         this.formLoading = false;
         this.formData = this.emptyForm();
-        this.showToast('✅ Configuration synchronisée avec succès', 'success');
+        this.showToast(`✅ Prérequis "${newPrereq}" ajouté`, 'success');
         this.loadAvailablePrerequis();
       },
       error: (err) => {
@@ -484,29 +680,63 @@ export class ParametragePrerequisComponent implements OnInit {
     });
   }
 
-  // ─── DÉSACTIVATION (Instant Toggle) ──────────────────────────────────────
+  // ─── TOGGLE PRÉREQUIS SUR NIVEAU (Activer / Désactiver) ─────────────────
+  // Note: ngModel a déjà mis à jour p.actif avant cet appel.
+  // La nouvelle valeur est donc directement p.actif.
 
   togglePrerequisStatus(config: PrerequisConfigDTO, prereq: PrerequisItemDTO): void {
     const niveauId = config.niveauSpecifiqueId;
-    
-    // On pourrait ajouter un état "loading" par ligne si nécessaire
-    this.http.delete<PrerequisConfigDTO>(
-      `${this.apiUrl}/niveaux/${niveauId}/prerequis/${prereq.id}`,
-      { params: { email: this.emailEnseignant } }
+    const newStatus = !!prereq.actif; // ← ngModel a déjà inversé la valeur (!! pour éviter undefined)
+
+    this.http.put<PrerequisConfigDTO>(
+      `${this.apiUrl}/niveaux/${niveauId}/prerequis/${prereq.id}/toggle`,
+      {},
+      {
+        params: {
+          email: this.emailEnseignant,
+          active: newStatus.toString()
+        }
+      }
     ).subscribe({
       next: (updatedConfig) => {
+        // Remplacer avec les données réelles du serveur
         const idx = this.niveauxConfig.findIndex(n => n.niveauSpecifiqueId === updatedConfig.niveauSpecifiqueId);
         if (idx !== -1) {
           this.niveauxConfig[idx] = { ...updatedConfig };
           this.niveauxConfig = [...this.niveauxConfig];
         }
-        this.showToast('✅ Prérequis désactivé', 'success');
-        this.loadAvailablePrerequis();
+        const label = newStatus ? '✅ Prérequis activé' : '✅ Prérequis désactivé';
+        this.showToast(label, 'success');
       },
       error: (err) => {
-        this.showToast('❌ Erreur lors de la désactivation', 'error');
-        // On pourrait recharger la config ici pour remettre le toggle à ON si l'API échoue
-        this.loadConfig();
+        // Rollback : remettre l'ancien état (inverser ce que ngModel a fait)
+        prereq.actif = !newStatus;
+        const msg = this.extractErrorMessage(err);
+        this.showToast('❌ ' + msg, 'error');
+      }
+    });
+  }
+
+  // ─── POOL GLOBAL ───────────────────────────────────────────────────────
+
+  deleteGlobalPrerequis(prereq: PrerequisItemDTO): void {
+    this.askConfirmation(
+      'Suppression Définitive',
+      `Voulez-vous supprimer le prérequis "${prereq.nom}" du catalogue global ? Cette action est possible uniquement car il n'est lié à aucun diplôme.`,
+      'Supprimer du catalogue'
+    ).then(confirm => {
+      if (confirm) {
+        this.http.delete(`${environment.apiUrl}/DEPARTEMENT-SERVICE/api/prerequis-config/available/${prereq.id}`, {
+          params: { email: this.emailEnseignant }
+        }).subscribe({
+          next: () => {
+            this.showToast('✅ Prérequis supprimé du catalogue global', 'success');
+            this.loadAvailablePrerequis();
+          },
+          error: (err) => {
+            this.showToast(this.extractErrorMessage(err), 'error');
+          }
+        });
       }
     });
   }

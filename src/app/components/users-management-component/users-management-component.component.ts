@@ -450,8 +450,8 @@ export class UsersManagementComponent implements OnInit {
   }
 
   submitForm(): void {
-    if (!this.formData.email || !this.formData.role) {
-      this.showToast('Email et rôle sont obligatoires', 'error');
+    if (!this.formData.role || !this.formData.nom || !this.formData.prenom) {
+      this.showToast('Nom, Prénom et Rôle sont obligatoires', 'error');
       return;
     }
     this.formLoading = true;
@@ -461,15 +461,6 @@ export class UsersManagementComponent implements OnInit {
 
         // ✅ Si enseignant → créer dans dept-service
         if (user.role.nom === 'ENSEIGNANT') {
-
-          // Valider email @itech.tn
-          const emailPattern = /^[A-Za-z0-9+_.-]+@itech\.tn$/;
-          if (!emailPattern.test(user.login)) {
-            this.http.delete(`${this.apiUrl}/${user.id}`).subscribe();
-            this.formLoading = false;
-            this.showToast('Email invalide : doit être @itech.tn pour un enseignant', 'error');
-            return;
-          }
 
           this.http.post(`${this.deptApiUrl}/api/enseignants`, {
             emailUniversitaire: user.login

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -36,14 +36,28 @@ export interface DiplomeVariante {
   diplomeResponsableId: number;
   typeNom: string;
   departementNom: string;
+  prerequis?: string[];              // Prérequis du TYPE (toujours présents)
+  variantPrerequis?: {
+    id: number;
+    nom: string;
+    actif: boolean;
+    createdBy?: string;
+    createdAt?: string;
+    desactivatedBy?: string;
+    desactivatedAt?: string;
+  }[];
   niveaux?: {
     id: number;
     niveau: number;
-    capaciteMax?: number;
-    scoreMinimum?: number;
-    tailleGroupe?: number;
-    actif?: boolean;
+    capaciteMax: number;
+    tailleGroupe: number;
+    scoreMinimum: number;
+    actif: boolean;
   }[];
+  createdBy?: string;
+  createdAt?: string;
+  updatedBy?: string;
+  updatedAt?: string;
   enseignantResponsable?: string;
 }
 
@@ -84,6 +98,19 @@ export interface SelectedLangue {
   selected: boolean;
   fraisInscription: number;
   niveaux: SelectedNiveau[];
+}
+
+export interface PrerequisItemDTO {
+  id: number;
+  nom: string;
+  createdBy?: string;
+  createdAt?: string;
+  desactivatedBy?: string;
+  desactivatedAt?: string;
+  actif?: boolean;
+  isDeletable?: boolean;
+  isTypeLinked?: boolean;
+  usages?: string[];
 }
 
 export interface EnseignantDTO {
@@ -130,10 +157,10 @@ export class DepartementsManagementComponent implements OnInit {
   // ✅ NOUVEAU — Année Universitaire
   anneeUniversitaire: string = '';
   anneesDisponibles: AnneeUniversitaire[] = [];
-  cloneLoading: boolean = false;
 
   loading = false;
   expandedDeptId: number | null = null;
+  expandedDepts: Set<number> = new Set(); // Multi-expand support
   viewMode: 'grid' | 'list' = 'grid';
   adminEmail = '';
   originalVariante: any = null;
@@ -157,6 +184,8 @@ export class DepartementsManagementComponent implements OnInit {
     resolve: (val: boolean) => { }
   };
   cloneErrorMessage = '';              // ✅ Error message from backend
+  cloneConditionDate = false;          // ✅ Track if date condition reached
+  cloneConditionDossiers = false;      // ✅ Track if dossiers condition reached
   formLoading = false;
 
   yearToUnlock: AnneeUniversitaire | null = null; // ✅ Security
@@ -199,6 +228,11 @@ export class DepartementsManagementComponent implements OnInit {
   newNiveauForm = { niveau: 1 };
   formErrors: Record<string, boolean> = {};
 
+  // ✅ NOUVEAU — Gestion Admin Prérequis
+  adminPrerequis: any[] = [];
+  loadingAdminPrerequis = false;
+  activeAdminTab: 'types' | 'niveaux' | 'prerequis' = 'types';
+
   toastVisible = false;
   toastMessage = '';
   toastType: 'success' | 'error' = 'success';
@@ -213,6 +247,7 @@ export class DepartementsManagementComponent implements OnInit {
   private typesUrl = `${this.baseUrl}/api/types`;
   private niveauxUrl = `${this.baseUrl}/api/niveaux`;
   private adminConfigUrl = `${this.baseUrl}/api/admin/config`;
+  private prerequisAdminUrl = `${this.baseUrl}/api/prerequis-config`;
   private enseignantUrl = `${this.baseUrl}/api/enseignants`;
   private authUrl = `${environment.apiUrl}/AUTHENTIFICATION-SERVICE/authentifier/utilisateurs`;
 
@@ -220,7 +255,8 @@ export class DepartementsManagementComponent implements OnInit {
     private http: HttpClient,
     private sanitizer: DomSanitizer,
     private notificationService: NotificationService,
-    private keycloak: KeycloakService
+    private keycloak: KeycloakService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   async ngOnInit() {
@@ -358,8 +394,19 @@ export class DepartementsManagementComponent implements OnInit {
       },
       error: (err) => {
         this.formLoading = false;
-        this.cloneErrorMessage = err?.error?.message ?? err?.message ?? 'Impossible de cloner l\'année. Vérifiez que la campagne est clôturée et que tous les dossiers sont finalisés.';
-        this.showCloneErrorModal = true;
+        const msg = this.extractErrorMessage(err);
+
+        // Si c'est un message de validation métier, on montre le modal avec les détails
+        if (msg.includes('dossiers') || msg.includes('campagne') || msg.includes('clôture') || msg.includes('expirée')) {
+          this.cloneErrorMessage = msg;
+          // On déduit les conditions de l'erreur (simplifié)
+          this.cloneConditionDate = !msg.includes('expirée') && !msg.includes('fermeture');
+          this.cloneConditionDossiers = !msg.includes('dossiers');
+          this.showCloneErrorModal = true;
+        } else {
+          // Sinon c'est une erreur technique (ex: SQL), on montre un toast standard
+          this.showToast(msg, 'error');
+        }
       }
     });
   }
@@ -415,54 +462,7 @@ export class DepartementsManagementComponent implements OnInit {
     });
   }
 
-  async clonerCampagne(): Promise<void> {
-    const currentIdx = this.anneesDisponibles.findIndex(a => a.annee === this.anneeUniversitaire);
-    let nouvelleAnnee = '';
 
-    if (currentIdx === 0) {
-      // ✅ NOUVEAU : Calculer l'année suivante (ex: 2025-2026 -> 2026-2027)
-      const parts = this.anneeUniversitaire.split('-');
-      if (parts.length === 2) {
-        const start = parseInt(parts[0]) + 1;
-        const end = parseInt(parts[1]) + 1;
-        nouvelleAnnee = `${start}-${end}`;
-      } else {
-        this.showToast('Format d\'année invalide', 'error');
-        return;
-      }
-    } else {
-      nouvelleAnnee = this.anneesDisponibles[currentIdx - 1].annee;
-    }
-
-    const confirmed = await this.askConfirmation(
-      `Clonage des Configurations`,
-      `Voulez-vous cloner les configurations actives de l'année ${this.anneeUniversitaire} vers ${nouvelleAnnee} ?`,
-      `Cloner maintenant`
-    );
-
-    if (!confirmed) return;
-
-    this.cloneLoading = true;
-    this.http.post(`${this.deptUrl}/cloner-campagne?ancienneAnnee=${this.anneeUniversitaire}&nouvelleAnnee=${nouvelleAnnee}`, {}).subscribe({
-      next: () => {
-        this.cloneLoading = false;
-        this.showToast(`Campagne clonée avec succès !`, 'success');
-
-        // Rafraîchir la liste des années pour voir la nouvelle créée
-        this.http.get<AnneeUniversitaire[]>(`${this.deptUrl}/annees-universitaires`).subscribe(res => {
-          this.anneesDisponibles = res.sort((a, b) => b.annee.localeCompare(a.annee));
-          this.anneeUniversitaire = nouvelleAnnee;
-          this.loadDepartements();
-          this.loadPredictions();
-        });
-      },
-      error: (err) => {
-        this.cloneLoading = false;
-        // On affiche le modal explicatif au lieu d'un simple message d'erreur
-        this.showCloneErrorModal = true;
-      }
-    });
-  }
 
   askConfirmation(title: string, message: string, confirmText: string = 'Confirmer', isAlert: boolean = false): Promise<boolean> {
     this.showConfirmModal = true;
@@ -486,10 +486,10 @@ export class DepartementsManagementComponent implements OnInit {
     if (typeof err === 'string') return err;
     if (err?.error?.message) return err.error.message;
     if (err?.error && typeof err.error === 'string') return err.error;
-    
+
     // Si c'est un code 409 (Conflict) mais sans message clair
     if (err?.status === 409) return 'Cette action est impossible car des contraintes d\'intégrité ne sont pas respectées.';
-    
+
     // Au cas où Angular renvoie une erreur de parsing (Unexpected token), on vérifie le contenu brut
     const technicalMsg = err?.message || '';
     if (technicalMsg.includes('Unexpected token') || technicalMsg.includes('is not valid JSON')) {
@@ -508,14 +508,19 @@ export class DepartementsManagementComponent implements OnInit {
     this.loading = true;
     this.http.get<Departement[]>(`${this.deptUrl}?annee=${this.anneeUniversitaire}`).subscribe({
       next: (res) => {
-        this.departements = res;
+        this.departements = [...res];
         this.loading = false;
+
+        // Créer une nouvelle Map pour forcer la détection de changements
+        const newMap = new Map<number, DiplomeResponsableDetail[]>();
         this.departements.forEach(d => {
           if (d.diplomes && d.diplomes.length > 0) {
             const grouped = this.groupVariantesByResponsable(d.diplomes, d.id);
-            this.diplomesByDept.set(d.id, grouped);
+            newMap.set(d.id, grouped);
           }
         });
+        this.diplomesByDept = newMap;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.loading = false;
@@ -610,10 +615,45 @@ export class DepartementsManagementComponent implements OnInit {
   }
 
   openAdminConfigModal(): void {
+    this.activeAdminTab = 'types';
     this.loadAdminConfig();
+    this.loadAdminPrerequis();
     this.newTypeForm = { nom: '' };
     this.newNiveauForm = { niveau: 1 };
     this.showAdminConfigModal = true;
+  }
+
+  loadAdminPrerequis(): void {
+    this.loadingAdminPrerequis = true;
+    this.http.get<any[]>(`${this.prerequisAdminUrl}/admin/all`).subscribe({
+      next: (res) => {
+        this.adminPrerequis = res;
+        this.loadingAdminPrerequis = false;
+      },
+      error: (err) => {
+        this.loadingAdminPrerequis = false;
+        this.showToast(this.extractErrorMessage(err), 'error');
+      }
+    });
+  }
+
+  togglePrerequisStatusGlobal(p: any): void {
+    const newStatus = !p.actif;
+    this.http.put(`${this.prerequisAdminUrl}/available/${p.id}/toggle-status`, {}, {
+      params: {
+        email: this.adminEmail,
+        active: newStatus.toString()
+      }
+    }).subscribe({
+      next: () => {
+        p.actif = newStatus;
+        this.showToast(`Prérequis "${p.nom}" ${newStatus ? 'activé' : 'désactivé'}`, 'success');
+        this.loadAdminPrerequis(); // Refresh for audit fields
+      },
+      error: (err) => {
+        this.showToast(this.extractErrorMessage(err), 'error');
+      }
+    });
   }
 
   addType(): void {
@@ -723,8 +763,13 @@ export class DepartementsManagementComponent implements OnInit {
     this.http.get<any[]>(`${this.diplomeUrl}/departement/${deptId}?annee=${this.anneeUniversitaire}`).subscribe({
       next: (res) => {
         const grouped = this.groupVariantesByResponsable(res, deptId);
-        this.diplomesByDept.set(deptId, grouped);
+        // Mise à jour immuable de la Map
+        const newMap = new Map(this.diplomesByDept);
+        newMap.set(deptId, grouped);
+        this.diplomesByDept = newMap;
+
         this.loadingDiplomes[deptId] = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loadingDiplomes[deptId] = false;
@@ -741,7 +786,7 @@ export class DepartementsManagementComponent implements OnInit {
       if (!map.has(respId)) {
         map.set(respId, {
           id: respId,
-          nomDiplome: dto.nomDiplome ?? dto.nom,
+          nomDiplome: dto.nomDiplome,
           typeNom: dto.typeNom ?? dto.type ?? '',
           departementId: deptId,
           actif: dto.diplomeResponsableActif ?? true,
@@ -752,41 +797,50 @@ export class DepartementsManagementComponent implements OnInit {
       }
       map.get(respId)!.variantes.push({
         id: dto.id,
-        nom: dto.nom,
+        nom: dto.nomDiplome,
         langue: dto.langue,
         fraisInscription: dto.fraisInscription,
         actif: dto.actif,
         diplomeResponsableId: respId,
         typeNom: dto.typeNom,
         departementNom: dto.departementNom,
-        niveaux: dto.niveaux?.sort((a: any, b: any) => a.niveau - b.niveau)
+        niveaux: dto.niveaux?.sort((a: any, b: any) => a.niveau - b.niveau),
+        prerequis: dto.prerequis ? Array.from(dto.prerequis) : [],
+        variantPrerequis: dto.variantPrerequis ?? [],
+        createdBy: dto.createdBy,
+        createdAt: dto.createdAt,
+        updatedBy: dto.updatedBy,
+        updatedAt: dto.updatedAt,
+        enseignantResponsable: dto.enseignantResponsable
       });
     }
     return Array.from(map.values());
   }
 
-  getTotalVariantesForDept(deptId: number): number {
-    return this.diplomesByDept.get(deptId)
+  getTotalVariantesForDept(deptId: any): number {
+    const id = Number(deptId);
+    return this.diplomesByDept.get(id)
       ?.reduce((sum, dr) => sum + dr.variantes.length, 0) ?? 0;
   }
 
-  toggleDept(deptId: number): void {
-    if (this.expandedDeptId === deptId) {
+  toggleDept(deptId: any): void {
+    const id = Number(deptId);
+    if (this.expandedDeptId === id) {
       this.expandedDeptId = null;
     } else {
-      this.expandedDeptId = deptId;
-      if (!this.diplomesByDept.has(deptId)) {
-        this.loadDiplomesForDept(deptId);
+      this.expandedDeptId = id;
+      if (!this.diplomesByDept.has(id)) {
+        this.loadDiplomesForDept(id);
       }
     }
   }
 
-  getDiplomesForDept(deptId: number): DiplomeResponsableDetail[] {
-    return this.diplomesByDept.get(deptId) ?? [];
+  getDiplomesForDept(deptId: any): DiplomeResponsableDetail[] {
+    return this.diplomesByDept.get(Number(deptId)) ?? [];
   }
 
-  getDiplomesCountForDept(deptId: number): number {
-    return this.diplomesByDept.get(deptId)?.length ?? 0;
+  getDiplomesCountForDept(deptId: any): number {
+    return this.diplomesByDept.get(Number(deptId))?.length ?? 0;
   }
 
   getTotalDiplomesResponsables(): number {
@@ -868,10 +922,11 @@ export class DepartementsManagementComponent implements OnInit {
     this.formLoading = true;
     this.http.post<Departement>(`${this.deptUrl}?annee=${this.anneeUniversitaire}`, { nom: this.deptForm.nom }).subscribe({
       next: (dept) => {
-        this.departements.push(dept);
+        this.departements = [...this.departements, dept];
         this.formLoading = false;
         this.closeModals();
         this.showToast(`Département « ${dept.nom} » créé`, 'success');
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.formLoading = false;
@@ -956,7 +1011,7 @@ export class DepartementsManagementComponent implements OnInit {
       },
       error: (err) => {
         this.formLoading = false;
-        this.showToast(err.error?.message ?? 'Erreur lors de la création', 'error');
+        this.showToast(this.extractErrorMessage(err), 'error');
       }
     });
   }
@@ -998,21 +1053,21 @@ export class DepartementsManagementComponent implements OnInit {
                 next: () => {
                   this.finalizeDiplomeCreation(deptId, enseignant.emailUniversitaire);
                 },
-                error: () => {
-                  this.rollbackCreation(diplomeId, deptId, `Impossible de mettre à jour le rôle pour ${enseignant.emailUniversitaire}. Création annulée.`);
+                error: (err) => {
+                  this.rollbackCreation(diplomeId, deptId, `Erreur rôle: ${this.extractErrorMessage(err)}`);
                 }
               });
             } else {
               this.rollbackCreation(diplomeId, deptId, `Utilisateur ${enseignant.emailUniversitaire} introuvable dans le module d'authentification. Création annulée.`);
             }
           },
-          error: () => {
-            this.rollbackCreation(diplomeId, deptId, 'Erreur lors de la vérification de l\'utilisateur. Création annulée.');
+          error: (err) => {
+            this.rollbackCreation(diplomeId, deptId, `Erreur vérification: ${this.extractErrorMessage(err)}`);
           }
         });
       },
-      error: () => {
-        this.rollbackCreation(diplomeId, deptId, 'Erreur lors de l\'assignation de l\'enseignant. Création annulée.');
+      error: (err) => {
+        this.rollbackCreation(diplomeId, deptId, this.extractErrorMessage(err));
       }
     });
   }
@@ -1035,11 +1090,20 @@ export class DepartementsManagementComponent implements OnInit {
   private finalizeDiplomeCreation(deptId: number, enseignantEmail?: string): void {
     this.formLoading = false;
     this.closeModals();
-    this.diplomesByDept.delete(deptId);
-    if (this.expandedDeptId === deptId) {
-      this.loadDiplomesForDept(deptId);
-    }
+    // Mise à jour immuable de la Map pour forcer le rafraîchissement
+    const id = Number(deptId);
+    const newMap = new Map(this.diplomesByDept);
+    newMap.delete(id);
+    this.diplomesByDept = newMap;
+
+    // Charger systématiquement avec un léger délai pour la persistence backend
+    setTimeout(() => {
+      this.loadDiplomesForDept(id);
+      this.loadDepartements();
+    }, 400);
+
     this.showToast(`Diplôme « ${this.diplomeForm.nomDiplome} » créé avec succès`, 'success');
+    this.cdr.detectChanges();
   }
 
   // ─── CRUD Variante ─────────────────────────────────────────────────────────
@@ -1098,13 +1162,21 @@ export class DepartementsManagementComponent implements OnInit {
     this.http.post<any>(`${this.diplomeUrl}`, payload).subscribe({
       next: () => {
         this.formLoading = false;
-        const deptId = this.selectedDiplomeResponsable!.departementId;
+        const id = Number(this.selectedDiplomeResponsable!.departementId);
         this.closeModals();
-        this.diplomesByDept.delete(deptId);
-        if (this.expandedDeptId === deptId) {
-          this.loadDiplomesForDept(deptId);
-        }
+
+        // Mise à jour immuable de la Map
+        const newMap = new Map(this.diplomesByDept);
+        newMap.delete(id);
+        this.diplomesByDept = newMap;
+
+        setTimeout(() => {
+          this.loadDiplomesForDept(id);
+          this.loadDepartements();
+        }, 400);
+
         this.showToast(`Variante ${this.varianteForm.langue} ajoutée`, 'success');
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.formLoading = false;
@@ -1113,17 +1185,21 @@ export class DepartementsManagementComponent implements OnInit {
     });
   }
 
-  toggleVarianteStatus(variante: DiplomeVariante, deptId?: number): void {
+  toggleVarianteStatus(variante: DiplomeVariante, deptId?: any): void {
+    const id = deptId ? Number(deptId) : undefined;
     const oldStatus = variante.actif;
     variante.actif = !variante.actif;
     this.http.patch(`${this.diplomeUrl}/${variante.id}/toggle`, {}).subscribe({
       next: () => {
         this.showToast(`Statut mis à jour pour ${variante.langue}`, 'success');
 
-        if (deptId) {
-          this.diplomesByDept.delete(deptId);
-          this.loadDiplomesForDept(deptId);
+        if (id) {
+          const newMap = new Map(this.diplomesByDept);
+          newMap.delete(id);
+          this.diplomesByDept = newMap;
+          this.loadDiplomesForDept(id);
         }
+        this.cdr.detectChanges();
       },
       error: (err) => {
         variante.actif = oldStatus;
@@ -1139,6 +1215,7 @@ export class DepartementsManagementComponent implements OnInit {
       next: () => {
         this.showToast(`Département ${dept.nom} est désormais ${dept.actif ? 'actif' : 'inactif'}`, 'success');
         this.loadDepartements();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         dept.actif = oldStatus;
@@ -1148,14 +1225,22 @@ export class DepartementsManagementComponent implements OnInit {
   }
 
   toggleDiplomeStatus(dr: DiplomeResponsableDetail): void {
+    const deptId = Number(dr.departementId);
     const oldStatus = dr.actif;
     dr.actif = !dr.actif;
     this.http.patch(`${this.deptUrl}/diplomes-responsables/${dr.id}/toggle`, {}).subscribe({
       next: () => {
         this.showToast(`${dr.nomDiplome} est désormais ${dr.actif ? 'actif' : 'inactif'}`, 'success');
 
-        this.diplomesByDept.delete(dr.departementId);
-        this.loadDiplomesForDept(dr.departementId);
+        const newMap = new Map(this.diplomesByDept);
+        newMap.delete(deptId);
+        this.diplomesByDept = newMap;
+        
+        setTimeout(() => {
+          this.loadDiplomesForDept(deptId);
+          this.loadDepartements();
+        }, 300);
+        this.cdr.detectChanges();
       },
       error: (err) => {
         dr.actif = oldStatus;
@@ -1211,11 +1296,19 @@ export class DepartementsManagementComponent implements OnInit {
         this.closeModals();
         const deptId = this.editVarianteForm.deptId;
         if (deptId) {
-          this.diplomesByDept.delete(deptId);
-          this.loadDiplomesForDept(deptId);
+          const id = Number(deptId);
+          const newMap = new Map(this.diplomesByDept);
+          newMap.delete(id);
+          this.diplomesByDept = newMap;
+          
+          setTimeout(() => {
+            this.loadDiplomesForDept(id);
+            this.loadDepartements();
+          }, 400);
         } else {
           this.loadDepartements();
         }
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.formLoading = false;
@@ -1246,5 +1339,46 @@ export class DepartementsManagementComponent implements OnInit {
     this.toastType = type;
     this.toastVisible = true;
     setTimeout(() => this.toastVisible = false, 3500);
+  }
+
+  // ─── UI Helpers ────────────────────────────────────────────────────────────
+
+  formatResponsableName(email: string | undefined): string {
+    if (!email) return 'Non assigné';
+    const parts = email.split('@')[0].split('.');
+    return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  }
+
+  toggleDiplomeResponsable(id: number): void {
+    const dr = Array.from(this.diplomesByDept.values())
+      .flat()
+      .find(d => d.id === id);
+    if (dr) this.toggleDiplomeStatus(dr);
+  }
+
+  toggleVariante(v: DiplomeVariante): void {
+    let targetDeptId: number | null = null;
+    this.diplomesByDept.forEach((diplomes, deptId) => {
+      if (diplomes.some(dr => dr.variantes.some(varItem => varItem.id === v.id))) {
+        targetDeptId = deptId;
+      }
+    });
+
+    if (targetDeptId !== null) {
+      this.toggleVarianteStatus(v, targetDeptId);
+    }
+  }
+
+  editVariante(v: DiplomeVariante): void {
+    let targetDeptId: number | null = null;
+    this.diplomesByDept.forEach((diplomes, deptId) => {
+      if (diplomes.some(dr => dr.variantes.some(varItem => varItem.id === v.id))) {
+        targetDeptId = deptId;
+      }
+    });
+
+    if (targetDeptId !== null) {
+      this.openEditVarianteModal(v, targetDeptId);
+    }
   }
 }

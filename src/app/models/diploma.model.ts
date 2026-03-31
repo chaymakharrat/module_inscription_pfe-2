@@ -8,7 +8,7 @@ export interface TypeDiplome {
 
 export interface DiplomeEtudier {
     id: number;
-    nom: string;
+    nomDiplome: string;   // ← anciennement 'nom', remplacé par nomDiplome (depuis DiplomeResponsable)
     langue: Langue;
     fraisInscription?: number;
     actif?: boolean;

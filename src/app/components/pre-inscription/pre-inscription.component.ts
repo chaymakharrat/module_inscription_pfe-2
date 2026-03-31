@@ -9,6 +9,8 @@ import { DiplomaService } from '../../services/diploma.service';
 import { EnrollmentService } from '../../services/enrollment.service';
 import { PhoneValidationService } from '../../services/phone-validation.service';
 import { AlertService } from '../../services/alert.service';
+import { ScolariteService } from '../../services/scolarite.service';
+import { AnneeUniversitaire } from '../../models/academic-year.model';
 import { Country } from '../../models/country.model';
 import {
   DiplomeEtudier, DiplomeResponsable, Langue,
@@ -129,6 +131,11 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   /** Si true, le diplôme visé est déjà dans une demande active */
   duplicateDiplomeBlocked = false;
   duplicateDiplomeMessage = '';
+
+  // 🆕 Campagne dates & status
+  currentYearObj?: AnneeUniversitaire;
+  isRegistrationClosed = false;
+  registrationClosedMessage = '';
 
   /**
    * true si la dernière demande date de < 1 an
@@ -369,10 +376,14 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   get anneeMaxDiplome(): number {
     return this.effectiveCurrentYear; // ✅ juillet check appliqué partout
   }
-  // ── Helper : année courante effective (juillet = seuil) ──────────────────
+  // ── Helper : année courante effective (dynamique depuis le backend) ──────────
   private get effectiveCurrentYear(): number {
+    if (this.currentYearObj?.annee) {
+      // Si l'année est "2025-2026", on extrait 2026 comme année max
+      const parts = this.currentYearObj.annee.split('-');
+      return parts.length === 2 ? parseInt(parts[1]) : new Date().getFullYear();
+    }
     const now = new Date();
-    // Avant juillet → l'année "courante" BAC n'est pas encore validée
     return now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
   }
 
@@ -517,8 +528,8 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   get uniqueDiplomas(): DiplomeEtudier[] {
     const seen = new Set<string>();
     return this.diplomas.filter(d => {
-      if (seen.has(d.nom)) return false;
-      seen.add(d.nom); return true;
+      if (seen.has(d.nomDiplome)) return false;
+      seen.add(d.nomDiplome); return true;
     });
   }
 
@@ -552,12 +563,14 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     private enrollmentService: EnrollmentService,
     private phoneValidationService: PhoneValidationService,
     private studentService: StudentService,
+    private scolariteService: ScolariteService,
     private alertService: AlertService,
     private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
     this.initForm();
+    this.loadAcademicYearSettings();
     this.loadInitialData();
     this.startDraftExpiryTimer();
     interval(60_000).pipe(takeUntil(this.destroy$)).subscribe(() => {
@@ -568,8 +581,9 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(langue => {
         const nomDiplome = this.inscriptionForm.get('academicInfo.diplomeVise')?.value;
+        const annee = this.inscriptionForm.get('academicInfo.session')?.value;
         if (nomDiplome && langue) {
-          this.diplomaService.getNiveauxByDiplomeNameAndLangue(nomDiplome, langue)
+          this.diplomaService.getNiveauxByDiplomeNameAndLangue(nomDiplome, langue, annee)
             .subscribe(data => {
               this.levels = data.sort((a, b) => {
                 const nA = parseInt(String(a.niveau), 10);
@@ -591,6 +605,38 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     if (this.draftExpiryTimer) clearTimeout(this.draftExpiryTimer);
+  }
+
+  loadAcademicYearSettings() {
+    this.scolariteService.getAnneeCouranteDetails().subscribe({
+      next: (year) => {
+        if (year) {
+          this.currentYearObj = year;
+          this.checkRegistrationInterval(year);
+          this.inscriptionForm.get('academicInfo.session')?.setValue(year.annee);
+        }
+      },
+      error: (err) => console.error('Erreur chargement config année:', err)
+    });
+  }
+
+  checkRegistrationInterval(year: AnneeUniversitaire) {
+    const now = new Date();
+    const open = year.dateOuverture ? new Date(year.dateOuverture) : null;
+    const close = year.dateFermeture ? new Date(year.dateFermeture) : null;
+
+    if (open && now < open) {
+      this.isRegistrationClosed = true;
+      this.registrationClosedMessage = `Les inscriptions pour l'année ${year.annee} ne sont pas encore ouvertes. Elles débuteront le ${open.toLocaleDateString()}.`;
+    } else if (close && now > close) {
+      this.isRegistrationClosed = true;
+      this.registrationClosedMessage = `Les inscriptions pour l'année ${year.annee} sont désormais clôturées depuis le ${close.toLocaleDateString()}.`;
+    } else if (year.verrouillee) {
+      this.isRegistrationClosed = true;
+      this.registrationClosedMessage = `La campagne de pré-inscription ${year.annee} est temporairement suspendue.`;
+    } else {
+      this.isRegistrationClosed = false;
+    }
   }
 
   // ════════════════════════════════════════════════════════════════════════

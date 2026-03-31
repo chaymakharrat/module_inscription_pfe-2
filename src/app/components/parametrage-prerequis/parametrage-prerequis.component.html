@@ -5,6 +5,43 @@
 
     <div class="page-inner">
 
+        <!-- ✅ NOUVEL EN-TÊTE : Sélection d'Année -->
+        <header class="page-header">
+            <div class="header-left">
+                <div class="icon-box">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="page-title">Paramétrage des Prérequis</h1>
+                    <p class="page-subtitle">Configurez les critères d'admission et capacités par niveau</p>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <!-- ✅ Badge Année Courante (Fixe) -->
+                <div
+                    class="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full shadow-sm">
+                    <span class="text-caption font-bold text-accent-blue uppercase tracking-wider">Configuration
+                        Active:</span>
+                    <span class="text-accent-blue font-bold text-sm-bold">{{ selectedAnnee }}</span>
+                </div>
+
+                <!-- ✅ Gérer mes prérequis (Ouvre le nouveau modal) -->
+                <button class="btn-manage-own" (click)="openMyPrerequisModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                    Mes Prérequis
+                </button>
+            </div>
+        </header>
+
         <!-- ══ LOADING ══ -->
         <div class="loader-wrap" *ngIf="loading">
             <div class="loader-dots">
@@ -27,10 +64,11 @@
                             <h3 class="level-name">{{ config.nomDiplome }}</h3>
                             <div class="level-tags">
                                 <span class="lang-tag">{{ config.langue }}</span>
-                                <span class="prereq-count" *ngIf="config.prerequis.length > 0">
-                                    {{ config.prerequis.length }} prérequis
+                                <span class="prereq-count" *ngIf="config.prerequis && config.prerequis!.length > 0">
+                                    {{ config.prerequis!.length }} prérequis
                                 </span>
-                                <span class="prereq-count prereq-none" *ngIf="config.prerequis.length === 0">
+                                <span class="prereq-count prereq-none"
+                                    *ngIf="!config.prerequis || config.prerequis.length === 0">
                                     Aucun prérequis
                                 </span>
                             </div>
@@ -46,8 +84,10 @@
                             <div class="cap-display" *ngIf="!editingCapacite[config.niveauSpecifiqueId]">
                                 <span class="cap-number">{{ config.capaciteMax }}</span>
                                 <span class="cap-unit">places</span>
-                                <button class="ghost-icon" (click)="startEditCapacite(config)" title="Modifier">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <button class="ghost-icon" (click)="startEditCapacite(config)"
+                                    [disabled]="!isCurrentYear" [title]="isCurrentYear ? 'Modifier' : 'Lecture seule'">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        [style.opacity]="isCurrentYear ? 1 : 0.3">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
@@ -82,8 +122,10 @@
                                     {{ config.scoreMinimum }}
                                 </span>
                                 <span class="cap-unit">pts</span>
-                                <button class="ghost-icon" (click)="startEditScore(config)" title="Modifier">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <button class="ghost-icon" (click)="startEditScore(config)" [disabled]="!isCurrentYear"
+                                    [title]="isCurrentYear ? 'Modifier' : 'Lecture seule'">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        [style.opacity]="isCurrentYear ? 1 : 0.3">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
@@ -114,8 +156,10 @@
                             <div class="cap-display" *ngIf="!editingTaille[config.niveauSpecifiqueId]">
                                 <span class="cap-number">{{ config.tailleGroupe }}</span>
                                 <span class="cap-unit">étud.</span>
-                                <button class="ghost-icon" (click)="startEditTaille(config)" title="Modifier">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <button class="ghost-icon" (click)="startEditTaille(config)" [disabled]="!isCurrentYear"
+                                    [title]="isCurrentYear ? 'Modifier' : 'Lecture seule'">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        [style.opacity]="isCurrentYear ? 1 : 0.3">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
@@ -156,7 +200,7 @@
                 <div class="level-body">
 
                     <!-- État vide -->
-                    <div class="empty-state" *ngIf="config.prerequis.length === 0">
+                    <div class="empty-state" *ngIf="!config.prerequis || config.prerequis.length === 0">
                         <div class="empty-icon">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -164,36 +208,45 @@
                             </svg>
                         </div>
                         <p class="empty-text">Aucun prérequis configuré</p>
-                        <button class="empty-cta" (click)="openAddModal(config)">
+                        <button class="empty-cta" (click)="openAddModal(config)" [disabled]="!isCurrentYear"
+                            [style.opacity]="isCurrentYear ? 1 : 0.5"
+                            [style.cursor]="isCurrentYear ? 'pointer' : 'not-allowed'">
                             Ajouter le premier prérequis
                         </button>
                     </div>
 
                     <!-- Liste -->
-                    <div class="prereq-list" *ngIf="config.prerequis.length > 0">
+                    <div class="prereq-list" *ngIf="config.prerequis && config.prerequis!.length > 0">
                         <div class="prereq-row"
                             *ngFor="let p of config.prerequis; let j = index; trackBy: trackByPrereq"
-                            [style.animation-delay]="(j * 50) + 'ms'">
-                            <div class="row-indicator ind-blue"></div>
+                            [style.animation-delay]="(j * 50) + 'ms'" [class.is-inactive]="!p.actif">
+                            <div class="row-indicator" [class.ind-blue]="p.actif" [class.ind-gray]="!p.actif"></div>
                             <span class="row-nom">{{ p.nom }}</span>
                             <div class="row-actions action-btn-group">
-                                <button class="action-btn" (click)="openEditModal(config, p)" title="Modifier">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <button class="action-btn" (click)="openEditModal(config, p)"
+                                    [disabled]="!isCurrentYear" [title]="isCurrentYear ? 'Modifier' : 'Lecture seule'">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        [style.opacity]="isCurrentYear ? 1 : 0.3">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
                                 </button>
 
-                                <label class="switch" title="Désactiver">
-                                    <input type="checkbox" [checked]="true" (change)="togglePrerequisStatus(config, p)">
-                                    <span class="slider"></span>
+                                <label class="switch"
+                                    [title]="isCurrentYear ? (p.actif ? 'Désactiver' : 'Activer') : 'Lecture seule'">
+                                    <input type="checkbox" [(ngModel)]="p.actif"
+                                        (ngModelChange)="togglePrerequisStatus(config, p)" [disabled]="!isCurrentYear">
+                                    <span class="slider" [style.opacity]="isCurrentYear ? 1 : 0.4"></span>
                                 </label>
                             </div>
                         </div>
                     </div>
 
                     <!-- Ajouter -->
-                    <button class="add-row-btn" *ngIf="config.prerequis.length > 0" (click)="openAddModal(config)">
+                    <button class="add-row-btn" *ngIf="config.prerequis && config.prerequis!.length > 0"
+                        (click)="openAddModal(config)" [disabled]="!isCurrentYear"
+                        [style.opacity]="isCurrentYear ? 1 : 0.5"
+                        [style.cursor]="isCurrentYear ? 'pointer' : 'not-allowed'">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
@@ -275,16 +328,41 @@
                 <div class="checkbox-scroll-area">
                     <div class="checkbox-grid">
                         <div class="checkbox-card" *ngFor="let item of filteredAvailableItems"
-                            [class.checked]="isPrereqSelected(item.nom)" (click)="toggleSelection(item.nom)">
-                            <div class="checkbox-ui">
-                                <div class="check-tick" *ngIf="isPrereqSelected(item.nom)">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white"
-                                        stroke-width="4">
-                                        <polyline points="20 6 9 17 4 12" />
-                                    </svg>
+                            [class.checked]="isPrereqSelected(item.nom)"
+                            [class.loading-item]="modalItemLoading[item.nom]">
+                            <div class="checkbox-ui-row" (click)="toggleSelection(item)">
+                                <div class="checkbox-ui">
+                                    <div class="check-tick"
+                                        *ngIf="isPrereqSelected(item.nom) && !modalItemLoading[item.nom]">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white"
+                                            stroke-width="4">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                    </div>
+                                    <!-- Spinner pendant chargement -->
+                                    <div class="check-spinner" *ngIf="modalItemLoading[item.nom]">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="3"
+                                            style="animation: spin 0.7s linear infinite;">
+                                            <circle cx="12" cy="12" r="9" stroke-dasharray="28"
+                                                stroke-dashoffset="10" />
+                                        </svg>
+                                    </div>
                                 </div>
+                                <span class="checkbox-label">{{ item.nom }}</span>
                             </div>
-                            <span class="checkbox-label">{{ item.nom }}</span>
+
+                            <!-- ✅ Suppression du Pool Global (si propriétaire et inutilisé) -->
+                            <button class="btn-delete-global"
+                                *ngIf="item.isDeletable && (item.createdBy === emailEnseignant)"
+                                (click)="deleteGlobalPrerequis(item); $event.stopPropagation()"
+                                title="Supprimer définitivement du catalogue">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
@@ -296,9 +374,9 @@
         </div>
 
         <div class="dialog-foot">
-            <button class="btn-ghost" (click)="closeFormModal()">Annuler</button>
+            <button class="btn-ghost" (click)="closeFormModal()">Fermer</button>
             <button class="btn-primary" [class.btn-warning]="isEditMode" [disabled]="formLoading"
-                (click)="submitForm()">
+                (click)="submitForm()" *ngIf="isEditMode || formData.nom.trim()">
                 <span class="btn-spinner" *ngIf="formLoading"></span>
                 <span>{{ formLoading ? 'En cours…' : (isEditMode ? 'Enregistrer' : 'Ajouter') }}</span>
             </button>
@@ -307,6 +385,88 @@
 </div>
 
 
+
+<!-- ══ MODAL MES PRÉREQUIS (GESTION INDIVIDUELLE) ══ -->
+<div class="overlay" *ngIf="showMyPrerequisModal" (click)="showMyPrerequisModal = false">
+    <div class="dialog modal-lg" (click)="$event.stopPropagation()">
+        <div class="dialog-head">
+            <div class="dialog-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="dialog-title">Mes Prérequis Créés</h2>
+                <p class="dialog-sub">Activez ou désactivez vos prérequis du catalogue global.</p>
+            </div>
+            <button class="close-btn" (click)="showMyPrerequisModal = false">✕</button>
+        </div>
+
+        <div class="dialog-body custom-scrollbar">
+            <div class="loader-wrap" *ngIf="loadingMyPrerequis">
+                <div class="loader-dots"><span></span><span></span><span></span></div>
+            </div>
+
+            <div class="my-prereq-list" *ngIf="!loadingMyPrerequis">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Date Créa.</th>
+                            <th>Statut</th>
+                            <th style="text-align:right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let p of myPrerequis" [class.inactive-row]="!p.actif">
+                            <td><strong>{{ p.nom }}</strong></td>
+                            <td>{{ p.createdAt | date:'shortDate' }}</td>
+                            <td>
+                                <span class="status-badge" [class.s-active]="p.actif" [class.s-inactive]="!p.actif">
+                                    {{ p.actif ? 'Actif' : 'Désactivé' }}
+                                </span>
+                            </td>
+                            <td style="text-align:right">
+                                <div class="action-cell-flex" style="justify-content: flex-end;">
+                                    <div *ngIf="p.isTypeLinked" class="badge-global"
+                                        title="Ce prérequis est un critère standard pour les types de diplômes (Licence/Master).">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5" style="margin-right:4px;">
+                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                            <path d="M7 11V7a5 5 0 0110 0v4" />
+                                        </svg>
+                                        GLOBAL
+                                    </div>
+                                    <label *ngIf="!p.isTypeLinked" class="switch">
+                                        <input type="checkbox" [checked]="p.actif"
+                                            (change)="toggleMyPrerequisStatus(p)">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr *ngIf="myPrerequis.length === 0">
+                            <td colspan="4" class="empty-msg">Vous n'avez créé aucun prérequis pour le moment.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-banner warning-banner" style="margin-top:20px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <p>La désactivation est bloquée si le prérequis est utilisé dans une formation active.</p>
+            </div>
+        </div>
+
+        <div class="dialog-foot">
+            <button class="btn-primary" (click)="showMyPrerequisModal = false">Terminer</button>
+        </div>
+    </div>
+</div>
 
 <!-- ══ TOAST ══ -->
 <div class="toast" [class.toast-in]="toastVisible" [class.toast-success]="toastType === 'success'"

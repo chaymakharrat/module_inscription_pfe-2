@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { forkJoin, Observable } from 'rxjs';
+import { forkJoin, Observable, of } from 'rxjs';
 import { CamundaTask, DemandeDetailDTO, PageResponse, ScolariteService } from '../../services/scolarite.service';
+import { AnneeUniversitaire } from '../../models/academic-year.model';
 import { SafePipe } from '../../pipes/safe.pipe';
 import { HostListener } from '@angular/core';
 import { Router } from '@angular/router';
@@ -171,6 +172,23 @@ export class ScolariteDashboardComponent implements OnInit {
   reliabilityScore: number = 100;
   studentHistoryStats = { total: 0, valides: 0, rejetes: 0, enCours: 0 };
 
+  // 🆕 Filtre année universitaire
+  selectedAnnee: string = '';
+  anneesDisponibles: AnneeUniversitaire[] = [];
+  currentYearObj?: AnneeUniversitaire;
+
+  /** true si l'année sélectionnée est une année passée → mode lecture seule */
+  get isReadOnlyYear(): boolean {
+    const selected = this.anneesDisponibles.find(a => a.annee === this.selectedAnnee);
+    return selected ? selected.verrouillee : false;
+  }
+
+  onAnneeChange() {
+    this.currentPage = 0;
+    this.loadStatistiques();
+    this.loadDemandes();
+  }
+
 
   constructor(
     private scolariteService: ScolariteService,
@@ -188,14 +206,35 @@ export class ScolariteDashboardComponent implements OnInit {
         console.error('Erreur chargement profil:', error);
       }
     }
-    this.loadStatistiques();
-    this.loadDemandes();
+    this.loadAcademicYears();
+  }
+
+  loadAcademicYears() {
+    this.scolariteService.getAnneesUniversitairesList().subscribe({
+      next: (years) => {
+        this.anneesDisponibles = years;
+        const current = years.find(y => y.courante);
+        if (current) {
+          this.currentYearObj = current;
+          this.selectedAnnee = current.annee;
+        } else if (years.length > 0) {
+          this.selectedAnnee = years[0].annee;
+        }
+        this.loadStatistiques();
+        this.loadDemandes();
+      },
+      error: (err) => {
+        console.error('Erreur chargement années:', err);
+        this.loadStatistiques();
+        this.loadDemandes();
+      }
+    });
   }
 
 
   loadStatistiques() {
     const login = this.userProfile?.username || this.userProfile?.email || '';
-    this.scolariteService.getStatistiques(login).subscribe({
+    this.scolariteService.getStatistiques(login, this.selectedAnnee).subscribe({
       next: (stats) => {
         this.stats = stats;
       },
@@ -213,25 +252,25 @@ export class ScolariteDashboardComponent implements OnInit {
 
     switch (this.currentFilter) {
       case 'nouveaux':
-        observable = this.scolariteService.getDemandesNouvelles(this.currentPage, this.pageSize);
+        observable = this.scolariteService.getDemandesNouvelles(this.currentPage, this.pageSize, this.selectedAnnee);
         break;
       case 'urgents':
-        observable = this.scolariteService.getDemandesUrgentes(this.currentPage, this.pageSize);
+        observable = this.scolariteService.getDemandesUrgentes(this.currentPage, this.pageSize, this.selectedAnnee);
         break;
       case 'valides':
-        observable = this.scolariteService.getDemandesValidees(this.currentPage, this.pageSize, login);
+        observable = this.scolariteService.getDemandesValidees(this.currentPage, this.pageSize, login, this.selectedAnnee);
         break;
       case 'rejetes':
-        observable = this.scolariteService.getDemandesRejetees(this.currentPage, this.pageSize, login);
+        observable = this.scolariteService.getDemandesRejetees(this.currentPage, this.pageSize, login, this.selectedAnnee);
         break;
       case 'enAttente':
-        observable = this.scolariteService.getDemandesEnAttenteDocument(this.currentPage, this.pageSize, login);
+        observable = this.scolariteService.getDemandesEnAttenteDocument(this.currentPage, this.pageSize, login, this.selectedAnnee);
         break;
       case 'relances':
-        observable = this.scolariteService.getDemandesRelancees(this.currentPage, this.pageSize, login);
+        observable = this.scolariteService.getDemandesRelancees(this.currentPage, this.pageSize, login, this.selectedAnnee);
         break;
       default:
-        observable = this.scolariteService.getAllDemandes(this.currentPage, this.pageSize);
+        observable = this.scolariteService.getAllDemandes(this.currentPage, this.pageSize, this.selectedAnnee);
     }
 
     observable.subscribe({

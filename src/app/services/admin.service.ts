@@ -45,15 +45,19 @@ export class AdminService {
     /**
      * Récupérer les statistiques
      */
-    getStats(): Observable<AdminDashboardStats> {
-        return this.http.get<AdminDashboardStats>(`${this.enrollmentApiUrl}/stats`);
+    getStats(annee?: string): Observable<AdminDashboardStats> {
+        let params = new HttpParams();
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<AdminDashboardStats>(`${this.enrollmentApiUrl}/stats`, { params });
     }
 
     /**
      * Récupérer la distribution par statut
      */
-    getDistribution(): Observable<WorkflowDistribution[]> {
-        return this.http.get<WorkflowDistribution[]>(`${this.enrollmentApiUrl}/distribution`);
+    getDistribution(annee?: string): Observable<WorkflowDistribution[]> {
+        let params = new HttpParams();
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<WorkflowDistribution[]>(`${this.enrollmentApiUrl}/distribution`, { params });
     }
 
     // ========== MÉTHODES PAGINÉES (NOUVELLES) ==========
@@ -61,11 +65,12 @@ export class AdminService {
     /**
      * ✅ Récupérer toutes les demandes (paginé)
      */
-    getAllDemandesPaginated(page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
-        const params = new HttpParams()
+    getAllDemandesPaginated(annee?: string, page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
+        let params = new HttpParams()
             .set('page', page.toString())
             .set('size', size.toString())
             .set('sort', sort);
+        if (annee) params = params.set('annee', annee);
 
         return this.http.get<PageResponse<Enrollment>>(`${this.enrollmentApiUrl}/demandes`, { params });
     }
@@ -73,11 +78,12 @@ export class AdminService {
     /**
      * ✅ Récupérer les demandes en attente (paginé)
      */
-    getDemandesEnAttentePaginated(page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
-        const params = new HttpParams()
+    getDemandesEnAttentePaginated(annee?: string, page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
+        let params = new HttpParams()
             .set('page', page.toString())
             .set('size', size.toString())
             .set('sort', sort);
+        if (annee) params = params.set('annee', annee);
 
         return this.http.get<PageResponse<Enrollment>>(`${this.enrollmentApiUrl}/demandes/en-attente`, { params });
     }
@@ -85,11 +91,12 @@ export class AdminService {
     /**
      * ✅ Récupérer les demandes avec paiement validé (paginé)
      */
-    getDemandesPaymentValidPaginated(page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
-        const params = new HttpParams()
+    getDemandesPaymentValidPaginated(annee?: string, page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
+        let params = new HttpParams()
             .set('page', page.toString())
             .set('size', size.toString())
             .set('sort', sort);
+        if (annee) params = params.set('annee', annee);
 
         return this.http.get<PageResponse<Enrollment>>(`${this.enrollmentApiUrl}/demandes/payment-valid`, { params });
     }
@@ -97,11 +104,12 @@ export class AdminService {
     /**
      * ✅ Récupérer les demandes rejetées (paginé)
      */
-    getDemandesRejeteesPaginated(page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
-        const params = new HttpParams()
+    getDemandesRejeteesPaginated(annee?: string, page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
+        let params = new HttpParams()
             .set('page', page.toString())
             .set('size', size.toString())
             .set('sort', sort);
+        if (annee) params = params.set('annee', annee);
 
         return this.http.get<PageResponse<Enrollment>>(`${this.enrollmentApiUrl}/demandes/rejetees`, { params });
     }
@@ -109,11 +117,12 @@ export class AdminService {
     /**
      * ✅ Récupérer les inscrits définitifs (paginé)
      */
-    getInscritsDefinitifsPaginated(page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
-        const params = new HttpParams()
+    getInscritsDefinitifsPaginated(annee?: string, page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
+        let params = new HttpParams()
             .set('page', page.toString())
             .set('size', size.toString())
             .set('sort', sort);
+        if (annee) params = params.set('annee', annee);
 
         return this.http.get<PageResponse<Enrollment>>(`${this.enrollmentApiUrl}/demandes/inscrits`, { params });
     }
@@ -121,11 +130,12 @@ export class AdminService {
     /**
      * ✅ Récupérer les demandes filtrées par statut exact (paginé)
      */
-    getDemandesByStatutPaginated(status: string, page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
-        const params = new HttpParams()
+    getDemandesByStatutPaginated(status: string, annee?: string, page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
+        let params = new HttpParams()
             .set('page', page.toString())
             .set('size', size.toString())
             .set('sort', sort);
+        if (annee) params = params.set('annee', annee);
 
         return this.http.get<PageResponse<Enrollment>>(`${this.enrollmentApiUrl}/demandes/statut/${status}`, { params });
     }
@@ -133,12 +143,13 @@ export class AdminService {
     /**
      * ✅ Rechercher des demandes (paginé)
      */
-    searchDemandesPaginated(query: string, page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
-        const params = new HttpParams()
+    searchDemandesPaginated(query: string, annee?: string, page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<Enrollment>> {
+        let params = new HttpParams()
             .set('query', query)
             .set('page', page.toString())
             .set('size', size.toString())
             .set('sort', sort);
+        if (annee) params = params.set('annee', annee);    
 
         return this.http.get<PageResponse<Enrollment>>(`${this.enrollmentApiUrl}/demandes/search`, { params });
     }
@@ -165,6 +176,13 @@ export class AdminService {
         return this.http.get<{ canFinalize: boolean; reason?: string }>(
             `${this.workflowApiUrl}/can-finalize/${enrollmentId}`
         );
+    }
+
+    /**
+     * ✅ Récupérer les détails complets d'une demande (avec historique)
+     */
+    getDemandeById(id: number): Observable<Enrollment> {
+        return this.http.get<Enrollment>(`${this.enrollmentApiUrl}/demandes/${id}`);
     }
 
     /**

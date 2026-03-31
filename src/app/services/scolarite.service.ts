@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../envirements/enviremetns';
+import { AnneeUniversitaire } from '../models/academic-year.model';
 
 export interface DemandeDetailDTO {
     id: number;
@@ -10,7 +11,7 @@ export interface DemandeDetailDTO {
     nomDiplome: string;
     typeDiplome?: string;
     langueDiplome?: string;
-    niveauChoisi?: string; // 🆕 Ajout du niveau
+    niveauChoisi?: string;
     statutActuel: string;
     dateCreation: string;
     processInstanceId: string;
@@ -19,9 +20,9 @@ export interface DemandeDetailDTO {
     historique: HistoriqueStatusDTO[];
     enAttenteDepuis: number;
     priorite: string;
-    taskId?: string; // ID de la tâche Camunda
-    taskAssignee?: string; // 🆕 Assigné de la tâche
-    tokenAcces?: string; // 🆕 UUID Token
+    taskId?: string;
+    taskAssignee?: string;
+    tokenAcces?: string;
 }
 
 export interface EtudiantInfoDTO {
@@ -35,12 +36,12 @@ export interface EtudiantInfoDTO {
     numCarteIdentite: string;
     numPassport: string;
     paysNom: string;
-    adresse?: string; // 🆕 Ajout
-    dernierDiplome?: string; // 🆕 Ajout
-    anneeDernierDiplome?: number; // 🆕 Ajout
-    emailUniversitaire?: string; // 🆕 Ajout
-    typeBac?: string; // 🆕 Ajout
-    genre?: string; // 🆕 Ajout
+    adresse?: string;
+    dernierDiplome?: string;
+    anneeDernierDiplome?: number;
+    emailUniversitaire?: string;
+    typeBac?: string;
+    genre?: string;
 }
 
 export interface DocumentStatusDTO {
@@ -79,297 +80,155 @@ export interface CamundaTask {
     processInstanceId: string;
 }
 
+/** Année universitaire courante — Plus de constante hardcodée */
+// export const ANNEE_COURANTE = '2025-2026';
+// export const ANNEES_DISPONIBLES = ['2025-2026', '2024-2025', '2023-2024'];
+
 @Injectable({
     providedIn: 'root'
 })
 export class ScolariteService {
     private enrollmentApiUrl = `${environment.apiUrl}/INSCRIPTION-SERVICE/api/scolarite`;
     private workflowApiUrl = `${environment.workflowServiceUrl}/api/workflow`;
+    private departementApiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/departements`;
 
     constructor(private http: HttpClient) { }
 
-    /**
-     * Récupérer les demandes en attente avec pagination
-     */
-    getDemandesEnAttente(page: number = 0, size: number = 10, sort: string = 'dateCreation,desc'): Observable<PageResponse<DemandeDetailDTO>> {
-        const params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString())
-            .set('sort', sort);
+    getAnneesUniversitairesList(): Observable<AnneeUniversitaire[]> {
+        return this.http.get<AnneeUniversitaire[]>(`${this.departementApiUrl}/annees-universitaires`)
+            .pipe(map(list => list.sort((a, b) => b.annee.localeCompare(a.annee))));
+    }
 
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/en-attente`,
-            { params }
+    getAnneeCourante(): Observable<string> {
+        return this.http.get(`${this.departementApiUrl}/annee-courante`, { responseType: 'text' });
+    }
+
+    getAnneeCouranteDetails(): Observable<AnneeUniversitaire | undefined> {
+        return this.getAnneesUniversitairesList().pipe(
+            map(list => list.find(a => a.courante))
         );
     }
 
-    /**
-     * Récupérer les demandes validées
-     */
-    getDemandesValidees(page: number = 0, size: number = 10, login?: string): Observable<PageResponse<DemandeDetailDTO>> {
-        let params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString());
-
-        if (login) {
-            params = params.set('login', login);
-        }
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/validees`,
-            { params }
-        );
+    getAllDemandes(page = 0, size = 10, annee?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams().set('page', page).set('size', size);
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes`, { params });
     }
 
-    /**
-     * Récupérer les demandes rejetées
-     */
-    getDemandesRejetees(page: number = 0, size: number = 10, login?: string): Observable<PageResponse<DemandeDetailDTO>> {
-        let params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString());
-
-        if (login) {
-            params = params.set('login', login);
-        }
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/rejetees`,
-            { params }
-        );
+    getDemandesEnAttente(page = 0, size = 10, annee?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams().set('page', page).set('size', size);
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/en-attente`, { params });
     }
 
-    /**
-     * Récupérer les demandes en attente de document
-     */
-    getDemandesEnAttenteDocument(page: number = 0, size: number = 10, login?: string): Observable<PageResponse<DemandeDetailDTO>> {
-        let params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString());
-
-        if (login) {
-            params = params.set('login', login);
-        }
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/en-attente-document`,
-            { params }
-        );
+    getDemandesNouvelles(page = 0, size = 10, annee?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams().set('page', page).set('size', size);
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/nouveaux`, { params });
     }
 
-    /**
-     * Récupérer toutes les demandes
-     */
-    getAllDemandes(page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
-        const params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString());
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes`,
-            { params }
-        );
+    getDemandesUrgentes(page = 0, size = 10, annee?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams().set('page', page).set('size', size);
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/urgents`, { params });
     }
 
-    /**
-     * Rechercher par diplôme
-     */
-    searchByDiplome(nomDiplome: string, page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
-        const params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString());
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/diplome/${nomDiplome}`,
-            { params }
-        );
+    getDemandesValidees(page = 0, size = 10, login?: string, annee?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams().set('page', page).set('size', size);
+        if (login) params = params.set('login', login);
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/validees`, { params });
     }
 
-    /**
-     * Récupérer les dossiers incomplets
-     */
-    getDemandesIncompletes(page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
-        const params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString());
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/incomplets`,
-            { params }
-        );
+    getDemandesRejetees(page = 0, size = 10, login?: string, annee?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams().set('page', page).set('size', size);
+        if (login) params = params.set('login', login);
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/rejetees`, { params });
     }
 
-    /**
-     * Récupérer les dossiers complets (prêts à valider)
-     */
-    getDemandesCompletes(page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
-        const params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString());
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/complets`,
-            { params }
-        );
+    getDemandesEnAttenteDocument(page = 0, size = 10, login?: string, annee?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams().set('page', page).set('size', size);
+        if (login) params = params.set('login', login);
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/en-attente-document`, { params });
     }
 
-    /**
-     * Récupérer les dossiers urgents (> 4 jours)
-     */
-    getDemandesUrgentes(page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
-        const params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString());
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/urgents`,
-            { params }
-        );
+    getDemandesRelancees(page = 0, size = 10, login?: string, annee?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams().set('page', page).set('size', size);
+        if (login) params = params.set('login', login);
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/relancees`, { params });
     }
 
-    /**
-     * Récupérer le détail d'une demande
-     */
-    getDemandeDetail(id: number): Observable<DemandeDetailDTO> {
-        return this.http.get<DemandeDetailDTO>(
-            `${this.enrollmentApiUrl}/demandes/${id}`
-        );
-    }
-
-    /**
-     * Récupérer les statistiques
-     */
-    getStatistiques(login?: string): Observable<any> {
+    getStatistiques(login?: string, annee?: string): Observable<any> {
         let params = new HttpParams();
-        if (login) {
-            params = params.set('login', login);
-        }
+        if (login) params = params.set('login', login);
+        if (annee) params = params.set('annee', annee);
         return this.http.get(`${this.enrollmentApiUrl}/statistiques`, { params });
     }
 
-    /**
-     * Récupérer les tâches Camunda pour une demande
-     */
-    getTasksForEnrollment(enrollmentId: number): Observable<CamundaTask[]> {
-        return this.http.get<CamundaTask[]>(
-            `${this.workflowApiUrl}/tasks/enrollment/${enrollmentId}`
-        );
+    searchGlobal(term: string, page = 0, size = 10, annee?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams().set('term', term).set('page', page).set('size', size);
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/search`, { params });
     }
 
-    /**
-     * Compléter une tâche Camunda (VALIDER ou REJETER)
-     * C'est appelé quand on clique sur ✓ ou ✗
-     */
-    // completeTask(taskId: string, decision: 'ACCEPTE' | 'REJETE', commentaire: string, loginUtilisateur: string): Observable<any> {
-    //     return this.http.post(
-    //         `${this.workflowApiUrl}/tasks/${taskId}/complete`,
-    //         {
-    //             decision,
-    //             commentaire,
-    //             loginUtilisateur
-    //         }
-    //     );
-    // }
+    searchByDiplome(nomDiplome: string, page = 0, size = 10, annee?: string): Observable<PageResponse<DemandeDetailDTO>> {
+        let params = new HttpParams().set('page', page).set('size', size);
+        if (annee) params = params.set('annee', annee);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/diplome/${nomDiplome}`, { params });
+    }
+
+    getDemandeDetail(id: number): Observable<DemandeDetailDTO> {
+        return this.http.get<DemandeDetailDTO>(`${this.enrollmentApiUrl}/demandes/${id}`);
+    }
+
+    getStudentHistory(etudiantId: number): Observable<DemandeDetailDTO[]> {
+        return this.http.get<DemandeDetailDTO[]>(`${this.enrollmentApiUrl}/demandes/etudiant/${etudiantId}/history`);
+    }
+
+    getTasksForEnrollment(enrollmentId: number): Observable<CamundaTask[]> {
+        return this.http.get<CamundaTask[]>(`${this.workflowApiUrl}/tasks/enrollment/${enrollmentId}`);
+    }
+
     completeTask(
         taskId: string,
         decision: 'ACCEPTE' | 'REJETE' | 'DOCUMENT_ILLISIBLE' | 'LISTE_ATTENTE',
         commentaire: string,
         loginUtilisateur: string
     ): Observable<any> {
-        return this.http.post(
-            `${this.workflowApiUrl}/tasks/${taskId}/complete`,
-            { decision, commentaire, loginUtilisateur }
-        );
+        return this.http.post(`${this.workflowApiUrl}/tasks/${taskId}/complete`, { decision, commentaire, loginUtilisateur });
     }
 
-    /**
-     * Valider un dossier (méthode de compatibilité)
-     */
     validerDossier(demandeId: number, taskId: string, commentaire: string): Observable<any> {
         return this.completeTask(taskId, 'ACCEPTE', commentaire, 'scolarite_admin');
     }
 
-    /**
-     * Rejeter un dossier (méthode de compatibilité)
-     */
     rejeterDossier(demandeId: number, taskId: string, commentaire: string): Observable<any> {
         return this.completeTask(taskId, 'REJETE', commentaire, 'scolarite_admin');
     }
 
-    /**
-     * Récupérer un fichier en tant que Blob (pour l'affichage ou le téléchargement)
-     * L'intercepteur HTTP se chargera d'ajouter le token Bearer
-     */
-    getFileBlob(url: string): Observable<Blob> {
-        return this.http.get(url, { responseType: 'blob' });
-    }
-    getDemandesNouvelles(page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
-        const params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString());
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/nouveaux`,
-            { params }
-        );
-    }
-
-    /**
-     * Mettre à jour le statut d'une demande (ex: COMMENCER TRAITEMENT)
-     */
     updateStatus(id: number, status: string, commentaire: string, loginUtilisateur: string): Observable<void> {
-        const body = {
-            status,
-            commentaire,
-            loginUtilisateur
-        };
-        return this.http.put<void>(`${this.enrollmentApiUrl}/api/enrollments/${id}/status`, body);
+        return this.http.put<void>(`${this.enrollmentApiUrl}/api/enrollments/${id}/status`, { status, commentaire, loginUtilisateur });
     }
 
-    /**
-     * Récupérer les dossiers relancés (filtrés par l'agent qui a envoyé la demande EN_ATTENTE_DOCUMENT)
-     */
-    getDemandesRelancees(page: number = 0, size: number = 10, login?: string): Observable<PageResponse<DemandeDetailDTO>> {
-        let params = new HttpParams()
-            .set('page', page.toString())
-            .set('size', size.toString());
-        if (login) params = params.set('login', login);
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/relancees`,
-            { params }
-        );
-    }
-
-    /**
-     * Générer un token pour un dossier
-     */
     generateToken(id: number): Observable<string> {
         const demandesUrl = `${environment.apiUrl}/INSCRIPTION-SERVICE/api/demandes`;
         return this.http.post(`${demandesUrl}/${id}/token`, {}, { responseType: 'text' });
     }
 
-    /**
-     * Recherche globale (nom, prénom, CIN, dossier)
-     */
-    searchGlobal(term: string, page: number = 0, size: number = 10): Observable<PageResponse<DemandeDetailDTO>> {
-        const params = new HttpParams()
-            .set('term', term)
-            .set('page', page.toString())
-            .set('size', size.toString());
-
-        return this.http.get<PageResponse<DemandeDetailDTO>>(
-            `${this.enrollmentApiUrl}/demandes/search`,
-            { params }
-        );
+    getFileBlob(url: string): Observable<Blob> {
+        return this.http.get(url, { responseType: 'blob' });
     }
 
-    /**
-     * Récupérer l'historique complet d'un étudiant
-     */
-    getStudentHistory(etudiantId: number): Observable<DemandeDetailDTO[]> {
-        return this.http.get<DemandeDetailDTO[]>(
-            `${this.enrollmentApiUrl}/demandes/etudiant/${etudiantId}/history`
-        );
+    getDemandesIncompletes(page = 0, size = 10): Observable<PageResponse<DemandeDetailDTO>> {
+        const params = new HttpParams().set('page', page).set('size', size);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/incomplets`, { params });
+    }
+
+    getDemandesCompletes(page = 0, size = 10): Observable<PageResponse<DemandeDetailDTO>> {
+        const params = new HttpParams().set('page', page).set('size', size);
+        return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/complets`, { params });
     }
 }

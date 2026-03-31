@@ -1,5 +1,13 @@
 import { Student } from "./student.model";
 
+export interface HistoriqueStatus {
+    id: number;
+    statut: string;
+    dateStatus: string;
+    commentaire?: string;
+    loginUtilisateur: string;
+}
+
 export interface Enrollment {
     id: number;
     numeroDossier?: string;
@@ -17,6 +25,7 @@ export interface Enrollment {
     totalDocuments: number;
     commentaireScolarite?: string;
     tokenAcces?: string;
+    historique?: HistoriqueStatus[];
 }
 
 export interface EnrollmentAction {

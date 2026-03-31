@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { KeycloakService } from 'keycloak-angular';
 import { KeycloakProfile } from 'keycloak-js';
+import { AnneeUniversitaire } from '../../models/academic-year.model';
 import { environment } from '../../envirements/enviremetns';
 import { ScolariteService, CamundaTask, DocumentStatusDTO, EtudiantInfoDTO } from '../../services/scolarite.service';
 import { forkJoin, of } from 'rxjs';
@@ -94,6 +95,11 @@ export class DashboardDepartementComponent implements OnInit {
   userProfile: KeycloakProfile | null = null;
   emailEnseignant = '';
   protected Math = Math;
+
+  // ── Année Universitaire ──────────────────────────────────────────────────
+  anneesUniversitaires: AnneeUniversitaire[] = [];
+  selectedAnnee: string = '';
+  isCurrentYear: boolean = true;
 
   private apiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/dashboardDepartment`;
 
@@ -199,8 +205,37 @@ export class DashboardDepartementComponent implements OnInit {
         (profile.email || '') ||
         (this.keycloak.getKeycloakInstance().tokenParsed as any)?.email || '';
       if (!this.emailEnseignant) return;
-      this.loadDashboard();
+      
+      this.loadAcademicYears();
     } catch { }
+  }
+
+  loadAcademicYears(): void {
+    this.scolariteService.getAnneesUniversitairesList().subscribe({
+      next: (years) => {
+        this.anneesUniversitaires = years;
+        const current = years.find(y => y.courante);
+        if (current) {
+          this.selectedAnnee = current.annee;
+          this.isCurrentYear = true;
+        } else if (years.length > 0) {
+          this.selectedAnnee = years[0].annee;
+          this.isCurrentYear = years[0].courante;
+        }
+        this.loadDashboard();
+      },
+      error: (err) => {
+        console.error('❌ Erreur chargement années:', err);
+        this.loadDashboard();
+      }
+    });
+  }
+
+  onAnneeChange(): void {
+    const year = this.anneesUniversitaires.find(y => y.annee === this.selectedAnnee);
+    this.isCurrentYear = year ? year.courante : true;
+    this.currentPage = 0;
+    this.loadDashboard();
   }
 
   // ─── DATA ────────────────────────────────────────────────────────────────
@@ -209,10 +244,11 @@ export class DashboardDepartementComponent implements OnInit {
     if (!this.emailEnseignant) return;
     this.loading = true;
     const email = this.emailEnseignant.trim().toLowerCase();
+    const annee = this.selectedAnnee;
     forkJoin({
-      info: this.http.get<DashboardDeptDTO>(`${this.apiUrl}/dashboard`, { params: { email } }),
+      info: this.http.get<DashboardDeptDTO>(`${this.apiUrl}/dashboard`, { params: { email, annee } }),
       demandes: this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
-        params: { email, page: '0', size: this.pageSize.toString() }
+        params: { email, annee, page: '0', size: this.pageSize.toString() }
       })
     }).subscribe({
       next: ({ info, demandes }) => {
@@ -229,12 +265,13 @@ export class DashboardDepartementComponent implements OnInit {
   refreshAfterDecision(): void {
     if (!this.emailEnseignant || !this.dashboard) return;
     const email = this.emailEnseignant.trim().toLowerCase();
+    const annee = this.selectedAnnee;
     forkJoin({
-      stats: this.http.get<StatsRapideDTO>(`${this.apiUrl}/stats`, { params: { email } }),
-      capacites: this.http.get<CapaciteNiveauDTO[]>(`${this.apiUrl}/capacites`, { params: { email } }),
+      stats: this.http.get<StatsRapideDTO>(`${this.apiUrl}/stats`, { params: { email, annee } }),
+      capacites: this.http.get<CapaciteNiveauDTO[]>(`${this.apiUrl}/capacites`, { params: { email, annee } }),
       demandes: this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
         params: {
-          email, statut: this.getStatutFromFilter(this.currentFilter),
+          email, annee, statut: this.getStatutFromFilter(this.currentFilter),
           search: this.searchTerm.trim(),
           page: this.currentPage.toString(), size: this.pageSize.toString()
         }
@@ -257,9 +294,10 @@ export class DashboardDepartementComponent implements OnInit {
   loadDemandesFromBackend(): void {
     if (!this.emailEnseignant || !this.dashboard) return;
     const email = this.emailEnseignant.trim().toLowerCase();
+    const annee = this.selectedAnnee;
     this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
       params: {
-        email, statut: this.getStatutFromFilter(this.currentFilter),
+        email, annee, statut: this.getStatutFromFilter(this.currentFilter),
         search: this.searchTerm.trim(),
         page: this.currentPage.toString(), size: this.pageSize.toString()
       }
@@ -1025,6 +1063,7 @@ export class DashboardDepartementComponent implements OnInit {
     this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
       params: {
         email: this.emailEnseignant.trim().toLowerCase(),
+        annee: this.selectedAnnee,
         niveau: cap.niveau.toString(),
         langue: cap.langue,
         // ✅ Ajout du filtre nomDiplome pour le mode PAR_TYPE

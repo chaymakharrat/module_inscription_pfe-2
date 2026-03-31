@@ -1197,6 +1197,30 @@
     resize: vertical;
 }
 
+.input-wrapper-auto {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-readonly {
+    background-color: #f3f4f6 !important;
+    cursor: not-allowed;
+    border: 1px dashed #d1d5db !important;
+}
+
+.auto-badge {
+    position: absolute;
+    right: 12px;
+    background: #e0e7ff;
+    color: #4338ca;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
