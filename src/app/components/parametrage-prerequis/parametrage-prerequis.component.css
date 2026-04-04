@@ -1809,3 +1809,96 @@ input:checked+.slider:before {
     border-radius: 6px;
     border: 1px solid #FEE2E2;
 }
+
+/* Custom Tooltip Styles */
+.custom-tooltip-wrapper {
+    position: relative;
+    display: inline-flex;
+    justify-content: center;
+}
+
+.custom-tooltip-wrapper .custom-tooltip-content {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 14px);
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background-color: #1e293b;
+    color: white;
+    box-shadow: 0 12px 40px rgba(0,0,0,.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    z-index: 100;
+    min-width: max-content;
+    text-align: left;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+
+.custom-tooltip-wrapper:hover .custom-tooltip-content {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.custom-tooltip-wrapper .tooltip-arrow {
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 10px;
+    height: 10px;
+    background-color: #1e293b;
+}
+
+.tooltip-header {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 800;
+    color: #9CA3AF;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.tooltip-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tooltip-list li {
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    color: #F9FAFB;
+}
+
+.badge-hover-trigger {
+    cursor: help; 
+    background-color: #f1f5f9; 
+    color: #475569; 
+    padding: 4px 12px; 
+    border-radius: 9999px; 
+    font-size: 12px; 
+    font-weight: 800; 
+    border: 1px solid #cbd5e1; 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
+    transition: all 0.2s ease;
+    display: inline-flex;
+    justify-content: center;
+    min-width: 34px;
+}
+
+.badge-hover-trigger:hover {
+    background-color: #EFF6FF !important;
+    color: #2563EB !important;
+    border-color: rgba(37, 99, 235, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
+}

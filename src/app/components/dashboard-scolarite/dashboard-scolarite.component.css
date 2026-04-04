@@ -61,6 +61,23 @@
     }
 }
 
+@keyframes sparklineGrow {
+    from {
+        transform: scaleY(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scaleY(1);
+        opacity: 1;
+    }
+}
+
+.animate-sparkline {
+    animation: sparklineGrow 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    transform-origin: bottom;
+}
+
 .animate-fadeIn {
     animation: fadeIn 0.4s ease-out backwards;
 }
@@ -89,6 +106,90 @@
     transform: translateY(-4px);
     box-shadow: var(--shadow);
     border-color: var(--blue-mid);
+}
+
+/* 🆕 Premium Glow Effects for Active Cards */
+.stat-card.active-blue {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 4px var(--blue-light), 0 8px 30px -4px rgba(37, 99, 235, 0.25);
+    transform: translateY(-4px);
+}
+
+.stat-card.active-teal {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 4px var(--teal-light), 0 8px 30px -4px rgba(8, 145, 178, 0.25);
+    transform: translateY(-4px);
+}
+
+.stat-card.active-green {
+    border-color: var(--green);
+    box-shadow: 0 0 0 4px var(--green-light), 0 8px 30px -4px rgba(5, 150, 105, 0.25);
+    transform: translateY(-4px);
+}
+
+.stat-card.active-orange {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 4px var(--amber-light), 0 8px 30px -4px rgba(217, 119, 6, 0.25);
+    transform: translateY(-4px);
+}
+
+/* 🆕 Active Filter Badge */
+.stat-active-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: white;
+    border-radius: 50%;
+    padding: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    opacity: 0;
+    transform: scale(0.2) rotate(-45deg);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-card[class*="active-"] .stat-active-badge {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+}
+
+/* ✨ Dynamic Trend Tags */
+.trend-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.trend-up.positive {
+    background: var(--green-light);
+    color: var(--green);
+}
+
+.trend-down.positive {
+    background: var(--green-light);
+    color: var(--green);
+}
+
+.trend-up.negative {
+    background: var(--red-light);
+    color: var(--red);
+}
+
+.trend-down.negative {
+    background: var(--red-light);
+    color: var(--red);
+}
+
+.trend-neutral {
+    background: var(--surface-2);
+    color: var(--text-2);
 }
 
 /* Tables & Grid */
@@ -3119,4 +3220,252 @@
     height: 20px !important;
     min-width: 20px;
     flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════
+   HUB ÉTUDIANT — REDESIGN MODERN & INTÉGRÉ
+═══════════════════════════════════════════ */
+
+.profile-hub {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    animation: fadeIn .4s ease-out;
+}
+
+/* --- Banner Header --- */
+.profile-banner {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-banner::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.profile-avatar-hub {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: white;
+    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
+    flex-shrink: 0;
+}
+
+.profile-header-details {
+    flex: 1;
+}
+
+.profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.profile-name-row h2 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.profile-id-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 10px;
+    border-radius: 6px;
+}
+
+.profile-contact-chips {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.contact-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    transition: all 0.2s;
+}
+
+.contact-chip svg {
+    width: 14px;
+    height: 14px;
+    color: #2563eb;
+}
+
+.contact-chip:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+/* --- Body Grid --- */
+.profile-body-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+}
+
+.profile-column {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.profile-column:not(:last-child) {
+    border-right: 1px solid #f1f5f9;
+}
+
+.column-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.column-header span {
+    font-size: 12px;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.column-header-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-bg-blue {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.icon-bg-green {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.icon-bg-amber {
+    background: #fff7ed;
+    color: #d97706;
+}
+
+.column-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.data-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.data-item-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #94a3b8;
+}
+
+.data-item-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.data-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.data-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.4;
+}
+
+.data-value strong {
+    color: #2563eb;
+}
+
+.data-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid #dbeafe;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .profile-body-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-column:not(:last-child) {
+        border-right: none;
+        border-bottom: 1px solid #f1f5f9;
+    }
 }

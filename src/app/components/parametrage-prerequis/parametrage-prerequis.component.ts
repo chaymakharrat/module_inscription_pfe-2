@@ -16,8 +16,6 @@ export interface PrerequisItemDTO {
   nom: string;
   createdBy?: string;
   createdAt?: string;
-  deactivatedBy?: string;
-  deactivatedAt?: string;
   actif?: boolean;
   isDeletable?: boolean;
   usages?: string[];
@@ -276,6 +274,12 @@ export class ParametragePrerequisComponent implements OnInit {
       this.showToast('⚠️ Capacité invalide (minimum 1)', 'error');
       return;
     }
+
+    // ✅ Règle de divisibilité frontend
+    if (nouvelleCapacite % config.tailleGroupe !== 0) {
+      this.showToast(`⚠️ La capacité (${nouvelleCapacite}) doit être un multiple de la taille du groupe (${config.tailleGroupe})`, 'error');
+      return;
+    }
     this.savingCapacite[config.niveauSpecifiqueId] = true;
     this.http.put<PrerequisConfigDTO>(
       `${this.apiUrl}/niveaux/${config.niveauSpecifiqueId}/capacite`,
@@ -369,6 +373,12 @@ export class ParametragePrerequisComponent implements OnInit {
       this.showToast('⚠️ Taille invalide (min 1)', 'error');
       return;
     }
+
+    // ✅ Règle de divisibilité frontend
+    if (config.capaciteMax % t !== 0) {
+      this.showToast(`⚠️ La capacité actuelle (${config.capaciteMax}) doit être divisible par la nouvelle taille (${t})`, 'error');
+      return;
+    }
     this.savingTaille[config.niveauSpecifiqueId] = true;
     this.http.put<PrerequisConfigDTO>(
       `${this.apiUrl}/niveaux/${config.niveauSpecifiqueId}/taille-groupe`,
@@ -423,7 +433,7 @@ export class ParametragePrerequisComponent implements OnInit {
     this.http.get<PrerequisItemDTO[]>(`${this.apiUrl}/available`).subscribe({
       next: (data) => {
         this.availableItems = data;
-        this.filteredAvailableItems = [...data];
+        this.onSearchChange(); // Call onSearchChange to properly filter out linked ones
       },
       error: (err) => console.error('Erreur chargement suggestions', err)
     });
@@ -431,10 +441,21 @@ export class ParametragePrerequisComponent implements OnInit {
 
   onSearchChange(): void {
     const val = this.formData.nom.toLowerCase();
+
+    // Filter out prerequisites that are already linked to the selected niveau
+    // AND filter out "prerequis type" (isTypeLinked === true)
+    const linkedIds = this.selectedNiveau?.prerequis
+      ? new Set(this.selectedNiveau.prerequis.map(p => p.id))
+      : new Set<number>();
+
+    const unlinkedItems = this.availableItems.filter(item => 
+       !linkedIds.has(item.id) && !item.isTypeLinked
+    );
+
     if (!val) {
-      this.filteredAvailableItems = [...this.availableItems];
+      this.filteredAvailableItems = [...unlinkedItems];
     } else {
-      this.filteredAvailableItems = this.availableItems.filter(item =>
+      this.filteredAvailableItems = unlinkedItems.filter(item =>
         item.nom.toLowerCase().includes(val)
       );
     }
@@ -578,7 +599,7 @@ export class ParametragePrerequisComponent implements OnInit {
       params: { email: this.emailEnseignant }
     }).subscribe({
       next: (res) => {
-        this.myPrerequis = res;
+        this.myPrerequis = res.filter(p => p.createdBy === this.emailEnseignant);
         this.loadingMyPrerequis = false;
       },
       error: (err) => {

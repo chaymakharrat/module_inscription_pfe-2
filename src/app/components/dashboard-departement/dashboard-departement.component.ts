@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -22,6 +22,13 @@ export interface StatsRapideDTO {
   enCours: number; valides: number; rejetes: number; listeAttente: number;
 }
 
+export interface AcceptanceSegment {
+  label: string;
+  count: number;
+  pct: number;
+  color: string;
+}
+
 export interface DashboardDeptDTO {
   nomDepartement: string; nomEnseignant: string; emailEnseignant: string;
   nomDiplome: string; typeDiplome?: string; langue: string;
@@ -30,12 +37,36 @@ export interface DashboardDeptDTO {
 }
 
 export interface CapaciteNiveauDTO {
+  id: number;
   niveau: number; nomDiplome: string; nomDiplomeResponsable: string; typeDiplome?: string; langue: string;
   capaciteMax: number; inscritsConfirmes: number; enCoursTraitement: number;
   enCoursDepartement: number; listeAttente: number; placesRestantes: number;
   pourcentageRemplissage: number; prerequisNiveau: string[]; prerequisType: string[];
+  nbGroupes?: number;
   tailleGroupe?: number;
   scoreMinimum?: number;
+  // UI states
+  groups?: EnrollmentGroup[];
+  loadingGroups?: boolean;
+  showGroups?: boolean;
+}
+
+export interface EnrollmentGroup {
+  id: number;
+  nom: string;
+  statut: 'EN_FORMATION' | 'COMPLET' | 'EN_PROMOTION' | 'ANNULE';
+  niveauSpecifiqueId: number;
+  demandes?: DemandeGroupDTO[];
+  loadingDemandes?: boolean;
+}
+
+export interface DemandeGroupDTO {
+  id: number;
+  numeroDossier: string;
+  etudiantNom: string;
+  etudiantPrenom: string;
+  statutActuel: string;
+  dateStatus?: string;
 }
 
 export interface DemandeDeptDTO {
@@ -100,14 +131,43 @@ export class DashboardDepartementComponent implements OnInit {
   anneesUniversitaires: AnneeUniversitaire[] = [];
   selectedAnnee: string = '';
   isCurrentYear: boolean = true;
+  isAnneeSelectOpen: boolean = false;
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.annee-select-wrapper')) {
+      this.isAnneeSelectOpen = false;
+    }
+  }
+
+  toggleAnneeSelect(): void {
+    this.isAnneeSelectOpen = !this.isAnneeSelectOpen;
+  }
+
+  selectCustomAnnee(annee: string): void {
+    if (this.selectedAnnee !== annee) {
+      this.selectedAnnee = annee;
+      this.onAnneeChange();
+    }
+    this.isAnneeSelectOpen = false;
+  }
 
   private apiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/dashboardDepartment`;
 
-  // Table / filtres
+  // Table / filtres UNIFIÉS
   currentFilter = 'tous';
   searchTerm = '';
+  currentDiplome = '';
+  currentNiveau = '';
+  currentLangue = '';
+  currentPrerequisFilter: 'OK' | 'KO' | '' = '';
   filteredDemandes: DemandeDeptDTO[] = [];
+  selectedGroup: EnrollmentGroup | null = null;
   viewMode: 'list' | 'grid' = 'list';
+
+  // Accordion PAR_TYPE — collapsed diplomes
+  collapsedDiplomes: Set<string> = new Set();
 
   // Pagination
   currentPage = 0;
@@ -195,6 +255,47 @@ export class DashboardDepartementComponent implements OnInit {
     private studentService: StudentService
   ) { }
 
+  // ─── HIERARCHICAL GROUPS ──────────────────────────────────────────────────
+
+  toggleGroups(cap: CapaciteNiveauDTO): void {
+    cap.showGroups = !cap.showGroups;
+    if (cap.showGroups && !cap.groups) {
+      this.loadGroupsForNiveau(cap);
+    }
+  }
+
+  loadGroupsForNiveau(cap: CapaciteNiveauDTO): void {
+    if (!cap.id) return;
+    cap.loadingGroups = true;
+    this.scolariteService.getGroupsByNiveauSpecifique(cap.id).subscribe({
+      next: (groups: any[]) => {
+        cap.groups = groups;
+        cap.loadingGroups = false;
+      },
+      error: (err) => {
+        console.error('Erreur chargement groupes:', err);
+        cap.loadingGroups = false;
+        this.showToast('Erreur lors du chargement des groupes', 'error');
+      }
+    });
+  }
+
+  loadDemandesForGroup(group: EnrollmentGroup): void {
+    if (!group.id) return;
+    group.loadingDemandes = true;
+    this.scolariteService.getDemandesByGroupId(group.id).subscribe({
+      next: (demandes: DemandeGroupDTO[]) => {
+        // Sécurité : on filtre aussi côté front
+        group.demandes = demandes.filter(d => !d.statutActuel?.includes('REJETE'));
+        group.loadingDemandes = false;
+      },
+      error: (err) => {
+        console.error('Erreur chargement étudiants:', err);
+        group.loadingDemandes = false;
+      }
+    });
+  }
+
   async ngOnInit(): Promise<void> {
     try {
       const isLoggedIn = await this.keycloak.isLoggedIn();
@@ -205,7 +306,7 @@ export class DashboardDepartementComponent implements OnInit {
         (profile.email || '') ||
         (this.keycloak.getKeycloakInstance().tokenParsed as any)?.email || '';
       if (!this.emailEnseignant) return;
-      
+
       this.loadAcademicYears();
     } catch { }
   }
@@ -273,6 +374,7 @@ export class DashboardDepartementComponent implements OnInit {
         params: {
           email, annee, statut: this.getStatutFromFilter(this.currentFilter),
           search: this.searchTerm.trim(),
+          nomDiplome: this.currentDiplome,
           page: this.currentPage.toString(), size: this.pageSize.toString()
         }
       })
@@ -293,33 +395,104 @@ export class DashboardDepartementComponent implements OnInit {
 
   loadDemandesFromBackend(): void {
     if (!this.emailEnseignant || !this.dashboard) return;
+    this.loading = true;
     const email = this.emailEnseignant.trim().toLowerCase();
     const annee = this.selectedAnnee;
-    this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
-      params: {
-        email, annee, statut: this.getStatutFromFilter(this.currentFilter),
-        search: this.searchTerm.trim(),
-        page: this.currentPage.toString(), size: this.pageSize.toString()
-      }
-    }).subscribe({
+
+    const params: any = {
+      email,
+      annee,
+      statut: this.getStatutFromFilter(this.currentFilter),
+      search: this.searchTerm.trim(),
+      niveau: this.currentNiveau,
+      langue: this.currentLangue,
+      nomDiplome: this.currentDiplome,
+      page: this.currentPage.toString(),
+      size: this.pageSize.toString()
+    };
+
+    if (this.selectedGroup) params.groupId = this.selectedGroup.id.toString();
+
+    if (this.currentPrerequisFilter === 'OK') params.prerequisSatisfaits = 'true';
+    if (this.currentPrerequisFilter === 'KO') params.prerequisSatisfaits = 'false';
+
+    this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, { params }).subscribe({
       next: (response) => {
         this.dashboard!.demandes = response.content;
         this.filteredDemandes = response.content;
         this.totalElements = response.totalElements;
         this.totalPages = response.totalPages;
+        this.loading = false;
       },
-      error: (err) => console.error('❌ Erreur demandes:', err)
+      error: (err) => {
+        console.error('❌ Erreur demandes:', err);
+        this.loading = false;
+      }
     });
   }
 
   // ─── FILTRES / PAGINATION ────────────────────────────────────────────────
 
-  setFilter(filter: string): void { this.currentFilter = filter; this.currentPage = 0; this.loadDemandesFromBackend(); }
-  onSearch(): void { this.currentPage = 0; this.loadDemandesFromBackend(); }
+  setFilter(filter: string): void {
+    if (filter === 'prerequis_ok') {
+      this.currentPrerequisFilter = 'OK';
+      this.currentFilter = 'prerequis_ok';
+    } else if (filter === 'prerequis_ko') {
+      this.currentPrerequisFilter = 'KO';
+      this.currentFilter = 'prerequis_ko';
+    } else if (filter === 'tous') {
+      this.currentPrerequisFilter = '';
+      this.currentFilter = 'tous';
+      this.currentDiplome = '';
+      this.currentNiveau = '';
+      this.currentLangue = '';
+      this.searchTerm = '';
+      this.selectedNiveau = null;
+    } else {
+      this.currentFilter = filter;
+      this.currentPrerequisFilter = ''; // Reset prereq filter when switching major status
+    }
+    this.currentPage = 0;
+    this.loadDemandesFromBackend();
+  }
+
+  resetFilters(): void {
+    this.currentFilter = 'tous';
+    this.currentPrerequisFilter = '';
+    this.currentDiplome = '';
+    this.currentNiveau = '';
+    this.currentLangue = '';
+    this.searchTerm = '';
+    this.selectedNiveau = null;
+    this.selectedGroup = null;
+    this.currentPage = 0;
+    this.loadDemandesFromBackend();
+  }
+
+  onSearch(): void {
+    this.currentPage = 0;
+    this.loadDemandesFromBackend();
+  }
+
+  getFilterLabel(): string {
+    const map: Record<string, string> = {
+      'tous': 'Toutes les demandes',
+      'en_cours': 'En cours département',
+      'liste_attente': 'Liste d\'attente',
+      'valides': 'Validées / Inscrites',
+      'rejetes': 'Rejetées',
+      'prerequis_ok': 'Prérequis OK',
+      'prerequis_ko': 'Prérequis KO'
+    };
+    return map[this.currentFilter] || this.currentFilter;
+  }
 
   private getStatutFromFilter(filter: string): string {
     const map: Record<string, string> = {
-      'liste_attente': 'LISTE_ATTENTE', 'valides': 'DEPARTEMENT_VALIDE', 'rejetes': 'REJETE_DEPARTEMENT'
+      'liste_attente': 'ATTENTE',
+      'valides': 'VALIDE',
+      'rejetes': 'REJETE',
+      'en_cours': 'EN_COURS'
     };
     return map[filter] || '';
   }
@@ -805,6 +978,31 @@ export class DashboardDepartementComponent implements OnInit {
 
   isActionnable(demande: DemandeDeptDTO): boolean { return demande.statut === 'EN_COURS_DEPARTEMENT'; }
 
+  // ─── ACCORDION PAR_TYPE ───────────────────────────────────────────────────
+
+  toggleDiplome(nomDiplome: string): void {
+    if (this.collapsedDiplomes.has(nomDiplome)) {
+      this.collapsedDiplomes.delete(nomDiplome);
+    } else {
+      this.collapsedDiplomes.add(nomDiplome);
+    }
+  }
+
+  isDiplomeCollapsed(nomDiplome: string): boolean {
+    return this.collapsedDiplomes.has(nomDiplome);
+  }
+
+  getCapaciteSummaryForDiplome(nomDiplome: string): { inscrits: number; max: number; pct: number; status: string; nbNiveaux: number } {
+    const caps = (this.dashboard?.capacites || []).filter(c => c.nomDiplome === nomDiplome);
+    const max = caps.reduce((s, c) => s + c.capaciteMax, 0);
+    const inscrits = caps.reduce((s, c) => s + c.inscritsConfirmes + c.enCoursTraitement, 0);
+    const pct = max > 0 ? Math.round((inscrits / max) * 100) : 0;
+    const status = pct >= 100 ? '🔴 Complet' : pct >= 90 ? '🟠 Quasi-complet' : pct >= 70 ? '🟡 Quasi-plein' : '🟢 Disponible';
+    return { inscrits, max, pct, status, nbNiveaux: caps.length };
+  }
+
+
+
   getStatutClass(statut: string): string {
     const map: Record<string, string> = {
       'EN_COURS_DEPARTEMENT': 'chip-blue', 'DEPARTEMENT_VALIDE': 'chip-green',
@@ -827,6 +1025,18 @@ export class DashboardDepartementComponent implements OnInit {
     if (!this.dashboard?.nomEnseignant) return 'E';
     return this.dashboard.nomEnseignant.replace('Dr. ', '').split(' ')
       .map(p => p[0]).join('').substring(0, 2).toUpperCase() || 'EN';
+  }
+
+  formatPhone(phone: string | null | undefined): string {
+    if (!phone) return 'Non renseigné';
+    const cleaned = phone.replace(/\s+/g, '');
+    const match = cleaned.match(/^(\+\d{1,3})(\d+)$/);
+    if (match) {
+      const [_, prefix, rest] = match;
+      const formattedRest = rest.replace(/(\d{2})(?=\d)/g, '$1 ').trim();
+      return `(${prefix}) ${formattedRest}`;
+    }
+    return phone;
   }
 
   getDisplayRole(): string {
@@ -876,26 +1086,125 @@ export class DashboardDepartementComponent implements OnInit {
     return 76 - Math.round(((total - validPart) / total) * 302);
   }
 
-  getBacDistribution(): { label: string, pct: number, color: string }[] {
-    if (!this.dashboard?.demandes?.length) return [];
-    const inscrits = this.dashboard.demandes.filter(d => d.statut === 'INSCRIT');
-    if (!inscrits.length) return [];
+  getBacDistribution(): { label: string, pct: number, color: string, count: number, tooltip?: string }[] {
+    if (!this.dashboard?.demandes) return [];
+
+    // 1. Liste FIXE de toutes les séries de Bac (Ordre Enum)
+    const series = [
+      { id: 'MATHS', label: 'Maths', color: '#2563eb' },
+      { id: 'INFO', label: 'Info', color: '#059669' },
+      { id: 'SCIENCES', label: 'Sciences', color: '#d97706' },
+      { id: 'TECHNIQUE', label: 'Technique', color: '#7c3aed' },
+      { id: 'ECO', label: 'Éco-Gestion', color: '#db2777' },
+      { id: 'AUTRES', label: 'Autres', color: '#8b92a9' }
+    ];
+
+    // 2. Filtrer les rejets ENTIÈREMENT — On ne veut que les profils ACTIFS (En cours/Validés d'après votre demande)
+    const activeDemandes = this.dashboard.demandes.filter(d =>
+      !d.statut?.toUpperCase().includes('REJETE')
+    );
+
+    if (activeDemandes.length === 0) {
+      return series.map(s => ({ ...s, pct: 0, count: 0 }));
+    }
+
+    // 3. Compter par série (Unicité par étudiant)
     const unique = new Map<number, DemandeDeptDTO>();
-    inscrits.forEach(d => { if (!unique.has(d.etudiantId)) unique.set(d.etudiantId, d); });
+    activeDemandes.forEach(d => { if (!unique.has(d.etudiantId)) unique.set(d.etudiantId, d); });
+
     const counts: Record<string, number> = {};
+    const autresCountries = new Set<string>();
+
     Array.from(unique.values()).forEach(d => {
-      const b = d.diplomeObtenu?.toLowerCase() || '';
-      const k = b.includes('math') ? 'Bac Math' : b.includes('info') ? 'Bac Info'
-        : b.includes('science') ? 'Bac Sciences' : 'Autres';
-      counts[k] = (counts[k] || 0) + 1;
+      // ✅ Priorité 1 : Le type de Bac de l'infomation étudiant
+      // ✅ Priorité 2 : Le dernier diplôme obtenu (Bac ou Licence selon dossier)
+      // ❌ On EXCLUT d.nomDiplome (Target) car il fausse les stats
+      const backgroundToScan = (" " + [
+        d.etudiantInfo?.typeBac,
+        d.diplomeObtenu
+      ].filter(v => !!v).join(' ') + " ").toUpperCase();
+
+      let key = 'AUTRES';
+      if (backgroundToScan.includes('MATH') || backgroundToScan.includes(' MP') || backgroundToScan.includes('MPC')) key = 'MATHS';
+      else if (backgroundToScan.includes('INFO') || backgroundToScan.includes('MULTIMEDIA') || backgroundToScan.includes('NUMERIQUE')) key = 'INFO';
+      else if (backgroundToScan.includes('SCIENCE') || backgroundToScan.includes('EXPERIMENTALE') || backgroundToScan.includes('CHIMIE') || backgroundToScan.includes('BIO') || backgroundToScan.includes(' S ') || backgroundToScan.includes(' PC') || backgroundToScan.includes(' SVT')) key = 'SCIENCES';
+      else if (backgroundToScan.includes('TECHNIQUE') || backgroundToScan.includes('GENIE') || backgroundToScan.includes('ELECTRIQUE') || backgroundToScan.includes('MECANIQUE') || backgroundToScan.includes(' STI')) key = 'TECHNIQUE';
+      else if (backgroundToScan.includes('ECONOMIE') || backgroundToScan.includes('GESTION') || backgroundToScan.includes('ECO') || backgroundToScan.includes(' ES ') || backgroundToScan.includes(' STMG')) key = 'ECO';
+      else if (backgroundToScan.includes('LETTRES') || backgroundToScan.includes('DROIT') || backgroundToScan.includes('HUMAIN') || backgroundToScan.includes(' L ')) key = 'LETTRES';
+      else if (backgroundToScan.includes('SPORT')) key = 'SPORT';
+
+      counts[key] = (counts[key] || 0) + 1;
+      if (key === 'AUTRES') {
+        autresCountries.add(d.etudiantInfo?.paysNom || (d as any).paysNom || 'Étranger');
+      }
     });
+
     const total = unique.size;
-    const colors: Record<string, string> = {
-      'Bac Math': '#2563eb', 'Bac Info': '#059669', 'Bac Sciences': '#d97706', 'Autres': '#8b92a9'
+    return series.map(s => ({
+      ...s,
+      count: counts[s.id] || 0,
+      pct: total > 0 ? Math.round(((counts[s.id] || 0) / total) * 100) : 0,
+      tooltip: s.id === 'AUTRES' ? Array.from(autresCountries).join(', ') : undefined
+    }));
+  }
+
+  getAcceptationSegments(): AcceptanceSegment[] {
+    if (!this.dashboard?.demandes) return [];
+
+    const demands = this.dashboard.demandes;
+    const total = demands.length;
+    if (total === 0) return [];
+
+    // 1. Compter les dossiers par statut exact
+    const statusCounts: Record<string, number> = {};
+    demands.forEach(d => {
+      const s = d.statut || 'INCONNU';
+      statusCounts[s] = (statusCounts[s] || 0) + 1;
+    });
+
+    // 2. Définir l'ordre logique et le style de chaque statut
+    const statusConfigs: Record<string, { label: string, color: string, order: number }> = {
+      'FORMULAIRE_ENVOYE': { label: '📝 Formulaire', color: '#94a3b8', order: 1 },
+      'EN_COURS_FINANCE': { label: '⏳ Finance en cours', color: '#3b82f6', order: 2 },
+      'EN_ATTENTE_PAIEMENT': { label: '💳 Attente paiement', color: '#8b5cf6', order: 3 },
+      'REJETE_FINANCE': { label: '❌ Refus Finance', color: '#ef4444', order: 10 },
+      'EN_COURS_SCOLARITE': { label: '🔗 Scolarité', color: '#06b6d4', order: 4 },
+      'SCOLARITE_VALIDEE': { label: '🎓 Scolarité validée', color: '#0ea5e9', order: 5 },
+      'EN_COURS_DEPARTEMENT': { label: '🏛️ Département', color: '#6366f1', order: 6 },
+      'DEPARTEMENT_VALIDE': { label: '✅ Admis', color: '#10b981', order: 7 },
+      'INSCRIT': { label: '🎯 Inscrit', color: '#059669', order: 8 },
+      'REJETE_DEPARTEMENT': { label: '❌ Refus Dépt.', color: '#be123c', order: 11 },
+      'REJETE_SCOLARITE': { label: '❌ Refus Scol.', color: '#f43f5e', order: 12 },
     };
-    return Object.keys(counts).map(k => ({
-      label: k, pct: Math.round((counts[k] / total) * 100), color: colors[k] || '#8b92a9'
-    })).sort((a, b) => b.pct - a.pct);
+
+    // 3. Transformer en segments triés
+    return Object.keys(statusCounts).map(statusKey => {
+      const config = statusConfigs[statusKey] || { label: statusKey, color: '#e2e8f0', order: 99 };
+      const count = statusCounts[statusKey];
+      return {
+        label: config.label,
+        color: config.color,
+        count: count,
+        pct: Math.round((count / total) * 100),
+        order: config.order
+      };
+    }).sort((a, b) => (a as any).order - (b as any).order);
+  }
+
+  // ✅ Getters pour les cartes de statistiques (Vision Pipeline Global)
+  getGlobalEnCours(): number {
+    if (!this.dashboard?.demandes) return 0;
+    return this.dashboard.demandes.filter(d => !d.statut.includes('VALIDE') && !d.statut.includes('REJETE') && d.statut !== 'INSCRIT').length;
+  }
+
+  getGlobalValides(): number {
+    if (!this.dashboard?.demandes) return 0;
+    return this.dashboard.demandes.filter(d => d.statut === 'DEPARTEMENT_VALIDE' || d.statut === 'INSCRIT').length;
+  }
+
+  getGlobalRejetes(): number {
+    if (!this.dashboard?.demandes) return 0;
+    return this.dashboard.demandes.filter(d => d.statut.includes('REJETE')).length;
   }
 
   openAddPrereq(): void { if (this.paramComponent) this.paramComponent.openAddModal(null); }
@@ -967,7 +1276,7 @@ export class DashboardDepartementComponent implements OnInit {
           this.selectedDemande.etudiantInfo = {
             id: student.id || 0, nom: student.nom, prenom: student.prenom,
             matricule: student.matricule || '', email: student.email,
-            telephone: student.phone, dateNaissance: student.dateNaissance,
+            phone: student.phone, dateNaissance: student.dateNaissance,
             numCarteIdentite: student.numCarteIdentite || '',
             numPassport: student.numPassport || '', paysNom: '',
             adresse: (student as any).adresse || '',
@@ -1037,6 +1346,34 @@ export class DashboardDepartementComponent implements OnInit {
     return labels[type] || type;
   }
 
+  // ─── FILTRAGE PAR GROUPE ─────────────────────────────────────────────────
+
+  filtrerParGroupe(group: EnrollmentGroup): void {
+    if (this.selectedGroup?.id === group.id) {
+      this.clearFiltreGroupe();
+      return;
+    }
+    this.selectedGroup = group;
+    // On synchronise les autres filtres pour que l'UI soit cohérente
+    this.currentDiplome = '';
+    this.currentNiveau = '';
+    this.currentLangue = '';
+    this.selectedNiveau = null;
+
+    this.currentPage = 0;
+    this.loadDemandesFromBackend();
+
+    // Smooth scroll vers le tableau
+    const el = document.querySelector('.section-card:last-of-type');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  clearFiltreGroupe(): void {
+    this.selectedGroup = null;
+    this.currentPage = 0;
+    this.loadDemandesFromBackend();
+  }
+
   getDocumentStatutLabel(statut: string): string {
     return ({ SOUMIS: 'Soumis', VALIDE: 'Validé ✓', REJETE: 'Rejeté', MANQUANTE: 'Manquant', RELANCE: 'Relancé' } as any)[statut] || statut;
   }
@@ -1050,41 +1387,30 @@ export class DashboardDepartementComponent implements OnInit {
   selectedNiveau: string | null = null;
 
   filtrerParNiveau(cap: CapaciteNiveauDTO): void {
-    // ✅ La clé intègre maintenant nomDiplome pour éviter les collisions en mode PAR_TYPE
     const key = `${cap.niveau}-${cap.langue}-${cap.nomDiplome}`;
-    this.selectedNiveau = this.selectedNiveau === key ? null : key;
-    this.currentFilter = 'tous';
+    if (this.selectedNiveau === key) {
+      this.selectedNiveau = null;
+      this.currentNiveau = '';
+      this.currentLangue = '';
+      this.currentDiplome = '';
+    } else {
+      this.selectedNiveau = key;
+      this.currentNiveau = cap.niveau.toString();
+      this.currentLangue = cap.langue;
+      this.currentDiplome = cap.nomDiplome;
+    }
     this.currentPage = 0;
-    this.loadDemandesParNiveau(cap);
+    this.loadDemandesFromBackend();
   }
 
-  loadDemandesParNiveau(cap: CapaciteNiveauDTO): void {
-    if (!this.emailEnseignant || !this.dashboard) return;
-    this.http.get<PageResponse<DemandeDeptDTO>>(`${this.apiUrl}/demandes`, {
-      params: {
-        email: this.emailEnseignant.trim().toLowerCase(),
-        annee: this.selectedAnnee,
-        niveau: cap.niveau.toString(),
-        langue: cap.langue,
-        // ✅ Ajout du filtre nomDiplome pour le mode PAR_TYPE
-        nomDiplome: cap.nomDiplome,
-        page: '0', size: this.pageSize.toString()
-      }
-    }).subscribe({
-      next: (response) => {
-        this.filteredDemandes = response.content;
-        this.totalElements = response.totalElements;
-        this.totalPages = response.totalPages;
-        this.currentPage = 0;
-        setTimeout(() => {
-          document.querySelector('.section-card:last-of-type')?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      },
-      error: (err) => console.error('❌ Erreur filtre niveau:', err)
-    });
+  clearFiltreNiveau(): void {
+    this.selectedNiveau = null;
+    this.currentNiveau = '';
+    this.currentLangue = '';
+    this.currentDiplome = '';
+    this.currentPage = 0;
+    this.loadDemandesFromBackend();
   }
-
-  clearFiltreNiveau(): void { this.selectedNiveau = null; this.currentPage = 0; this.loadDemandesFromBackend(); }
 
   // ─── REJET MASSE ─────────────────────────────────────────────────────────
 

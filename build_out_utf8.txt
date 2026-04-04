@@ -1,0 +1,237 @@
+﻿[33mÔØ»[39m Building...
+[32mÔ£ö[39m Building...
+Application bundle generation failed. [10.142 seconds]
+
+node.exe : [1m[33m[33mÔû▓ 
+[43;33m[[43;30mWARNING[43;33m][0m 
+[1mTS-998113: ParametragePrerequisComponent 
+is not used within the template of 
+DashboardDepartementComponent[0m 
+[1m[35m[plugin angular-compiler][0m
+Au caractère C:\Program 
+Files\nodejs\npx.ps1:29 : 3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 
+   [1m[33m[33mÔ...r-compiler][0m:String) [  
+  ], RemoteException
+    + FullyQualifiedErrorId : NativeCommandErr 
+   or
+ 
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.ts:96:39:
+[37m      96 Ôöé ...mmonModule, FormsModule, 
+[32mParametragePrerequisComponent[37m, 
+SafePipe],
+         ÔòÁ                             
+[32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33mÔû▓ [43;33m[[43;30mWARNING[43;33m][0m 
+[1mTS-998113: SafePipe is not used within the 
+template of DashboardDepartementComponent[0m 
+[1m[35m[plugin angular-compiler][0m
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.ts:96:70:
+[37m      96 Ôöé ...mmonModule, FormsModule, 
+ParametragePrerequisComponent, 
+[32mSafePipe[37m],
+         ÔòÁ                                   
+                         [32m~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX 
+[41;31m[[41;97mERROR[41;31m][0m 
+[1mNG5002: Opening tag "div" not 
+terminated.[0m [1m[35m[plugin 
+angular-compiler][0m
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.html:137:12:
+[37m      137 Ôöé             [32m<div 
+class="relative bg-white rounded-[20px] p-6 
+bord[37m...
+          ÔòÁ             [32m~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component 
+DashboardDepartementComponent.
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.ts:97:15:
+[37m      97 Ôöé   templateUrl: [32m'./dashbo
+ard-departement.component.html'[37m,
+         ÔòÁ                [32m~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m 
+[1mNG5002: Opening tag "div" not 
+terminated.[0m [1m[35m[plugin 
+angular-compiler][0m
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.html:176:12:
+[37m      176 Ôöé             [32m<div 
+class="relative bg-white rounded-[20px] p-6 
+bord[37m...
+          ÔòÁ             [32m~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component 
+DashboardDepartementComponent.
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.ts:97:15:
+[37m      97 Ôöé   templateUrl: [32m'./dashbo
+ard-departement.component.html'[37m,
+         ÔòÁ                [32m~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m 
+[1mNG5002: Opening tag "div" not 
+terminated.[0m [1m[35m[plugin 
+angular-compiler][0m
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.html:215:12:
+[37m      215 Ôöé             [32m<div 
+class="relative bg-white rounded-[20px] p-6 
+bord[37m...
+          ÔòÁ             [32m~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component 
+DashboardDepartementComponent.
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.ts:97:15:
+[37m      97 Ôöé   templateUrl: [32m'./dashbo
+ard-departement.component.html'[37m,
+         ÔòÁ                [32m~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m 
+[1mNG5002: Unexpected closing tag "div". It 
+may happen when the tag has already been 
+closed by another tag. For more info see https:
+//www.w3.org/TR/html5/syntax.html#closing-eleme
+nts-that-have-implied-end-tags[0m 
+[1m[35m[plugin angular-compiler][0m
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.html:256:12:
+[37m      256 Ôöé             [32m</div>[37m
+          ÔòÁ             [32m~~~~~~[0m
+
+  Error occurs in the template of component 
+DashboardDepartementComponent.
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.ts:97:15:
+[37m      97 Ôöé   templateUrl: [32m'./dashbo
+ard-departement.component.html'[37m,
+         ÔòÁ                [32m~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m 
+[1mNG5002: Opening tag "div" not 
+terminated.[0m [1m[35m[plugin 
+angular-compiler][0m
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.html:259:12:
+[37m      259 Ôöé             [32m<div 
+class="relative bg-white rounded-[20px] p-6 
+bord[37m...
+          ÔòÁ             [32m~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component 
+DashboardDepartementComponent.
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.ts:97:15:
+[37m      97 Ôöé   templateUrl: [32m'./dashbo
+ard-departement.component.html'[37m,
+         ÔòÁ                [32m~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m 
+[1mNG5002: Unexpected closing tag "div". It 
+may happen when the tag has already been 
+closed by another tag. For more info see https:
+//www.w3.org/TR/html5/syntax.html#closing-eleme
+nts-that-have-implied-end-tags[0m 
+[1m[35m[plugin angular-compiler][0m
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.html:302:12:
+[37m      302 Ôöé             [32m</div>[37m
+          ÔòÁ             [32m~~~~~~[0m
+
+  Error occurs in the template of component 
+DashboardDepartementComponent.
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.ts:97:15:
+[37m      97 Ôöé   templateUrl: [32m'./dashbo
+ard-departement.component.html'[37m,
+         ÔòÁ                [32m~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m 
+[1mNG5002: Unexpected closing tag "div". It 
+may happen when the tag has already been 
+closed by another tag. For more info see https:
+//www.w3.org/TR/html5/syntax.html#closing-eleme
+nts-that-have-implied-end-tags[0m 
+[1m[35m[plugin angular-compiler][0m
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.html:304:8:
+[37m      304 Ôöé         [32m</div>[37m
+          ÔòÁ         [32m~~~~~~[0m
+
+  Error occurs in the template of component 
+DashboardDepartementComponent.
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.ts:97:15:
+[37m      97 Ôöé   templateUrl: [32m'./dashbo
+ard-departement.component.html'[37m,
+         ÔòÁ                [32m~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m 
+[1mNG5002: Unexpected closing tag "div". It 
+may happen when the tag has already been 
+closed by another tag. For more info see https:
+//www.w3.org/TR/html5/syntax.html#closing-eleme
+nts-that-have-implied-end-tags[0m 
+[1m[35m[plugin angular-compiler][0m
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.html:1065:4:
+[37m      1065 Ôöé     [32m</div>[37m
+           ÔòÁ     [32m~~~~~~[0m
+
+  Error occurs in the template of component 
+DashboardDepartementComponent.
+
+    src/app/components/dashboard-departement/da
+shboard-departement.component.ts:97:15:
+[37m      97 Ôöé   templateUrl: [32m'./dashbo
+ard-departement.component.html'[37m,
+         ÔòÁ                [32m~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m

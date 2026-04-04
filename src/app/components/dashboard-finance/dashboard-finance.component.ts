@@ -86,7 +86,6 @@ export interface FormulaireDashboardDTO {
   typePaiement?: TypePaiement;
   frequenceMois?: number;
   dateExpiration?: string;
-  commentaireAgent?: string;
   remisesDemandees: RemiseDTO[];
   totalRemiseAcceptee: number;
   totalRemiseDemandee: number;
@@ -183,6 +182,19 @@ export class DashboardFinanceComponent implements OnInit {
   searchTerm = '';
   viewMode: 'list' | 'grid' = 'list';
 
+  // --- Nouveaux états analytiques ---
+  departements: any[] = [];
+  pipelineStats = {
+    enCoursFinance: 0,
+    formulaireEnvoye: 0,
+    enAttentePaiement: 0,
+    envoyes: 0,
+    rejetes: 0,
+    valides: 0,
+    retard: 0
+  };
+  catalogue: any[] = [];
+
   currentPage = 0;
   pageSize = 10;
   totalElements = 0;
@@ -194,7 +206,6 @@ export class DashboardFinanceComponent implements OnInit {
 
   showDecisionForm = false;
   pendingDecision: 'VALIDER' | 'REFUSER' | null = null;
-  commentaireDecision = '';
   actionLoading = false;
 
   showPaiementDialog = false;
@@ -275,12 +286,14 @@ export class DashboardFinanceComponent implements OnInit {
         this.loadStats();
         this.loadFormulaires();
         this.loadRemises();
+        this.loadPipelineAndFrais();
       },
       error: (err) => {
         console.error('❌ Erreur chargement années:', err);
         this.loadStats();
         this.loadFormulaires();
         this.loadRemises();
+        this.loadPipelineAndFrais();
       }
     });
   }
@@ -291,18 +304,139 @@ export class DashboardFinanceComponent implements OnInit {
     this.currentPage = 0;
     this.loadStats();
     this.loadFormulaires();
+    this.loadPipelineAndFrais();
   }
 
   loadStats(): void {
     this.http.get<DashboardFinanceDTO>(`${this.apiUrl}/stats`, {
-      params: { 
+      params: {
         email: this.emailAgent,
         annee: this.selectedAnnee
       }
     }).subscribe({
-      next: s => this.stats = s,
+      next: s => {
+        this.stats = s;
+        // Retard is fetched from stats, we update it in the local pipeline
+        this.pipelineStats.retard = s.echeancesEnRetard;
+      },
       error: e => console.error('Stats error:', e)
     });
+  }
+
+  loadPipelineAndFrais(): void {
+    // 1. Pipeline - Chargement des stats avec déduplication (LATEST STATUT)
+    this.http.get<PageResponse<FormulaireDashboardDTO>>(`${this.apiUrl}/formulaires?page=0&size=9999&annee=${this.selectedAnnee}`)
+      .subscribe({
+        next: (res) => {
+          const deduplicated = new Map<number, FormulaireDashboardDTO>();
+          res.content.forEach(f => {
+            // Déduplication SEULEMENT par ID de la demande (enrollmentId)
+            // Chaque enrollmentId correspond exactement à une "demande".
+            const key = f.enrollmentId;
+
+            const existant = deduplicated.get(key);
+
+            // Si la MÊME demande apparaît plusieurs fois, on prend la forme la plus récente
+            if (!existant || (f.formulaireId || 0) > (existant.formulaireId || 0)) {
+              deduplicated.set(key, f);
+            }
+          });
+
+          let enCours = 0;
+          let formulaireEnvoye = 0;
+          let enAttentePaiement = 0;
+          let envoyes = 0;
+          let rejetes = 0;
+          let valides = 0;
+
+          deduplicated.forEach(f => {
+            envoyes++;
+            // Synchronisation stricte avec l'affichage visuel du tableau (qui utilise f.statutDemande)
+            if (f.statutDemande === 'EN_COURS_FINANCE') enCours++;
+            if (f.statutDemande === 'FORMULAIRE_ENVOYE') formulaireEnvoye++;
+            if (f.statutDemande === 'EN_ATTENTE_PAIEMENT') enAttentePaiement++;
+            if (f.statutDemande === 'REJETE_FINANCE') rejetes++;
+            if (f.statutDemande === 'PAIEMENT_VALIDE' || f.statutDemande === 'INSCRIT') valides++;
+          });
+
+          this.pipelineStats.enCoursFinance = enCours;
+          this.pipelineStats.formulaireEnvoye = formulaireEnvoye;
+          this.pipelineStats.enAttentePaiement = enAttentePaiement;
+          this.pipelineStats.envoyes = envoyes;
+          this.pipelineStats.rejetes = rejetes;
+          this.pipelineStats.valides = valides;
+        }
+      });
+
+    // 2. Catalogue des Frais - Récupérer les départements et diplômes
+    this.http.get<any[]>(`${environment.apiUrl}/DEPARTEMENT-SERVICE/api/departements?annee=${this.selectedAnnee}`)
+      .subscribe({
+        next: (res) => {
+          this.departements = res;
+          this.buildCatalogue();
+        },
+        error: e => console.error('Erreur chargement catalogue des frais', e)
+      });
+  } // <-- Fin de loadPipelineAndFrais()
+
+  get pieChartGradient(): string {
+    const total = this.pipelineStats.envoyes || 1;
+
+    const pCours = (this.pipelineStats.enCoursFinance / total) * 360;
+    const pForm = (this.pipelineStats.formulaireEnvoye / total) * 360;
+    const pPaiement = (this.pipelineStats.enAttentePaiement / total) * 360;
+    const pValide = (this.pipelineStats.valides / total) * 360;
+    const pRejete = (this.pipelineStats.rejetes / total) * 360;
+
+    let c1 = pCours;
+    let c2 = c1 + pForm;
+    let c3 = c2 + pPaiement;
+    let c4 = c3 + pValide;
+    let c5 = c4 + pRejete;
+
+    if (this.pipelineStats.envoyes === 0) {
+      return `conic-gradient(#f3f4f6 0deg 360deg)`;
+    }
+
+    return `conic-gradient(
+          #3b82f6 0deg ${c1}deg,
+          #8b5cf6 ${c1}deg ${c2}deg,
+          #f59e0b ${c2}deg ${c3}deg,
+          #10b981 ${c3}deg ${c4}deg,
+          #f43f5e ${c4}deg ${c5}deg,
+          #f3f4f6 ${c5}deg 360deg
+      )`;
+  }
+
+  buildCatalogue(): void {
+    if (!this.departements) {
+      this.catalogue = [];
+      return;
+    }
+
+    this.catalogue = this.departements.map((dept: any) => {
+      // Group diplomes by nomDiplome
+      const diplomesMap = new Map<string, any>();
+
+      (dept.diplomes || []).forEach((d: any) => {
+        if (!diplomesMap.has(d.nomDiplome)) {
+          diplomesMap.set(d.nomDiplome, {
+            nomDiplome: d.nomDiplome,
+            variantes: []
+          });
+        }
+        diplomesMap.get(d.nomDiplome).variantes.push({
+          langue: d.langue || 'N/A',
+          typeNom: d.typeNom || 'N/A',
+          frais: d.fraisInscription || 0
+        });
+      });
+
+      return {
+        nom: dept.nom,
+        diplomes: Array.from(diplomesMap.values())
+      };
+    }).filter(dept => dept.diplomes.length > 0);
   }
 
   loadFormulaires(): void {
@@ -333,6 +467,7 @@ export class DashboardFinanceComponent implements OnInit {
   refreshAll(): void {
     this.loadStats();
     this.loadFormulaires();
+    this.loadPipelineAndFrais();
   }
 
   setFilter(filter: StatutFormulaire | 'tous'): void {
@@ -368,7 +503,6 @@ export class DashboardFinanceComponent implements OnInit {
     this.showModal = true;
     this.showDecisionForm = false;
     this.pendingDecision = null;
-    this.commentaireDecision = '';
 
     this.http.get<FormulaireDashboardDTO>(`${this.apiUrl}/formulaires/${f.enrollmentId}`)
       .subscribe({
@@ -413,9 +547,9 @@ export class DashboardFinanceComponent implements OnInit {
     this.pendingDecision = decision;
     this.showDecisionForm = true;
     if (decision === 'VALIDER') {
-      this.commentaireDecision = 'Dossier validé. Les préférences financières ont été confirmées.';
+      this.motifRejet = '';
     } else {
-      this.commentaireDecision = '';
+      this.motifRejet = 'Le dossier ne remplit pas les conditions financières requises.';
     }
   }
 
@@ -459,7 +593,7 @@ export class DashboardFinanceComponent implements OnInit {
         `${environment.workflowServiceUrl}/api/workflow/tasks/${taskId}/complete`,
         {
           decision: accepte ? 'ACCEPTE' : 'REJETE',
-          commentaire: this.commentaireDecision,
+          commentaire: this.motifRejet || '',
           loginUtilisateur: this.emailAgent
         }
       ).toPromise();
@@ -482,10 +616,8 @@ export class DashboardFinanceComponent implements OnInit {
 
   confirmerRejet(): void {
     if (!this.motifRejet.trim()) return;
-    this.commentaireDecision = this.motifRejet;
     this.showRejetDialog = false;
     this.showDecisionForm = true;
-    this.commentaireDecision = '';
   }
 
   fermerRejet(): void {

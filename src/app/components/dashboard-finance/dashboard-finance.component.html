@@ -1,148 +1,402 @@
 <div class="fin-main animate-fadeIn">
 
     <!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
-    <header
-        class="bg-white/80 backdrop-blur-xl border-b border-[#e8eaf0] px-8 py-5 sticky top-0 z-40 flex items-center justify-between">
-        <div class="flex flex-col">
-            <h1 class="text-2xl font-bold text-[#0f1117] tracking-tight flex items-center gap-3">
-                <svg class="w-7 h-7 text-[#2563eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <header class="bg-white border-b border-[#e8eaf0] px-8 py-4 sticky top-0 z-40 flex items-center justify-between">
+        
+        <!-- Left: Branding -->
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Tableau de Bord Finance
-                <span
-                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#2563eb] border border-[#dbe6ff] uppercase tracking-wider">
-                    Live Supervision
-                </span>
-            </h1>
-            <div class="flex items-center mt-1 gap-4">
-                <div class="flex items-center gap-2">
-                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                    <p class="text-[11px] font-semibold text-[#8b92a9]">
-                        Connecté: <strong>{{ userProfile?.firstName }} {{ userProfile?.lastName }}</strong>
-                    </p>
+            </div>
+            <div class="flex flex-col">
+                <h1 class="text-[15px] font-black text-[#0f1117] uppercase tracking-wide">Supervision Financière</h1>
+                <div class="flex items-center mt-1">
+                    <span class="px-2 py-0.5 rounded text-[8px] font-bold bg-gray-100 text-gray-500 uppercase tracking-widest border border-gray-200">Portail Gestion Admin</span>
                 </div>
-
-                <!-- ✅ Sélecteur d'Année Académique -->
-                <div class="flex items-center gap-2 px-3 py-1 bg-white border border-[#e8eaf0] rounded-full shadow-sm">
-                    <span class="text-[10px] font-bold text-[#8b92a9] uppercase tracking-wider">Année:</span>
-                    <select [(ngModel)]="selectedAnnee" (change)="onAnneeChange()"
-                        class="bg-transparent border-none text-[12px] font-bold text-[#2563eb] outline-none cursor-pointer">
-                        <option *ngFor="let a of anneesUniversitaires" [value]="a.annee">
-                            {{ a.annee }} {{ a.courante ? '(Courante)' : '' }}
-                        </option>
-                    </select>
-                </div>
-
-                <!-- ✅ Badge Read-Only -->
-                <span *ngIf="!isCurrentYear"
-                    class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-gray-100 text-gray-500 border border-gray-200 uppercase tracking-wider flex items-center gap-1">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    Lecture seule
-                </span>
             </div>
         </div>
 
+        <!-- Center: Sélecteur d'Année -->
+        <div class="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center">
+            <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 drop-shadow-sm">Période Académique</span>
+            <div class="relative group">
+                <select [(ngModel)]="selectedAnnee" (change)="onAnneeChange()"
+                    class="appearance-none bg-blue-50/50 hover:bg-blue-50 border border-blue-100 text-[#2563eb] text-xs font-black px-4 py-2.5 rounded-xl outline-none cursor-pointer w-[140px] text-center shadow-sm transition-colors">
+                    <option *ngFor="let a of anneesUniversitaires" [value]="a.annee">
+                        {{ a.annee }} {{ a.courante ? '★' : '' }}
+                    </option>
+                </select>
+                <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-blue-500">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+            <!-- Badge Read-Only -->
+            <span *ngIf="!isCurrentYear" class="absolute -bottom-5 px-2 py-0.5 rounded-full text-[8px] font-bold bg-rose-50 text-rose-500 border border-rose-100 uppercase tracking-widest flex items-center gap-1 whitespace-nowrap">
+                Lecture seule
+            </span>
+        </div>
+
+        <!-- Right: Profile & Action -->
         <div class="flex items-center gap-6">
-            <!-- Pill récap encaissement -->
-            <div class="capacity-pill-premium" *ngIf="stats">
-                <div class="cap-info">
-                    <span class="cap-label">Total Encaissé</span>
-                    <span class="cap-value">{{ (stats.montantTotalEncaisse || 0) | number:'1.0-0' }} TND</span>
+            <div class="flex items-center text-right">
+                <div class="flex flex-col mr-3">
+                    <span class="text-[11px] font-black text-[#0f1117] leading-none">{{ userProfile?.firstName }} {{ userProfile?.lastName }}</span>
+                    <span class="text-[8px] font-bold text-[#2563eb] uppercase tracking-widest mt-1">{{ getDisplayRole() }}</span>
                 </div>
-                <div class="cap-bar-mini">
-                    <div class="cap-fill-mini" [class.fill-green]="getTauxRecouvrement() >= 80"
-                        [class.fill-orange]="getTauxRecouvrement() >= 50 && getTauxRecouvrement() < 80"
-                        [class.fill-red]="getTauxRecouvrement() < 50" [style.width.%]="getTauxRecouvrement()"></div>
+                <div class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shadow-md border-2 border-blue-100">
+                    {{ getProfileInitials() }}
                 </div>
-                <span class="cap-pct" [class.text-green-600]="getTauxRecouvrement() >= 80"
-                    [class.text-orange-600]="getTauxRecouvrement() >= 50 && getTauxRecouvrement() < 80"
-                    [class.text-red-600]="getTauxRecouvrement() < 50">
-                    {{ getTauxRecouvrement() }}%
-                </span>
             </div>
 
-            <div class="flex items-center pl-6 border-l border-[#e8eaf0]">
-                <div class="text-right mr-4 hidden md:block">
-                    <p class="text-sm font-bold text-[#0f1117] leading-tight">
-                        {{ userProfile?.firstName }} {{ userProfile?.lastName }}
-                    </p>
-                    <p class="text-[10px] font-bold text-[#2563eb] uppercase tracking-widest mt-0.5">
-                        {{ getDisplayRole() }}
-                    </p>
-                </div>
-                <div class="avatar-premium" [style.background]="getAvatarColor(0)">
-                    {{ getProfileInitials() }}
-                    <span class="status-indicator"></span>
-                </div>
-            </div>
+            <div class="h-7 w-px bg-gray-200"></div>
+
+            <!-- Remises Button (Header) -->
+            <button (click)="ouvrirRemisesDrawer()" [disabled]="!isCurrentYear" 
+                class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white text-[11px] font-black tracking-wide shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                Référentiel Remises
+                <span class="bg-white/20 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white ml-0.5">
+                    {{ remises.length }}
+                </span>
+            </button>
         </div>
     </header>
     <div class="fin-content">
 
-        <!-- ══ STAT CARDS ════════════════════════════════════════════════════════ -->
-        <div class="stats-grid">
-            <div class="stat-card stat-blue">
-                <div class="stat-icon-wrap">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+        <!-- ══ STAT CARDS PREMIUM ════════════════════════════════════════════════════ -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+            <!-- Carte 1 — Dossiers en attente -->
+            <div
+                class="relative bg-white rounded-[20px] p-6 border border-[#e8eaf0] shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden group">
+                <div
+                    class="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-full opacity-60 group-hover:scale-[1.8] transition-transform duration-700 pointer-events-none">
                 </div>
-                <div class="stat-body">
-                    <span class="stat-value">{{ stats?.formulairesEnAttente || 0 }}</span>
-                    <span class="stat-label">À Traiter</span>
+
+                <div class="relative z-10 flex justify-between items-start">
+                    <h3 class="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest leading-tight w-2/3">
+                        Dossiers<br>En attente</h3>
+                    <span
+                        class="px-2 py-0.5 text-[9px] font-bold rounded-md bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-widest shadow-sm">Supervision</span>
                 </div>
-                <div class="stat-trend trend-warn" *ngIf="(stats?.formulairesEnAttente || 0) > 0">Action req.</div>
-                <div class="stat-trend trend-neutral" *ngIf="(stats?.formulairesEnAttente || 0) === 0">— Aucun</div>
+
+                <div class="relative z-10 flex items-center justify-between mt-5">
+                    <span
+                        class="text-[44px] leading-none font-black text-[#0f1117] tracking-tight group-hover:scale-105 transition-transform origin-left">{{
+                        pipelineStats.enCoursFinance + pipelineStats.formulaireEnvoye
+                        }}</span>
+                    <div
+                        class="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-[14px] shadow-lg shadow-blue-500/30 text-white transform group-hover:-translate-y-1 group-hover:-rotate-3 transition-all duration-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="relative z-10 mt-6 pt-4 border-t border-gray-100/60 flex items-center justify-between">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Attente
+                            Agent</span>
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                            <span class="text-xs font-black text-[#0f1117]">{{ pipelineStats.enCoursFinance }}</span>
+                        </div>
+                    </div>
+
+                    <div class="h-6 w-px bg-gray-200/60"></div>
+
+                    <div class="flex flex-col items-end">
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Attente
+                            Étudiant</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-black text-[#0f1117]">{{ pipelineStats.formulaireEnvoye }}</span>
+                            <div class="w-1.5 h-1.5 rounded-full bg-violet-400"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="stat-card stat-green">
-                <div class="stat-icon-wrap">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+            <!-- Carte 2 — Dossiers Approuvés -->
+            <div
+                class="relative bg-white rounded-[20px] p-6 border border-[#e8eaf0] shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden group">
+                <div
+                    class="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-full opacity-60 group-hover:scale-[1.8] transition-transform duration-700 pointer-events-none">
                 </div>
-                <div class="stat-body">
-                    <span class="stat-value">{{ (stats?.montantTotalEncaisse || 0) | number:'1.0-0' }} TND</span>
-                    <span class="stat-label">Total Encaissé</span>
+
+                <div class="relative z-10 flex justify-between items-start">
+                    <h3 class="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest leading-tight w-2/3">
+                        Dossiers<br>Approuvés</h3>
+                    <span
+                        class="px-2 py-0.5 text-[9px] font-bold rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm uppercase tracking-widest">Succès</span>
                 </div>
-                <div class="stat-trend trend-up">Actif</div>
+
+                <div class="relative z-10 flex items-center justify-between mt-5">
+                    <span
+                        class="text-[44px] leading-none font-black text-[#0f1117] tracking-tight group-hover:scale-105 transition-transform origin-left">{{
+                        pipelineStats.valides }}</span>
+                    <div
+                        class="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-[14px] shadow-lg shadow-emerald-500/30 text-white transform group-hover:-translate-y-1 group-hover:-rotate-3 transition-all duration-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="relative z-10 mt-6 pt-4 flex items-center justify-between border-t border-gray-100/60">
+                    <span class="text-[10px] font-bold text-[#10b981]">Taux de validation</span>
+                    <span class="text-[10px] font-bold text-[#10b981]">{{ pipelineStats.envoyes > 0 ?
+                        ((pipelineStats.valides / pipelineStats.envoyes) * 100 | number:'1.0-0') : 0 }}%</span>
+                </div>
             </div>
 
-            <div class="stat-card stat-amber">
-                <div class="stat-icon-wrap">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+            <!-- Carte 3 — Total Encaissé -->
+            <div
+                class="relative bg-white rounded-[20px] p-6 border border-[#e8eaf0] shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden group">
+                <div
+                    class="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-full opacity-60 group-hover:scale-[1.8] transition-transform duration-700 pointer-events-none">
                 </div>
-                <div class="stat-body">
-                    <span class="stat-value">{{ stats?.facturesGenerees || 0 }}</span>
-                    <span class="stat-label">Factures Générées</span>
+
+                <div class="relative z-10 flex justify-between items-start">
+                    <h3 class="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest leading-tight w-2/3">
+                        Total<br>Encaissé</h3>
+                    <span
+                        class="px-2 py-0.5 text-[9px] font-bold rounded-md bg-purple-50 text-purple-600 border border-purple-100 uppercase tracking-widest shadow-sm">Flux</span>
                 </div>
-                <div class="stat-trend trend-neutral">— stable</div>
+
+                <div class="relative z-10 mt-4 flex flex-col justify-center">
+                    <span
+                        class="text-[28px] leading-none font-black text-[#0f1117] tracking-tight group-hover:scale-105 transition-transform origin-left whitespace-nowrap">{{
+                        (stats?.montantTotalEncaisse || 0) | number:'1.0-0' }} <span
+                            class="text-[16px] text-gray-400">TND</span></span>
+                    <span class="text-[10px] font-bold text-gray-400 mt-2">Plus de {{ stats?.facturesGenerees || 0 }}
+                        factures récoltées</span>
+                </div>
             </div>
 
-            <div class="stat-card stat-red">
-                <div class="stat-icon-wrap">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <!-- Carte 4 — Rejetés -->
+            <div
+                class="relative bg-white rounded-[20px] p-6 border border-[#e8eaf0] shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden group">
+                <div
+                    class="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-rose-50 to-rose-100/50 rounded-full opacity-60 group-hover:scale-[1.8] transition-transform duration-700 pointer-events-none">
+                </div>
+
+                <div class="relative z-10 flex justify-between items-start">
+                    <h3 class="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest leading-tight w-2/3">
+                        Dossiers<br>Rejetés</h3>
+                    <span
+                        class="px-2 py-0.5 text-[9px] font-bold rounded-md bg-rose-50 text-rose-600 border border-rose-100 uppercase tracking-widest shadow-sm">Alerte</span>
+                </div>
+
+                <div class="relative z-10 flex items-center justify-between mt-5">
+                    <span
+                        class="text-[44px] leading-none font-black text-[#0f1117] tracking-tight group-hover:scale-105 transition-transform origin-left">{{
+                        pipelineStats.rejetes }}</span>
+                    <div
+                        class="p-3 bg-gradient-to-br from-rose-400 to-rose-600 rounded-[14px] shadow-lg shadow-rose-500/30 text-white transform group-hover:-translate-y-1 group-hover:-rotate-3 transition-all duration-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="relative z-10 mt-6 pt-4 border-t border-gray-100/60">
+                    <div class="w-full h-1.5 bg-rose-50 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-1000"
+                            [style.width.%]="pipelineStats.envoyes > 0 ? ((pipelineStats.rejetes / pipelineStats.envoyes) * 100) : 0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ ANALYTICS GRID (Pipeline & Frais) ════════════════════════════════════ -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 mt-6">
+
+            <!-- 1) PIPELINE DES INSCRIPTIONS -->
+            <div
+                class="lg:col-span-2 bg-white rounded-[20px] p-6 border border-[#e8eaf0] shadow-sm hover:shadow-xl transition-all duration-500 group">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h3 class="text-[14px] font-extrabold text-[#0f1117] mb-1">Pipeline des Inscriptions</h3>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Répartition des
+                            dossiers par statut financier</p>
+                    </div>
+                    <button
+                        class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="flex flex-col md:flex-row items-center gap-8">
+                    <!-- Pie Chart Graphic -->
+                    <div
+                        class="relative w-44 h-44 flex-shrink-0 transform hover:scale-105 transition-transform duration-500">
+                        <div class="w-full h-full rounded-full shadow-inner" [style.background]="pieChartGradient">
+                        </div>
+                        <!-- Inner Circle for Donut effect -->
+                        <div
+                            class="absolute inset-0 m-auto w-[6.5rem] h-[6.5rem] bg-white rounded-full flex flex-col items-center justify-center shadow-sm">
+                            <span
+                                class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Total</span>
+                            <span class="text-2xl font-black text-[#0f1117] leading-none">{{ pipelineStats.envoyes
+                                }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Legend & Stats Grid -->
+                    <div class="flex-1 w-full grid grid-cols-2 gap-y-5 gap-x-8">
+
+                        <div class="flex items-center gap-3 group cursor-default">
+                            <div
+                                class="w-3.5 h-3.5 rounded-md bg-blue-500 shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform">
+                            </div>
+                            <div class="flex-1">
+                                <p
+                                    class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
+                                    En Cours Finance</p>
+                                <div class="flex items-end gap-2">
+                                    <span class="text-[15px] font-black text-[#0f1117] leading-none">{{
+                                        pipelineStats.enCoursFinance }}</span>
+                                    <span class="text-[9px] font-bold text-blue-500 mb-0.5">{{ pipelineStats.envoyes > 0
+                                        ? ((pipelineStats.enCoursFinance / pipelineStats.envoyes) * 100 |
+                                        number:'1.0-0') : 0 }}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 group cursor-default">
+                            <div
+                                class="w-3.5 h-3.5 rounded-md bg-emerald-500 shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform">
+                            </div>
+                            <div class="flex-1">
+                                <p
+                                    class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
+                                    Validés (Inscrits)</p>
+                                <div class="flex items-end gap-2">
+                                    <span class="text-[15px] font-black text-[#0f1117] leading-none">{{
+                                        pipelineStats.valides }}</span>
+                                    <span class="text-[9px] font-bold text-emerald-500 mb-0.5">{{ pipelineStats.envoyes
+                                        > 0 ? ((pipelineStats.valides / pipelineStats.envoyes) * 100 | number:'1.0-0') :
+                                        0 }}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 group cursor-default">
+                            <div
+                                class="w-3.5 h-3.5 rounded-md bg-violet-500 shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform">
+                            </div>
+                            <div class="flex-1">
+                                <p
+                                    class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
+                                    Formulaires Envoyés</p>
+                                <div class="flex items-end gap-2">
+                                    <span class="text-[15px] font-black text-[#0f1117] leading-none">{{
+                                        pipelineStats.formulaireEnvoye }}</span>
+                                    <span class="text-[9px] font-bold text-violet-500 mb-0.5">{{ pipelineStats.envoyes >
+                                        0 ? ((pipelineStats.formulaireEnvoye / pipelineStats.envoyes) * 100 |
+                                        number:'1.0-0') : 0 }}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 group cursor-default">
+                            <div
+                                class="w-3.5 h-3.5 rounded-md bg-amber-500 shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform">
+                            </div>
+                            <div class="flex-1">
+                                <p
+                                    class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
+                                    Attente Paiement</p>
+                                <div class="flex items-end gap-2">
+                                    <span class="text-[15px] font-black text-[#0f1117] leading-none">{{
+                                        pipelineStats.enAttentePaiement }}</span>
+                                    <span class="text-[9px] font-bold text-amber-500 mb-0.5">{{ pipelineStats.envoyes >
+                                        0 ? ((pipelineStats.enAttentePaiement / pipelineStats.envoyes) * 100 |
+                                        number:'1.0-0') : 0 }}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 group cursor-default">
+                            <div
+                                class="w-3.5 h-3.5 rounded-md bg-rose-500 shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform">
+                            </div>
+                            <div class="flex-1">
+                                <p
+                                    class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
+                                    Rejetés Finance</p>
+                                <div class="flex items-end gap-2">
+                                    <span class="text-[15px] font-black text-[#0f1117] leading-none">{{
+                                        pipelineStats.rejetes }}</span>
+                                    <span class="text-[9px] font-bold text-rose-500 mb-0.5">{{ pipelineStats.envoyes > 0
+                                        ? ((pipelineStats.rejetes / pipelineStats.envoyes) * 100 | number:'1.0-0') : 0
+                                        }}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2) CATALOGUE DES FRAIS -->
+            <div
+                class="relative bg-gradient-to-br from-[#f8fafc] to-[#eff6ff] rounded-[20px] p-6 border border-blue-100 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden group">
+                <div
+                    class="absolute -right-6 top-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+                    <svg class="w-32 h-32 text-blue-900" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
-                <div class="stat-body">
-                    <span class="stat-value">{{ stats?.echeancesEnRetard || 0 }}</span>
-                    <span class="stat-label">Impayés / Retards</span>
-                </div>
-                <div class="stat-trend" [class.trend-warn]="(stats?.echeancesEnRetard || 0) > 0"
-                    [class.trend-neutral]="(stats?.echeancesEnRetard || 0) === 0">
-                    <ng-container *ngIf="(stats?.echeancesEnRetard || 0) > 0">⚠ Retard</ng-container>
-                    <ng-container *ngIf="(stats?.echeancesEnRetard || 0) === 0">— OK</ng-container>
+
+                <h3 class="text-[14px] font-extrabold text-[#0f1117] mb-1">Catalogue des Frais</h3>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Tarification par formation
+                </p>
+
+                <div class="space-y-4 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+
+                    <ng-container *ngFor="let dept of catalogue">
+                        <div *ngIf="dept.diplomes.length > 0" class="pt-1">
+                            <span class="text-[9px] font-bold text-blue-600 uppercase tracking-widest">{{ dept.nom
+                                }}</span>
+                            <div class="mt-2 space-y-3">
+                                <div *ngFor="let diplome of dept.diplomes" class="flex flex-col gap-1">
+                                    <span class="text-[10px] font-bold text-gray-500 uppercase">{{ diplome.nomDiplome
+                                        }}</span>
+                                    <div class="space-y-2">
+                                        <div *ngFor="let v of diplome.variantes"
+                                            class="flex justify-between items-center bg-[#f8fafc] p-2.5 rounded-xl border border-[#e8eaf0] transition-colors hover:border-blue-200">
+                                            <div class="flex flex-col gap-0.5">
+                                                <span class="text-[10px] font-bold text-[#0f1117]">{{ v.langue }}</span>
+                                                <span class="text-[8px] font-bold text-gray-400 uppercase">{{ v.typeNom
+                                                    }}</span>
+                                            </div>
+                                            <span class="text-[11px] font-black text-[#10b981]">{{ v.frais |
+                                                number:'1.0-0' }} DT</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </ng-container>
+
+                    <div *ngIf="catalogue.length === 0"
+                        class="flex justify-center items-center h-full text-gray-400 text-xs py-4">
+                        Aucun frais catalogué
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -171,23 +425,7 @@
                         </svg>
                         Rafraîchir
                     </button>
-                    <!-- Remises -->
-                    <button (click)="ouvrirRemisesDrawer()" [disabled]="!isCurrentYear" style="display:flex;align-items:center;gap:8px;padding:7px 16px;
-           background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;
-           border:none;border-radius:10px;font-size:12px;font-weight:700;
-           cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,.25);
-           transition:all .2s;" [style.opacity]="isCurrentYear ? '1' : '0.5'"
-                        [style.cursor]="isCurrentYear ? 'pointer' : 'not-allowed'">
-                        <svg style="width:15px;height:15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828
-               l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                        </svg>
-                        Remises
-                        <span style="background:rgba(255,255,255,.25);padding:1px 7px;
-                  border-radius:20px;font-size:10px;font-weight:800;">
-                            {{ remises.length }}
-                        </span>
-                    </button>
+                    <!-- Remises was moved to Header -->
 
                     <!-- View Toggle -->
                     <div class="view-toggle">
@@ -1178,40 +1416,31 @@
                         <div *ngIf="selectedFormulaire.statut !== 'SOUMIS'" class="decision-readonly-compact">
                             <div class="readonly-banner" [class.banner-ok]="selectedFormulaire.statut === 'VALIDE'"
                                 [class.banner-ko]="selectedFormulaire.statut === 'REFUSE'">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5">
+                                <svg *ngIf="selectedFormulaire.statut === 'VALIDE'" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <svg *ngIf="selectedFormulaire.statut === 'REFUSE'" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <span>Dossier {{ getStatutLabel(selectedFormulaire.statut) }}</span>
                             </div>
                         </div>
 
-                        <!-- Cartes action -->
+                        <!-- Bouton de validation unique -->
                         <div *ngIf="selectedFormulaire.statut === 'SOUMIS' && !showDecisionForm && isCurrentYear"
-                            class="action-grid-modern">
-                            <div class="modern-action-card card-accept" (click)="prepareDecision('VALIDER')"
+                            class="flex justify-center mt-4">
+                            <div class="modern-action-card card-accept w-full max-w-md" (click)="prepareDecision('VALIDER')"
                                 [class.disabled]="!toutesRemisesDecidees()">
                                 <div class="mac-icon">
                                     <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </div>
-                                <div class="mac-body">
-                                    <h3>Valider</h3>
-                                    <p>Confirmer les préférences</p>
-                                </div>
-                            </div>
-
-                            <div class="modern-action-card card-reject" (click)="prepareDecision('REFUSER')"
-                                [class.disabled]="!toutesRemisesDecidees()">
-                                <div class="mac-icon">
-                                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </div>
-                                <div class="mac-body">
-                                    <h3>Refuser</h3>
-                                    <p>Demander correction</p>
+                                <div class="mac-body text-center">
+                                    <h3 class="text-lg">Valider & Finaliser</h3>
+                                    <p class="text-xs">Confirmer les préférences et générer la facture</p>
                                 </div>
                             </div>
                         </div>
@@ -1219,32 +1448,22 @@
                         <!-- Formulaire décision -->
                         <div *ngIf="selectedFormulaire.statut === 'SOUMIS' && showDecisionForm"
                             class="modern-decision-form animate-fadeIn">
-                            <div class="form-context-info" [class.bg-green-50]="pendingDecision === 'VALIDER'"
-                                [class.bg-red-50]="pendingDecision === 'REFUSER'">
-                                <p class="text-xs font-semibold" [class.text-green-700]="pendingDecision === 'VALIDER'"
-                                    [class.text-red-700]="pendingDecision === 'REFUSER'">
-                                    {{ pendingDecision === 'VALIDER' ? '✅ Validation du dossier' : '❌ Refus du dossier'
-                                    }}
+                            <div class="form-context-info bg-green-50">
+                                <p class="text-xs font-semibold text-green-700">
+                                    ✅ Validation & Finalisation du dossier
                                 </p>
                             </div>
 
-                            <div class="mt-4">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase mb-2 block">Message à
-                                    l'étudiant</label>
-                                <textarea [(ngModel)]="commentaireDecision" class="modern-textarea" rows="4"
-                                    placeholder="Expliquez votre décision..."></textarea>
-                            </div>
+                            <!-- Le commentaire global a été supprimé car géré au niveau des remises individuelles -->
 
                             <div class="flex gap-3 mt-4">
                                 <button class="modern-btn-secondary flex-1"
                                     (click)="showDecisionForm = false">Annuler</button>
-                                <button class="modern-btn-primary flex-2"
-                                    [class.btn-green]="pendingDecision === 'VALIDER'"
-                                    [class.btn-red]="pendingDecision === 'REFUSER'"
-                                    [disabled]="actionLoading || !commentaireDecision.trim()"
+                                <button class="modern-btn-primary flex-2 btn-green"
+                                    [disabled]="actionLoading"
                                     (click)="confirmerDecision()">
                                     <span *ngIf="actionLoading" class="spinner-white mr-2"></span>
-                                    {{ actionLoading ? 'Traitement...' : 'Confirmer' }}
+                                    {{ actionLoading ? 'Traitement...' : 'Confirmer la Validation' }}
                                 </button>
                             </div>
                         </div>

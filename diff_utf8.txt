@@ -1,0 +1,1173 @@
+﻿diff --git a/src/app/components/dashboard-departement/dashboard-departement.component.html b/src/app/components/dashboard-departement/dashboard-departement.component.html
+index 6f13522..b1cba34 100644
+--- a/src/app/components/dashboard-departement/dashboard-departement.component.html
++++ b/src/app/components/dashboard-departement/dashboard-departement.component.html
+@@ -1,56 +1,95 @@
+ <main class="dept-main animate-fadeIn">
+ 
+-    <!-- ÔòÉÔòÉ HEADER ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ -->
++    <!-- ÔòÉÔòÉ HEADER PREMIUM ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ -->
+     <header
+-        class="bg-white/80 backdrop-blur-xl border-b border-[#e8eaf0] px-8 py-5 sticky top-0 z-40 flex items-center justify-between">
+-        <div class="flex flex-col">
+-            <h1 class="text-2xl font-bold text-[#0f1117] tracking-tight flex items-center gap-3">
+-                {{ dashboard?.nomDiplome || 'Dashboard D├®partement' }}
+-                <span
+-                    class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#2563eb] border border-[#dbe6ff] uppercase tracking-wider">
+-                    <!-- Ô£à En mode PAR_TYPE : affiche le type (ex: "Licence"), sinon la langue -->
+-                    {{ dashboard?.typeDiplome || dashboard?.langue || 'D├®partement' }}
+-                </span>
+-                <span class="text-[#8b92a9] text-lg font-medium">| {{ dashboard?.nomDepartement }}</span>
+-            </h1>
+-            <div class="flex items-center mt-1 gap-4">
+-                <div class="flex items-center gap-2">
+-                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+-                    <p class="text-[11px] font-semibold text-[#8b92a9]">
+-                        Connect├®: <strong>{{ userProfile?.firstName }} {{ userProfile?.lastName }}</strong>
+-                    </p>
++        class="bg-white/80 backdrop-blur-xl border-b border-[#e8eaf0] px-8 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
++
++        <!-- ÔöÇÔöÇ Left: Context & Title ÔöÇÔöÇ -->
++        <div class="flex items-center gap-4">
++            <div
++                class="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 text-white flex-shrink-0">
++                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
++                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M2 21h20M9 21v-4a2 2 0 012-2h2a2 2 0 012 2v4m-5-4v4" />
++                </svg>
++            </div>
++            <div class="flex flex-col">
++                <h1 class="text-xl font-extrabold text-[#0f1117] tracking-tight flex items-center gap-2">
++                    {{ dashboard?.nomDiplome || 'Tableau de bord' }}
++                </h1>
++                <div class="flex items-center gap-2 mt-1">
++                    <span
++                        class="px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider border border-gray-200">
++                        {{ dashboard?.nomDepartement || 'D├®partement' }}
++                    </span>
+                 </div>
++            </div>
++        </div>
+ 
+-                <!-- Ô£à S├®lecteur d'Ann├®e Acad├®mique -->
+-                <div class="flex items-center gap-2 px-3 py-1 bg-white border border-[#e8eaf0] rounded-full shadow-sm">
+-                    <span class="text-[10px] font-bold text-[#8b92a9] uppercase tracking-wider">Ann├®e:</span>
+-                    <select [(ngModel)]="selectedAnnee" (change)="onAnneeChange()"
+-                        class="bg-transparent border-none text-[12px] font-bold text-[#2563eb] outline-none cursor-pointer">
+-                        <option *ngFor="let a of anneesUniversitaires" [value]="a.annee">
+-                            {{ a.annee }} {{ a.courante ? '(Courante)' : '' }}
+-                        </option>
+-                    </select>
++        <!-- ÔöÇÔöÇ Middle: Indicators & Selectors ÔöÇÔöÇ -->
++        <div class="flex items-center gap-8">
++            <!-- Ann├®e Universitaire -->
++            <div class="flex flex-col items-end gap-1.5 annee-select-wrapper relative z-50">
++                <div class="flex items-center gap-2">
++                    <span *ngIf="!isCurrentYear"
++                        class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200/60 text-[8px] font-bold uppercase tracking-widest pointer-events-none mb-0.5">
++                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
++                        </svg>
++                        Lecture seule
++                    </span>
++                    <span
++                        class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-0.5">P├®riode
++                        univ.</span>
+                 </div>
+ 
+-                <!-- Ô£à Badge mode PAR_TYPE -->
+-                <span *ngIf="isModeParType()"
+-                    class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-200 uppercase tracking-wider">
+-                    {{ getNomsDiplomesDistincts().length }} dipl├┤mes
+-                </span>
++                <div class="relative flex items-center bg-[#f8fafc] border border-[#e2e8f0] rounded-xl hover:border-blue-400 transition-all shadow-sm cursor-pointer group"
++                    [class.border-blue-500]="isAnneeSelectOpen" [class.ring-2]="isAnneeSelectOpen"
++                    style="--tw-ring-color: rgba(59, 130, 246, 0.2);" (click)="toggleAnneeSelect()">
++                    <div
++                        class="pl-3 pr-2 py-2.5 flex items-center pointer-events-none text-blue-500 group-hover:text-blue-600 transition-colors">
++                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
++                        </svg>
++                    </div>
++                    <div class="text-[14px] font-bold text-[#0f1117] pr-9 py-2.5 select-none" style="min-width: 110px;">
++                        {{ selectedAnnee }}
++                        <span *ngIf="isCurrentYear" class="text-blue-500 ml-1">Ôÿà</span>
++                    </div>
++                    <div class="absolute right-3 top-1/2 pointer-events-none text-[#8b92a9] group-hover:text-[#475569] transition-transform duration-200"
++                        [style.transform]="isAnneeSelectOpen ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%) rotate(0deg)'">
++                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                d="M19 9l-7 7-7-7" />
++                        </svg>
++                    </div>
++                </div>
+ 
+-                <!-- Ô£à Badge Read-Only -->
+-                <span *ngIf="!isCurrentYear"
+-                    class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-gray-100 text-gray-500 border border-gray-200 uppercase tracking-wider flex items-center gap-1">
+-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+-                    </svg>
+-                    Lecture seule
+-                </span>
++                <!-- Custom Dropdown Menu -->
++                <div *ngIf="isAnneeSelectOpen"
++                    class="absolute top-[100%] mt-2 right-0 w-full min-w-[180px] bg-white rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] border border-[#e2e8f0] overflow-hidden animate-fadeIn py-1.5 z-50">
++                    <div *ngFor="let a of anneesUniversitaires" (click)="selectCustomAnnee(a.annee)"
++                        class="px-4 py-2.5 text-[14px] font-bold cursor-pointer transition-colors flex items-center justify-between group/item"
++                        [class.bg-blue-50]="selectedAnnee === a.annee" [class.text-blue-600]="selectedAnnee === a.annee"
++                        [class.hover:bg-gray-50]="selectedAnnee !== a.annee"
++                        [class.text-gray-700]="selectedAnnee !== a.annee">
++                        <span>{{ a.annee }}</span>
++                        <div class="flex items-center gap-2">
++                            <span *ngIf="a.courante"
++                                class="text-[9px] uppercase tracking-widest bg-blue-100/60 text-blue-600 px-2 py-0.5 rounded shadow-sm">Actuel</span>
++                            <svg *ngIf="selectedAnnee === a.annee" class="w-4 h-4 text-blue-600 animate-fadeIn"
++                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
++                                    d="M5 13l4 4L19 7" />
++                            </svg>
++                        </div>
++                    </div>
++                </div>
+             </div>
+-        </div>
+ 
+-        <div class="flex items-center gap-6">
++            <!-- Capacit├® globale -->
+             <div class="capacity-pill-premium" *ngIf="getCapaciteGlobale() as cap">
+                 <div class="cap-info">
+                     <span class="cap-label">Remplissage global</span>
+@@ -66,19 +105,24 @@
+                     {{ cap.pct | number:'1.0-0' }}%
+                 </span>
+             </div>
++        </div>
+ 
+-            <div class="flex items-center pl-6 border-l border-[#e8eaf0]">
+-                <div class="text-right mr-4 hidden md:block">
+-                    <p class="text-sm font-bold text-[#0f1117] leading-tight">
+-                        {{userProfile?.firstName}} {{userProfile?.lastName}}
+-                    </p>
+-                    <p class="text-[10px] font-bold text-[#2563eb] uppercase tracking-widest mt-0.5">
+-                        {{getDisplayRole()}}
+-                    </p>
+-                </div>
+-                <div class="avatar-premium" [style.background]="getAvatarColor(0)">
++        <!-- ÔöÇÔöÇ Right: User Profile ÔöÇÔöÇ -->
++        <div class="flex items-center pl-8 ml-4 border-l border-[#e8eaf0] gap-3">
++            <div class="text-right hidden md:flex flex-col justify-center">
++                <span class="text-[13px] font-bold text-[#0f1117] leading-none mb-1">{{userProfile?.firstName}}
++                    {{userProfile?.lastName}}</span>
++                <span
++                    class="text-[9px] font-bold text-[#2563eb] bg-blue-50 px-2 py-0.5 rounded w-fit ml-auto uppercase tracking-widest border border-blue-100">
++                    {{getDisplayRole()}}
++                </span>
++            </div>
++            <div class="relative cursor-pointer hover:opacity-90 transition-opacity">
++                <div class="w-10 h-10 rounded-[12px] flex items-center justify-center text-white font-bold text-sm shadow-md"
++                    [style.background]="getAvatarColor(0)">
+                     {{getProfileInitials()}}
+-                    <span class="avatar-ring"></span>
++                </div>
++                <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full">
+                 </div>
+             </div>
+         </div>
+@@ -86,69 +130,180 @@
+ 
+     <div class="dept-content">
+ 
+-        <!-- ÔòÉÔòÉ STAT CARDS ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ -->
+-        <div class="stats-grid">
+-            <div class="stat-card stat-blue">
+-                <div class="stat-icon">
+-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+-                    </svg>
++        <!-- ÔòÉÔòÉ STAT CARDS PREMIUM ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ -->
++        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
++
++            <!-- Carte 1 ÔÇö En cours d├®partement -->
++            <div class="relative bg-white rounded-[20px] p-6 border border-[#e8eaf0] shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer overflow-hidden group"
++                (click)="setFilter('en_cours')" [class.border-blue-400]="currentFilter === 'en_cours'"
++                [class.ring-2]="currentFilter === 'en_cours'" [class.ring-blue-500/20]="currentFilter === 'en_cours'">
++
++                <!-- Deco blob -->
++                <div
++                    class="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-full opacity-60 group-hover:scale-[1.8] transition-transform duration-700 pointer-events-none">
+                 </div>
+-                <div class="stat-body">
+-                    <span class="stat-num">{{ dashboard?.enCours || 0 }}</span>
+-                    <span class="stat-label">En cours dept.</span>
++
++                <div class="relative z-10 flex justify-between items-start">
++                    <h3 class="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest leading-tight w-2/3">
++                        En cours<br>D├®partement</h3>
++                    <span
++                        class="px-2 py-0.5 text-[9px] font-bold rounded-md bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-widest shadow-sm">Actif</span>
++                </div>
++
++                <div class="relative z-10 flex items-center justify-between mt-5">
++                    <span
++                        class="text-[44px] leading-none font-black text-[#0f1117] tracking-tight group-hover:scale-105 transition-transform origin-left">{{
++                        dashboard?.enCours || 0 }}</span>
++                    <div
++                        class="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-[14px] shadow-lg shadow-blue-500/30 text-white transform group-hover:-translate-y-1 group-hover:-rotate-3 transition-all duration-300">
++                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
++                        </svg>
++                    </div>
++                </div>
++
++                <div class="relative z-10 mt-6 pt-4 border-t border-gray-100/60">
++                    <div class="w-full h-1.5 bg-blue-50 rounded-full overflow-hidden">
++                        <div class="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000"
++                            [style.width.%]="(dashboard?.enCours || 0) + (dashboard?.valides || 0) + (dashboard?.rejetes || 0) > 0 ? ((dashboard?.enCours || 0) / ((dashboard?.enCours || 0) + (dashboard?.valides || 0) + (dashboard?.rejetes || 0))) * 100 : 0">
++                        </div>
++                    </div>
+                 </div>
+-                <div class="stat-trend trend-up">Actif</div>
+             </div>
+ 
+-            <div class="stat-card stat-green">
+-                <div class="stat-icon">
+-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+-                    </svg>
++            <!-- Carte 2 ÔÇö Valid├®s -->
++            <div class="relative bg-white rounded-[20px] p-6 border border-[#e8eaf0] shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer overflow-hidden group"
++                (click)="setFilter('valides')" [class.border-emerald-400]="currentFilter === 'valides'"
++                [class.ring-2]="currentFilter === 'valides'" [class.ring-emerald-500/20]="currentFilter === 'valides'">
++
++                <div
++                    class="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-full opacity-60 group-hover:scale-[1.8] transition-transform duration-700 pointer-events-none">
++                </div>
++
++                <div class="relative z-10 flex justify-between items-start">
++                    <h3 class="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest leading-tight w-2/3">
++                        Inscriptions<br>Valid├®es</h3>
++                    <span
++                        class="px-2 py-0.5 text-[9px] font-bold rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm">{{
++                        getTauxAcceptation() }}% Taux</span>
+                 </div>
+-                <div class="stat-body">
+-                    <span class="stat-num">{{ dashboard?.valides || 0 }}</span>
+-                    <span class="stat-label">Valid├®s cette ann├®e</span>
++
++                <div class="relative z-10 flex items-center justify-between mt-5">
++                    <span
++                        class="text-[44px] leading-none font-black text-[#0f1117] tracking-tight group-hover:scale-105 transition-transform origin-left">{{
++                        dashboard?.valides || 0 }}</span>
++                    <div
++                        class="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-[14px] shadow-lg shadow-emerald-500/30 text-white transform group-hover:-translate-y-1 group-hover:-rotate-3 transition-all duration-300">
++                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
++                        </svg>
++                    </div>
++                </div>
++
++                <div class="relative z-10 mt-6 pt-4 border-t border-gray-100/60">
++                    <div class="w-full h-1.5 bg-emerald-50 rounded-full overflow-hidden">
++                        <div class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-1000"
++                            [style.width.%]="(dashboard?.valides || 0) + (dashboard?.rejetes || 0) > 0 ? ((dashboard?.valides || 0) / ((dashboard?.valides || 0) + (dashboard?.rejetes || 0))) * 100 : 0">
++                        </div>
++                    </div>
+                 </div>
+-                <div class="stat-trend trend-up">+12%</div>
+             </div>
+ 
+-            <div class="stat-card stat-red">
+-                <div class="stat-icon">
+-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+-                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+-                    </svg>
++            <!-- Carte 3 ÔÇö Rejet├®s -->
++            <div class="relative bg-white rounded-[20px] p-6 border border-[#e8eaf0] shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer overflow-hidden group"
++                (click)="setFilter('rejetes')" [class.border-rose-400]="currentFilter === 'rejetes'"
++                [class.ring-2]="currentFilter === 'rejetes'" [class.ring-rose-500/20]="currentFilter === 'rejetes'">
++
++                <div
++                    class="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-rose-50 to-rose-100/50 rounded-full opacity-60 group-hover:scale-[1.8] transition-transform duration-700 pointer-events-none">
++                </div>
++
++                <div class="relative z-10 flex justify-between items-start">
++                    <h3 class="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest leading-tight w-2/3">
++                        Dossiers<br>Rejet├®s</h3>
++                    <span class="px-2 py-0.5 text-[9px] font-bold rounded-md uppercase tracking-widest shadow-sm"
++                        [class.bg-rose-50]="(dashboard?.rejetes||0) > 0"
++                        [class.text-rose-600]="(dashboard?.rejetes||0) > 0" [class.border]="(dashboard?.rejetes||0) > 0"
++                        [class.border-rose-100]="(dashboard?.rejetes||0) > 0"
++                        [class.bg-gray-50]="(dashboard?.rejetes||0) === 0"
++                        [class.text-gray-400]="(dashboard?.rejetes||0) === 0">
++                        {{ (dashboard?.rejetes || 0) > 0 ? dashboard?.rejetes + ' rejet(s)' : 'Aucun' }}
++                    </span>
++                </div>
++
++                <div class="relative z-10 flex items-center justify-between mt-5">
++                    <span
++                        class="text-[44px] leading-none font-black text-[#0f1117] tracking-tight group-hover:scale-105 transition-transform origin-left">{{
++                        dashboard?.rejetes || 0 }}</span>
++                    <div
++                        class="p-3 bg-gradient-to-br from-rose-400 to-rose-600 rounded-[14px] shadow-lg shadow-rose-500/30 text-white transform group-hover:-translate-y-1 group-hover:-rotate-3 transition-all duration-300">
++                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
++                        </svg>
++                    </div>
+                 </div>
+-                <div class="stat-body">
+-                    <span class="stat-num">{{ dashboard?.rejetes || 0 }}</span>
+-                    <span class="stat-label">Rejet├®s dept.</span>
++
++                <div class="relative z-10 mt-6 pt-4 border-t border-gray-100/60">
++                    <div class="w-full h-1.5 bg-rose-50 rounded-full overflow-hidden">
++                        <div class="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-1000"
++                            [style.width.%]="(dashboard?.valides || 0) + (dashboard?.rejetes || 0) > 0 ? ((dashboard?.rejetes || 0) / ((dashboard?.valides || 0) + (dashboard?.rejetes || 0))) * 100 : 0">
++                        </div>
++                    </div>
+                 </div>
+-                <div class="stat-trend trend-neutral">ÔÇö stable</div>
+             </div>
+ 
+-            <div class="stat-card stat-amber">
+-                <div class="stat-icon">
+-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+-                    </svg>
++            <!-- Carte 4 ÔÇö Liste d'attente -->
++            <div class="relative bg-white rounded-[20px] p-6 border border-[#e8eaf0] shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer overflow-hidden group"
++                (click)="setFilter('liste_attente')" [class.border-amber-400]="currentFilter === 'liste_attente'"
++                [class.ring-2]="currentFilter === 'liste_attente'"
++                [class.ring-amber-500/20]="currentFilter === 'liste_attente'">
++
++                <div
++                    class="absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-full opacity-60 group-hover:scale-[1.8] transition-transform duration-700 pointer-events-none">
+                 </div>
+-                <div class="stat-body">
+-                    <span class="stat-num">{{ dashboard?.listeAttente || 0 }}</span>
+-                    <span class="stat-label">Liste d'attente</span>
++
++                <div class="relative z-10 flex justify-between items-start">
++                    <h3 class="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest leading-tight w-2/3">
++                        Liste<br>d'attente</h3>
++                    <span class="px-2 py-0.5 text-[9px] font-bold rounded-md uppercase tracking-widest shadow-sm"
++                        [class.bg-amber-50]="(dashboard?.listeAttente||0) > 0"
++                        [class.text-amber-600]="(dashboard?.listeAttente||0) > 0"
++                        [class.border]="(dashboard?.listeAttente||0) > 0"
++                        [class.border-amber-100]="(dashboard?.listeAttente||0) > 0"
++                        [class.bg-gray-50]="(dashboard?.listeAttente||0) === 0"
++                        [class.text-gray-400]="(dashboard?.listeAttente||0) === 0">
++                        {{ (dashboard?.listeAttente || 0) > 0 ? 'Urgent' : 'Aucun' }}
++                    </span>
+                 </div>
+-                <div class="stat-trend" [class.trend-warn]="(dashboard?.listeAttente || 0) > 0"
+-                    [class.trend-neutral]="(dashboard?.listeAttente || 0) === 0">
+-                    <ng-container *ngIf="(dashboard?.listeAttente || 0) > 0">Action req.</ng-container>
+-                    <ng-container *ngIf="(dashboard?.listeAttente || 0) === 0">ÔÇö Aucun</ng-container>
++
++                <div class="relative z-10 flex items-center justify-between mt-5">
++                    <span
++                        class="text-[44px] leading-none font-black text-[#0f1117] tracking-tight group-hover:scale-105 transition-transform origin-left">{{
++                        dashboard?.listeAttente || 0 }}</span>
++                    <div
++                        class="p-3 bg-gradient-to-br from-amber-400 to-amber-500 rounded-[14px] shadow-lg shadow-amber-500/30 text-white transform group-hover:-translate-y-1 group-hover:-rotate-3 transition-all duration-300">
++                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
++                        </svg>
++                    </div>
++                </div>
++
++                <div class="relative z-10 mt-6 pt-4 border-t border-gray-100/60">
++                    <div class="w-full h-1.5 bg-amber-50 rounded-full overflow-hidden">
++                        <div class="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-1000"
++                            [style.width.%]="(dashboard?.listeAttente || 0) > 0 ? 100 : 0">
++                        </div>
++                    </div>
+                 </div>
+             </div>
++
+         </div>
+ 
++
+         <!-- ÔòÉÔòÉ CAPACIT├ë ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ -->
+         <div class="section-card" *ngIf="dashboard?.capacites?.length">
+             <div class="section-header">
+@@ -198,57 +353,106 @@
+                 </div>
+             </div>
+ 
+-            <!-- Ô£à MODE PAR_TYPE : affichage group├® par dipl├┤me -->
++            <!-- Ô£à MODE PAR_TYPE : accordion group├® par dipl├┤me -->
+             <ng-container *ngIf="isModeParType()">
+-                <ng-container *ngFor="let nomDiplome of getNomsDiplomesDistincts()">
+-                    <!-- Header du groupe dipl├┤me -->
+-                    <div class="flex items-center gap-3 mb-3 mt-5 first:mt-0">
+-                        <div class="h-px flex-1 bg-gradient-to-r from-[#e8eaf0] to-transparent"></div>
+-                        <span
+-                            class="px-3 py-1 bg-[#eff4ff] text-[#2563eb] text-[11px] font-bold rounded-full border border-[#dbe6ff] whitespace-nowrap">
+-                            {{ nomDiplome }}
+-                        </span>
+-                        <!-- Pr├®requis sp├®cifiques ├á ce dipl├┤me -->
+-                        <ng-container *ngIf="getCommonPrerequisType(nomDiplome) as prereqsDiplome">
+-                            <div *ngIf="prereqsDiplome.length" class="flex gap-1.5">
+-                                <span *ngFor="let p of prereqsDiplome"
+-                                    class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[9px] font-bold rounded-sm border border-purple-100">
+-                                    {{ p }}
++                <ng-container *ngFor="let nomDiplome of getNomsDiplomesDistincts(); let first = first">
++                    <ng-container *ngIf="getCapaciteSummaryForDiplome(nomDiplome) as summary">
++
++                        <!-- ÔòÉÔòÉÔòÉ ACCORDION HEADER ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ -->
++                        <div class="accordion-header" [class.mt-4]="!first" (click)="toggleDiplome(nomDiplome)">
++
++                            <!-- Left: chevron + name -->
++                            <div class="flex items-center gap-3">
++                                <svg class="w-4 h-4 text-[#2563eb] transition-transform duration-300 flex-shrink-0"
++                                    [style.transform]="isDiplomeCollapsed(nomDiplome) ? 'rotate(-90deg)' : 'rotate(0deg)'"
++                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                        d="M19 9l-7 7-7-7" />
++                                </svg>
++                                <span class="text-sm font-bold text-[#0f1117]">{{ nomDiplome }}</span>
++                                <!-- Nb niveaux -->
++                                <span
++                                    class="text-[10px] font-bold px-2 py-0.5 bg-[#eff4ff] text-[#2563eb] rounded-full border border-[#dbe6ff]">
++                                    {{ summary.nbNiveaux }} niveaux
+                                 </span>
++                                <!-- Pr├®requis sp├®cifiques ├á ce dipl├┤me -->
++                                <ng-container *ngIf="getCommonPrerequisType(nomDiplome) as prereqsDiplome">
++                                    <div *ngIf="prereqsDiplome.length" class="flex gap-1.5">
++                                        <span *ngFor="let p of prereqsDiplome"
++                                            class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[9px] font-bold rounded-sm border border-purple-100">
++                                            {{ p }}
++                                        </span>
++                                    </div>
++                                </ng-container>
+                             </div>
+-                        </ng-container>
+-                        <div class="h-px flex-1 bg-gradient-to-l from-[#e8eaf0] to-transparent"></div>
+-                    </div>
+ 
+-                    <!-- Cartes niveau pour ce dipl├┤me -->
+-                    <div class="niveau-grid mb-4">
+-                        <ng-container *ngFor="let cap of dashboard?.capacites; let i = index">
+-                            <div *ngIf="cap.nomDiplome === nomDiplome" class="niveau-card animate-fadeIn"
+-                                [style.animation-delay]="i * 0.1 + 's'"
+-                                [class.niveau-card-active]="selectedNiveau === cap.niveau + '-' + cap.langue + '-' + cap.nomDiplome"
+-                                (click)="filtrerParNiveau(cap)" style="cursor:pointer">
+-                                <div class="niveau-header">
+-                                    <div class="flex flex-col">
+-                                        <span class="niveau-label">Niveau {{ cap.niveau }}</span>
+-                                        <span class="text-[10px] text-[#2563eb] font-bold uppercase">
+-                                            {{ cap.langue }}
+-                                        </span>
++                            <!-- Right: capacity + status -->
++                            <div class="flex items-center gap-4">
++                                <!-- Capacity bar -->
++                                <div class="flex items-center gap-2">
++                                    <div class="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
++                                        <div class="h-full rounded-full transition-all duration-700"
++                                            [style.width.%]="summary.pct"
++                                            [style.background]="summary.pct >= 90 ? '#ef4444' : summary.pct >= 70 ? '#f59e0b' : '#10b981'">
++                                        </div>
++                                    </div>
++                                    <div class="flex flex-col items-end">
++                                        <span class="text-xs font-bold text-gray-600">{{ summary.inscrits }}/{{
++                                            summary.max }}</span>
++                                        <span class="text-[8px] text-gray-400 italic">Insc. + Attente</span>
+                                     </div>
+-                                    <span class="niveau-status" [class.status-green]="cap.pourcentageRemplissage < 70"
+-                                        [class.status-orange]="cap.pourcentageRemplissage >= 70 && cap.pourcentageRemplissage < 90"
+-                                        [class.status-red]="cap.pourcentageRemplissage >= 90">
+-                                        {{ cap.pourcentageRemplissage >= 100 ? '­ƒö┤ Complet' :
+-                                        cap.pourcentageRemplissage >= 90 ? '­ƒƒá Quasi-complet' :
+-                                        cap.pourcentageRemplissage >= 70 ? '­ƒƒí Quasi-plein' : '­ƒƒó Disponible' }}
+-                                    </span>
+                                 </div>
+-                                <ng-container *ngTemplateOutlet="niveauCardBody; context: { cap: cap }"></ng-container>
++                                <!-- Status badge -->
++                                <span class="text-[10px] font-bold px-2 py-1 rounded-full"
++                                    [class.bg-green-50]="summary.pct < 70" [class.text-green-700]="summary.pct < 70"
++                                    [class.bg-amber-50]="summary.pct >= 70 && summary.pct < 90"
++                                    [class.text-amber-700]="summary.pct >= 70 && summary.pct < 90"
++                                    [class.bg-red-50]="summary.pct >= 90" [class.text-red-700]="summary.pct >= 90">
++                                    {{ summary.status }}
++                                </span>
++                                <!-- Toggle hint -->
++                                <span class="text-[10px] text-gray-400 font-medium">
++                                    {{ isDiplomeCollapsed(nomDiplome) ? 'Afficher' : 'R├®duire' }}
++                                </span>
+                             </div>
+-                        </ng-container>
+-                    </div>
++                        </div>
++
++                        <!-- ÔòÉÔòÉÔòÉ ACCORDION BODY (niveau cards) ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ -->
++                        <div class="accordion-body" [class.accordion-collapsed]="isDiplomeCollapsed(nomDiplome)">
++                            <div class="niveau-grid mt-3 mb-2">
++                                <ng-container *ngFor="let cap of dashboard?.capacites; let i = index">
++                                    <div *ngIf="cap.nomDiplome === nomDiplome" class="niveau-card animate-fadeIn"
++                                        [style.animation-delay]="i * 0.05 + 's'"
++                                        [class.niveau-card-active]="selectedNiveau === cap.niveau + '-' + cap.langue + '-' + cap.nomDiplome"
++                                        (click)="filtrerParNiveau(cap)" style="cursor:pointer">
++                                        <div class="niveau-header">
++                                            <div class="flex flex-col">
++                                                <span class="niveau-label">Niveau {{ cap.niveau }}</span>
++                                                <span class="text-[10px] text-[#2563eb] font-bold uppercase">
++                                                    {{ cap.langue }}
++                                                </span>
++                                            </div>
++                                            <span class="niveau-status"
++                                                [class.status-green]="cap.pourcentageRemplissage < 70"
++                                                [class.status-orange]="cap.pourcentageRemplissage >= 70 && cap.pourcentageRemplissage < 90"
++                                                [class.status-red]="cap.pourcentageRemplissage >= 90">
++                                                {{ cap.pourcentageRemplissage >= 100 ? '­ƒö┤ Complet' :
++                                                cap.pourcentageRemplissage >= 90 ? '­ƒƒá Quasi-complet' :
++                                                cap.pourcentageRemplissage >= 70 ? '­ƒƒí Quasi-plein' : '­ƒƒó Disponible' }}
++                                            </span>
++                                        </div>
++                                        <ng-container
++                                            *ngTemplateOutlet="niveauCardBody; context: { cap: cap }"></ng-container>
++                                    </div>
++                                </ng-container>
++                            </div>
++                        </div>
++
++                    </ng-container>
+                 </ng-container>
+             </ng-container>
+ 
++
+             <!-- Ô£à MODE PAR_DIPLOME : affichage normal (un seul dipl├┤me) -->
+             <div class="niveau-grid" *ngIf="!isModeParType()">
+                 <div class="niveau-card animate-fadeIn" *ngFor="let cap of dashboard?.capacites; let i = index"
+@@ -311,7 +515,12 @@
+                         </strong>
+                     </div>
+                     <div class="detail-item detail-restant">
+-                        <span>Places restantes</span>
++                        <div class="flex flex-col">
++                            <span>Places restantes</span>
++                            <span class="text-[9px] text-[#8b92a9] italic mt-[-2px] leading-tight">
++                                ({{ cap.inscritsConfirmes }} inscrits + {{ cap.enCoursTraitement }} en attente)
++                            </span>
++                        </div>
+                         <strong [class.text-red]="cap.placesRestantes === 0"
+                             [class.text-green]="cap.placesRestantes > 5">
+                             {{ cap.placesRestantes }} / {{ cap.capaciteMax }}
+@@ -347,6 +556,7 @@
+                     </button>
+                 </div>
+ 
++                <!-- ÔöÇÔöÇÔöÇ PR├ëREQUIS ÔöÇÔöÇÔöÇ -->
+                 <div class="niveau-prereq mt-4 pt-3 border-t border-dashed border-gray-100">
+                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pr├®requis requis</p>
+                     <div class="flex flex-wrap gap-1.5">
+@@ -358,6 +568,110 @@
+                             class="text-[10px] italic text-gray-400">Aucun pr├®requis sp├®cifique</span>
+                     </div>
+                 </div>
++
++                <!-- ÔöÇÔöÇÔöÇ SECTION GROUPES (HIERARCHIQUE) ÔöÇÔöÇÔöÇ -->
++                <div class="v-groups-section mt-4 pt-4 border-t border-dashed border-[#e8eaf0]">
++                    <div class="flex items-center justify-between mb-4">
++                        <div class="flex items-center gap-2">
++                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">R├®partition des
++                                groupes</span>
++                            <div class="w-1 h-1 rounded-full bg-gray-300"></div>
++                            <span class="text-[10px] font-semibold text-[#8b92a9]">{{ cap.nbGroupes || 0 }}
++                                groupe(s)</span>
++                        </div>
++                        <button (click)="toggleGroups(cap); $event.stopPropagation()"
++                            class="text-[10px] font-bold text-[#2563eb] hover:bg-blue-50 px-2 py-1 rounded transition-colors flex items-center gap-1">
++                            {{ cap.showGroups ? 'Masquer' : 'Consulter groupes' }}
++                            <svg class="w-3 h-3 transition-transform duration-300"
++                                [style.transform]="cap.showGroups ? 'rotate(180deg)' : 'rotate(0deg)'" fill="none"
++                                stroke="currentColor" viewBox="0 0 24 24">
++                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                    d="M19 9l-7 7-7-7" />
++                            </svg>
++                        </button>
++                    </div>
++
++                    <!-- Liste des groupes -->
++                    <div *ngIf="cap.showGroups" class="groups-list animate-slideDown">
++                        <!-- Loading -->
++                        <div *ngIf="cap.loadingGroups" class="flex flex-col items-center py-6 gap-3">
++                            <div class="loading-spinner-mini"></div>
++                            <span class="text-[10px] font-medium text-gray-400">Chargement des groupes...</span>
++                        </div>
++
++                        <!-- Empty State -->
++                        <div *ngIf="!cap.loadingGroups && (!cap.groups || cap.groups.length === 0)"
++                            class="flex flex-col items-center py-4 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
++                            <span class="text-[10px] font-medium text-[#8b92a9]">Aucun groupe constitu├®</span>
++                        </div>
++
++                        <!-- Grille Groupes -->
++                        <div *ngIf="!cap.loadingGroups && cap.groups && cap.groups.length > 0"
++                            class="grid grid-cols-1 gap-2">
++                            <div *ngFor="let g of cap.groups"
++                                class="group-item bg-white/50 border border-[#e8eaf0] rounded-xl overflow-hidden hover:border-[#2563eb]/30 transition-all">
++                                <div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white"
++                                    [class.bg-blue-50]="selectedGroup?.id === g.id"
++                                    (click)="filtrerParGroupe(g); $event.stopPropagation()">
++                                    <div class="flex items-center gap-3">
++                                        <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
++                                            <span class="text-xs font-bold text-[#2563eb]">{{ g.nom.split(' ')[1] || '?'
++                                                }}</span>
++                                        </div>
++                                        <div class="flex flex-col">
++                                            <span class="text-[12px] font-bold text-[#0f1117]">{{ g.nom }}</span>
++                                            <span
++                                                class="text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-block w-fit mt-0.5"
++                                                [class.bg-green-50]="g.statut === 'COMPLET'"
++                                                [class.text-green-600]="g.statut === 'COMPLET'"
++                                                [class.bg-blue-50]="g.statut === 'EN_FORMATION'"
++                                                [class.text-blue-600]="g.statut === 'EN_FORMATION'">
++                                                {{ g.statut }}
++                                            </span>
++                                        </div>
++                                    </div>
++                                    <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor"
++                                        viewBox="0 0 24 24">
++                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
++                                            d="M9 5l7 7-7 7" />
++                                    </svg>
++                                </div>
++
++                                <!-- ├ëtudiants du groupe -->
++                                <div *ngIf="g.demandes"
++                                    class="students-drawer bg-gray-50/30 border-t border-gray-100 p-2 animate-fadeIn">
++                                    <div *ngIf="g.demandes.length === 0"
++                                        class="text-center py-2 text-[10px] text-gray-400">
++                                        Aucune demande dans ce groupe
++                                    </div>
++                                    <div *ngFor="let s of g.demandes"
++                                        class="student-item flex items-center justify-between p-2 rounded-lg hover:bg-white transition-colors border border-transparent hover:border-gray-100 mb-1 last:mb-0">
++                                        <div class="flex items-center gap-2">
++                                            <div
++                                                class="w-6 h-6 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-[9px] font-bold text-gray-600">
++                                                {{ (s.etudiantPrenom?.[0] || '') + (s.etudiantNom?.[0] || '') }}
++                                            </div>
++                                            <span class="text-[11px] font-semibold text-gray-700">{{ s.etudiantPrenom }}
++                                                {{ s.etudiantNom }}</span>
++                                        </div>
++                                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full"
++                                            [class.bg-green-50]="s.statutActuel === 'INSCRIT'"
++                                            [class.text-green-600]="s.statutActuel === 'INSCRIT'"
++                                            [class.bg-blue-50]="s.statutActuel !== 'INSCRIT' && s.statutActuel !== 'REJETE'"
++                                            [class.text-blue-600]="s.statutActuel !== 'INSCRIT' && s.statutActuel !== 'REJETE'"
++                                            [class.bg-red-50]="s.statutActuel === 'REJETE'"
++                                            [class.text-red-600]="s.statutActuel === 'REJETE'">
++                                            {{ s.statutActuel }}
++                                        </span>
++                                    </div>
++                                </div>
++                                <div *ngIf="g.loadingDemandes" class="flex justify-center py-2">
++                                    <div class="loading-spinner-mini"></div>
++                                </div>
++                            </div>
++                        </div>
++                    </div>
++                </div>
+             </ng-template>
+         </div>
+ 
+@@ -417,16 +731,35 @@
+         <!-- ÔòÉÔòÉ TABLEAU PRINCIPAL ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ -->
+         <div class="section-card">
+             <div class="section-header">
+-                <h2 class="section-title">Demandes ÔÇö EN_COURS_DEPARTEMENT</h2>
++                <div class="flex flex-col gap-1">
++                    <h2 class="section-title">Demandes ÔÇö {{ getFilterLabel() }}</h2>
++                    <div *ngIf="selectedGroup" class="flex items-center gap-2 animate-fadeIn">
++                        <span
++                            class="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-full text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
++                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
++                            </svg>
++                            Groupe : {{ selectedGroup.nom }}
++                            <button (click)="clearFiltreGroupe()"
++                                class="hover:bg-blue-200 p-0.5 rounded-full transition-colors">
++                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
++                                        d="M6 18L18 6M6 6l12 12" />
++                                </svg>
++                            </button>
++                        </span>
++                    </div>
++                </div>
+                 <div class="flex items-center gap-3">
+                     <div class="filter-bar">
+                         <button class="filter-btn" [class.active]="currentFilter === 'tous'"
+                             (click)="setFilter('tous')">Tous</button>
+-                        <button class="filter-btn" [class.active]="currentFilter === 'prerequis_ok'"
++                        <button class="filter-btn" [class.active]="currentPrerequisFilter === 'OK'"
+                             (click)="setFilter('prerequis_ok')">
+                             <span class="dot dot-green"></span> Pr├®requis OK
+                         </button>
+-                        <button class="filter-btn" [class.active]="currentFilter === 'prerequis_ko'"
++                        <button class="filter-btn" [class.active]="currentPrerequisFilter === 'KO'"
+                             (click)="setFilter('prerequis_ko')">
+                             <span class="dot dot-red"></span> Pr├®requis Ô£ù
+                         </button>
+@@ -755,15 +1088,43 @@
+                     </div>
+                 </ng-container>
+                 <ng-template #noBacData>
+-                    <div class="flex flex-col items-center justify-center p-4 h-full text-center">
+-                        <p class="text-xs text-gray-400">Aucune donn├®e sur les types de bac pour les inscrits actuels.
+-                        </p>
++                    <div class="flex flex-col items-center justify-center py-8 text-center gap-3">
++                        <div
++                            class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
++                            <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
++                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
++                            </svg>
++                        </div>
++                        <div>
++                            <p class="text-sm font-bold text-slate-400">Aucune donn├®e disponible</p>
++                            <p class="text-xs text-slate-300 mt-0.5">Les donn├®es de s├®rie de bac appara├«tront<br>d├¿s que
++                                des candidats seront inscrits.</p>
++                        </div>
+                     </div>
+                 </ng-template>
+             </div>
+             <div class="analytics-card">
+                 <p class="analytics-title">Taux d'acceptation</p>
+-                <div class="donut-chart-wrapper">
++                <!-- Empty state when no decisions have been made -->
++                <div *ngIf="(dashboard?.valides || 0) + (dashboard?.rejetes || 0) === 0"
++                    class="flex flex-col items-center justify-center py-8 text-center gap-3">
++                    <div
++                        class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
++                        <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
++                                d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
++                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
++                                d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
++                        </svg>
++                    </div>
++                    <div>
++                        <p class="text-sm font-bold text-slate-400">Aucune d├®cision prise</p>
++                        <p class="text-xs text-slate-300 mt-0.5">Le taux d'acceptation s'affichera<br>d├¿s qu'une
++                            candidature sera trait├®e.</p>
++                    </div>
++                </div>
++                <div class="donut-chart-wrapper" *ngIf="(dashboard?.valides || 0) + (dashboard?.rejetes || 0) > 0">
+                     <div class="donut-chart-container">
+                         <svg viewBox="0 0 120 120" class="donut-svg">
+                             <circle cx="60" cy="60" r="48" fill="none" stroke="#f1f5f9" stroke-width="12" />
+@@ -993,29 +1354,11 @@
+                         {{ selectedDemande.prerequisSatisfaits ? 'Ô£ô OK' : 'ÔÜá KO' }}
+                     </span>
+                 </button>
+-                <button class="modal-tab" [class.tab-active]="activeTab === 'decision'"
+-                    (click)="activeTab = 'decision'">
+-                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+-                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+-                        <path fill-rule="evenodd"
+-                            d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+-                            clip-rule="evenodd" />
+-                    </svg>
+-                    D├®cision
+-                    <span *ngIf="getNombrePrerequisEnAttente() > 0 && isActionnable(selectedDemande)"
+-                        style="background:#f59e0b;color:white;border-radius:9999px;padding:1px 7px;font-size:9px;font-weight:700;">
+-                        {{ getNombrePrerequisEnAttente() }} ÔÜá
+-                    </span>
+-                </button>
+             </nav>
+ 
+             <div class="modal-body">
+-
+-                <!-- ÔòÉÔòÉ TAB PR├ëREQUIS ÔòÉÔòÉ -->
+-                <div *ngIf="activeTab === 'prerequis'" class="prereq-split-layout" [class.show-preview]="showPreview">
++                <div class="prereq-split-layout" [class.show-preview]="showPreview">
+                     <div class="prereq-list-pane">
+-
+-                        <!-- R├®sum├® ├ëtudiant -->
+                         <div class="prereq-student-summary animate-fadeIn" *ngIf="selectedDemande">
+                             <div class="summary-details">
+                                 <div class="detail-pill" *ngIf="selectedDemande.etudiantInfo?.numCarteIdentite">
+@@ -1027,9 +1370,9 @@
+                                     <span class="pill-label">Passeport:</span>
+                                     <span class="pill-val">{{ selectedDemande.etudiantInfo?.numPassport }}</span>
+                                 </div>
+-                                <div class="detail-pill" *ngIf="selectedDemande.etudiantInfo?.telephone">
++                                <div class="detail-pill" *ngIf="selectedDemande.etudiantInfo?.phone">
+                                     <span class="pill-label">T├®l:</span>
+-                                    <span class="pill-val">{{ selectedDemande.etudiantInfo?.telephone }}</span>
++                                    <span class="pill-val">{{ formatPhone(selectedDemande.etudiantInfo?.phone) }}</span>
+                                 </div>
+                                 <div class="detail-pill" *ngIf="selectedDemande.diplomeObtenu">
+                                     <span class="pill-label">Dipl├┤me:</span>
+@@ -1038,9 +1381,8 @@
+                             </div>
+                         </div>
+ 
+-                        <!-- Navigateur documents -->
+                         <div class="prereq-doc-navigator" *ngIf="getFilteredDocuments().length > 0">
+-                            <span class="navigator-title">V├®rification Documents :</span>
++                            <span class="navigator-title">Documents :</span>
+                             <div class="navigator-pills">
+                                 <button *ngFor="let doc of getFilteredDocuments()" class="doc-pill"
+                                     [class.active]="activeDocumentId === doc.documentId"
+@@ -1054,12 +1396,11 @@
+                             </div>
+                         </div>
+ 
+-                        <!-- Banni├¿re r├®sultat global -->
+                         <div class="prereq-banner" [ngClass]="{
+-                'banner-ok':      getPrerequisStatutGlobal(selectedDemande) === 'OK',
+-                'banner-ko':      getPrerequisStatutGlobal(selectedDemande) === 'REJETE',
+-                'banner-pending': getPrerequisStatutGlobal(selectedDemande) === 'A_VERIFIER'
+-              }">
++                            'banner-ok':      getPrerequisStatutGlobal(selectedDemande) === 'OK',
++                            'banner-ko':      getPrerequisStatutGlobal(selectedDemande) === 'REJETE',
++                            'banner-pending': getPrerequisStatutGlobal(selectedDemande) === 'A_VERIFIER'
++                        }">
+                             <svg *ngIf="getPrerequisStatutGlobal(selectedDemande) === 'OK'" viewBox="0 0 20 20"
+                                 fill="currentColor">
+                                 <path fill-rule="evenodd"
+@@ -1086,12 +1427,11 @@
+                                     :
+                                     'V├®rification en cours' }}
+                                 </strong>
+-                                <p>{{ selectedDemande.prerequisDetails.length }} crit├¿re(s) ┬À
+-                                    {{ getCountPrerequisOk(selectedDemande) }} confirm├®(s)</p>
++                                <p>{{ selectedDemande.prerequisDetails.length }} crit├¿re(s) ┬À {{
++                                    getCountPrerequisOk(selectedDemande) }} confirm├®(s)</p>
+                             </div>
+                         </div>
+ 
+-                        <!-- SECTION A : Pr├®requis TYPE -->
+                         <ng-container *ngIf="getPrerequisBySource(selectedDemande, 'TYPE') as prereqsType">
+                             <div class="prereq-section" *ngIf="prereqsType.length > 0">
+                                 <div class="prereq-section-header">
+@@ -1104,7 +1444,7 @@
+                                     </div>
+                                     <div>
+                                         <h4>Pr├®requis du programme</h4>
+-                                        <p>V├®rification automatique selon le type de dipl├┤me</p>
++                                        <p>V├®rification automatique</p>
+                                     </div>
+                                     <span class="prereq-count-badge" [class.count-ok]="allConform(prereqsType)"
+                                         [class.count-ko]="!allConform(prereqsType)">
+@@ -1116,12 +1456,11 @@
+                                         [class.prereq-card-ok]="detail.conforme"
+                                         [class.prereq-card-ko]="!detail.conforme">
+                                         <div class="prereq-card-main">
+-                                            <div class="prereq-card-title-area">
+-                                                <strong class="prereq-card-title">{{ detail.prerequisRequis }}</strong>
+-                                            </div>
++                                            <div class="prereq-card-title-area"><strong class="prereq-card-title">{{
++                                                    detail.prerequisRequis }}</strong></div>
+                                         </div>
+                                         <div class="prereq-card-value">
+-                                            <span class="prereq-val-label">R├®sultat Candidat :</span>
++                                            <span class="prereq-val-label">Valeur :</span>
+                                             <span class="prereq-val-text">{{ detail.valeurCandidat || 'ÔÇö' }}</span>
+                                         </div>
+                                         <div class="prereq-card-status">
+@@ -1135,7 +1474,6 @@
+                             </div>
+                         </ng-container>
+ 
+-                        <!-- SECTION B : Pr├®requis NIVEAU -->
+                         <ng-container *ngIf="getPrerequisBySource(selectedDemande, 'NIVEAU') as prereqsNiveau">
+                             <div class="prereq-section" *ngIf="prereqsNiveau.length > 0">
+                                 <div class="prereq-section-header">
+@@ -1147,10 +1485,7 @@
+                                     </div>
+                                     <div>
+                                         <h4>Pr├®requis du niveau {{ selectedDemande.niveauChoisi }}</h4>
+-                                        <p>
+-                                            <strong style="color:#2563eb">Confirmation manuelle requise</strong>
+-                                            ÔÇö v├®rifiez les documents et cochez chaque pr├®requis
+-                                        </p>
++                                        <p>Confirmation manuelle requise</p>
+                                     </div>
+                                     <span class="prereq-count-badge" [class.count-ok]="allConform(prereqsNiveau)"
+                                         [class.count-ko]="!allConform(prereqsNiveau)">
+@@ -1161,26 +1496,21 @@
+                                     <div *ngFor="let detail of prereqsNiveau" class="prereq-card-row"
+                                         [class.prereq-card-ok]="detail.score !== null && detail.score !== undefined && detail.score >= 50"
+                                         [class.prereq-card-ko]="detail.score !== null && detail.score !== undefined && detail.score < 50"
+-                                        [class.prereq-card-pending]="detail.score === null || detail.score === undefined">
+-
++                                        [class.prereq-card-pending]="detail.score == null">
+                                         <div class="prereq-card-main">
+-                                            <div class="prereq-card-title-area">
+-                                                <strong class="prereq-card-title">{{ detail.prerequisRequis }}</strong>
+-                                            </div>
++                                            <div class="prereq-card-title-area"><strong class="prereq-card-title">{{
++                                                    detail.prerequisRequis }}</strong></div>
+                                             <div *ngIf="detail.score !== null && detail.score !== undefined && detail.score < 50 && detail.motifRejet"
+-                                                style="margin-top:6px;font-size:11px;color:#dc2626;background:#fef2f2;
+-                               padding:6px 10px;border-radius:6px;border:1px solid #fecaca;display:inline-block;">
++                                                style="margin-top:6px;font-size:11px;color:#dc2626;background:#fef2f2;padding:6px 10px;border-radius:6px;border:1px solid #fecaca;display:inline-block;">
+                                                 <strong>Motif :</strong> {{ detail.motifRejet }}
+                                             </div>
+                                         </div>
+-
+                                         <div class="prereq-card-status">
+                                             <span [ngClass]="getStatutScoreClass(detail.score)"
+                                                 style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid;">
+                                                 {{ getStatutScoreLabel(detail.score) }}
+                                             </span>
+                                         </div>
+-
+                                         <div class="prereq-card-actions" *ngIf="isActionnable(selectedDemande)">
+                                             <div
+                                                 style="display:flex;flex-direction:column;gap:8px;width:100%;min-width:200px;">
+@@ -1192,14 +1522,13 @@
+                                                         [style.accent-color]="getScoreColor(detail.score)">
+                                                     <span
+                                                         style="font-size:14px;font-weight:800;min-width:32px;text-align:right;"
+-                                                        [style.color]="getScoreColor(detail.score)">
+-                                                        {{ detail.score ?? 'ÔÇö' }}
+-                                                    </span>
++                                                        [style.color]="getScoreColor(detail.score)">{{ detail.score ??
++                                                        'ÔÇö' }}</span>
+                                                 </div>
+                                                 <div style="display:flex;gap:4px;">
+                                                     <button *ngFor="let v of [0, 50, 75, 100]"
+-                                                        (click)="setScorePrerequis(detail, v)" style="flex:1;padding:3px 0;font-size:10px;font-weight:700;
+-                                     border-radius:5px;cursor:pointer;border:1.5px solid;transition:all 0.15s;"
++                                                        (click)="setScorePrerequis(detail, v)"
++                                                        style="flex:1;padding:3px 0;font-size:10px;font-weight:700;border-radius:5px;cursor:pointer;border:1.5px solid;transition:all 0.15s;"
+                                                         [style.background]="detail.score === v ? getScoreColor(v) : 'transparent'"
+                                                         [style.color]="detail.score === v ? 'white' : getScoreColor(v)"
+                                                         [style.border-color]="getScoreColor(v)">
+@@ -1211,13 +1540,8 @@
+                                                     <textarea
+                                                         [value]="motifEnCours.get(detail.prerequisId) || detail.motifRejet || ''"
+                                                         (input)="setMotifPrerequis(detail, $any($event.target).value)"
+-                                                        placeholder="Motif obligatoire si score < 50ÔÇª" rows="2" style="width:100%;font-size:11px;padding:6px 8px;
+-                                   border:1px solid #fecaca;border-radius:6px;resize:none;
+-                                   color:#dc2626;background:#fef2f2;box-sizing:border-box;">
+-                          </textarea>
+-                                                    <p style="font-size:10px;color:#dc2626;margin:2px 0 0;">
+-                                                        ÔÜá Motif requis pour score inf├®rieur ├á 50
+-                                                    </p>
++                                                        placeholder="Motif obligatoire si score < 50ÔÇª" rows="2"
++                                                        style="width:100%;font-size:11px;padding:6px 8px;border:1px solid #fecaca;border-radius:6px;resize:none;color:#dc2626;background:#fef2f2;box-sizing:border-box;"></textarea>
+                                                 </div>
+                                             </div>
+                                         </div>
+@@ -1226,15 +1550,42 @@
+                             </div>
+                         </ng-container>
+ 
+-                        <!-- Empty state -->
+                         <div class="empty-state" *ngIf="!selectedDemande.prerequisDetails.length">
+                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                 <path stroke-linecap="round" stroke-linejoin="round"
+                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                             </svg>
+-                            <p>Aucun pr├®requis configur├® pour ce dipl├┤me</p>
++                            <p>Aucun pr├®requis configur├®</p>
++                        </div>
++
++                        <div class="decision-integrated-section mt-8 pt-8 border-t border-gray-100 animate-fadeIn"
++                            *ngIf="isActionnable(selectedDemande) && tousPrerequisNiveauTraites()">
++                            <button (click)="soumettreEvaluation()" [disabled]="actionLoading"
++                                class="btn-submit-evaluation">
++                                <span *ngIf="actionLoading" class="spinner-small white mr-2"></span>
++                                <svg *ngIf="!actionLoading" class="w-5 h-5 mr-3" fill="none" stroke="currentColor"
++                                    viewBox="0 0 24 24">
++                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
++                                        d="M5 13l4 4L19 7" />
++                                </svg>
++                                {{ actionLoading ? 'Soumission...' : 'Valider et Soumettre l\'├®valuation' }}
++                            </button>
++                        </div> <!-- Fin decision-integrated-section -->
++
++                        <!-- Aide si incomplet -->
++                        <div *ngIf="isActionnable(selectedDemande) && !tousPrerequisNiveauTraites()"
++                            style="margin-top: 24px; padding: 16px; background: #fffcf0; border: 1.5px dashed #fcd34d; border-radius: 12px; display: flex; align-items: flex-start; gap: 12px;">
++                            <div style="color: #d97706;">ÔÜá´©Å</div>
++                            <div>
++                                <p style="font-size: 13px; font-weight: 800; color: #92400e; margin-bottom: 4px;">
++                                    ├ëvaluation en cours</p>
++                                <p style="font-size: 12px; color: #b45309; line-height: 1.4;">Veuillez ├®valuer
++                                    <strong>tous les pr├®requis</strong> pour d├®bloquer la soumission.
++                                </p>
++                            </div>
+                         </div>
+-                    </div>
++
++                    </div> <!-- Fin prereq-list-pane -->
+ 
+                     <!-- PREVIEW PANE -->
+                     <div class="prereq-preview-pane" *ngIf="showPreview">
+@@ -1282,154 +1633,10 @@
+                         </div>
+                     </div>
+                 </div>
+-
+-                <!-- ÔòÉÔòÉ TAB D├ëCISION ÔòÉÔòÉ -->
+-                <ng-container *ngIf="activeTab === 'decision'">
+-
+-                    <div *ngIf="!isActionnable(selectedDemande)" class="decision-readonly">
+-                        <div class="readonly-icon">
+-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+-                            </svg>
+-                        </div>
+-                        <h3>Dossier {{ getStatutLabel(selectedDemande.statut) }}</h3>
+-                        <p>Ce dossier a d├®j├á ├®t├® trait├® automatiquement.</p>
+-                    </div>
+-
+-                    <div *ngIf="isActionnable(selectedDemande) && !tousPrerequisNiveauTraites()" style="margin-bottom:16px;padding:14px 16px;background:#fffbeb;
+-                   border:1px solid #fcd34d;border-radius:12px;
+-                   display:flex;align-items:flex-start;gap:12px;">
+-                        <svg style="width:20px;height:20px;flex-shrink:0;color:#d97706;margin-top:1px"
+-                            viewBox="0 0 20 20" fill="currentColor">
+-                            <path fill-rule="evenodd"
+-                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+-                                clip-rule="evenodd" />
+-                        </svg>
+-                        <div>
+-                            <p style="font-weight:700;font-size:13px;color:#92400e;margin:0 0 4px">
+-                                {{ getNombrePrerequisEnAttente() }} pr├®requis en attente de confirmation
+-                            </p>
+-                            <p style="font-size:12px;color:#92400e;margin:0">
+-                                Confirmez tous les pr├®requis dans l'onglet <strong>Pr├®requis</strong> avant de
+-                                soumettre.
+-                            </p>
+-                        </div>
+-                        <button (click)="activeTab = 'prerequis'" style="margin-left:auto;white-space:nowrap;padding:6px 12px;
+-                   background:#d97706;color:white;border:none;border-radius:8px;
+-                   font-size:11px;font-weight:700;cursor:pointer;">
+-                            ÔåÆ Aller aux pr├®requis
+-                        </button>
+-                    </div>
+-
+-                    <div *ngIf="isActionnable(selectedDemande) && tousPrerequisNiveauTraites()">
+-
+-                        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;
+-                        padding:20px 24px;margin-bottom:16px;">
+-                            <p style="font-size:11px;font-weight:700;color:#8b92a9;
+-                        text-transform:uppercase;letter-spacing:.6px;margin:0 0 12px;">
+-                                R├®capitulatif de l'├®valuation
+-                            </p>
+-                            <div style="display:flex;align-items:center;gap:16px;">
+-                                <div style="text-align:center;">
+-                                    <span style="font-size:36px;font-weight:900;line-height:1;"
+-                                        [style.color]="getScoreTotalColor(selectedDemande.scoreTotal)">
+-                                        {{ selectedDemande.scoreTotal }}
+-                                    </span>
+-                                    <span style="font-size:16px;color:#94a3b8;font-weight:600;">/100</span>
+-                                    <p style="font-size:11px;margin:4px 0 0;font-weight:700;"
+-                                        [style.color]="getScoreTotalColor(selectedDemande.scoreTotal)">
+-                                        {{ getScoreTotalLabel(selectedDemande.scoreTotal) }}
+-                                    </p>
+-                                </div>
+-                                <div style="flex:1;">
+-                                    <div
+-                                        style="height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden;margin-bottom:8px;">
+-                                        <div style="height:100%;border-radius:4px;transition:width 0.5s ease;"
+-                                            [style.width.%]="selectedDemande.scoreTotal"
+-                                            [style.background]="getScoreTotalColor(selectedDemande.scoreTotal)">
+-                                        </div>
+-                                    </div>
+-                                    <div style="display:flex;gap:16px;font-size:11px;color:#64748b;flex-wrap:wrap;">
+-                                        <span>Niveau : <strong>{{ selectedDemande.niveauChoisi }}</strong></span>
+-                                        <span>Langue : <strong>{{ selectedDemande.langue }}</strong></span>
+-                                        <!-- Ô£à NOUVEAU : affiche le dipl├┤me en mode PAR_TYPE -->
+-                                        <span *ngIf="isModeParType()">
+-                                            Dipl├┤me : <strong style="color:#2563eb">{{ selectedDemande.nomDiplome
+-                                                }}</strong>
+-                                        </span>
+-                                        <span>Pr├®requis :
+-                                            <strong>{{ selectedDemande.prerequisTraites }}/{{
+-                                                selectedDemande.prerequisTotal }}</strong>
+-                                            ├®valu├®s
+-                                        </span>
+-                                    </div>
+-                                </div>
+-                            </div>
+-                        </div>
+-
+-                        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;
+-                        padding:16px 20px;margin-bottom:16px;">
+-                            <p style="font-size:11px;font-weight:700;color:#1d4ed8;
+-                        text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;">
+-                                ­ƒÆí D├®cision automatique
+-                            </p>
+-                            <ul style="margin:0;padding-left:18px;font-size:12px;color:#1e40af;line-height:1.85;">
+-                                <li>
+-                                    Si le score est <strong>insuffisant</strong> ÔåÆ
+-                                    <span style="color:#dc2626;font-weight:700;">Rejet automatique</span>
+-                                </li>
+-                                <li>
+-                                    Si le score est <strong>suffisant</strong> ÔåÆ
+-                                    <span style="color:#d97706;font-weight:700;">Liste d'attente</span>
+-                                    (class├® par score d├®croissant)
+-                                </li>
+-                                <li>
+-                                    Quand le groupe atteint <strong>{{ getTailleGroupeActuel() }} candidats</strong> ÔåÆ
+-                                    <span style="color:#059669;font-weight:700;">Validation automatique</span>
+-                                    des meilleurs scores
+-                                </li>
+-                            </ul>
+-                        </div>
+-
+-                        <div style="display:flex;align-items:center;gap:10px;background:#f8fafc;
+-                        border:0.5px solid #e2e8f0;border-radius:10px;
+-                        padding:12px 16px;margin-bottom:20px;">
+-                            <svg style="width:14px;height:14px;color:#64748b;flex-shrink:0" viewBox="0 0 20 20"
+-                                fill="currentColor">
+-                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+-                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+-                            </svg>
+-                            <span style="font-size:12px;color:#64748b;">
+-                                Un email de notification sera envoy├® automatiquement ├á
+-                                <strong style="color:#0f1117;">{{ selectedDemande.emailEtudiant }}</strong>
+-                            </span>
+-                        </div>
+-
+-                        <button (click)="soumettreEvaluation()" [disabled]="actionLoading" style="width:100%;padding:14px 24px;background:#2563eb;color:white;
+-                     border:none;border-radius:12px;font-size:14px;font-weight:700;
+-                     cursor:pointer;display:flex;align-items:center;justify-content:center;
+-                     gap:10px;transition:all 0.2s;" [style.opacity]="actionLoading ? '0.7' : '1'"
+-                            onmouseenter="if(!this.disabled) this.style.background='#1d4ed8'"
+-                            onmouseleave="if(!this.disabled) this.style.background='#2563eb'">
+-                            <span *ngIf="actionLoading" style="width:16px;height:16px;border:2px solid white;
+-                       border-top-color:transparent;border-radius:50%;
+-                       animation:spin 0.6s linear infinite;display:inline-block;">
+-                            </span>
+-                            <svg *ngIf="!actionLoading" style="width:18px;height:18px" fill="none" stroke="currentColor"
+-                                viewBox="0 0 24 24">
+-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+-                                    d="M5 13l4 4L19 7" />
+-                            </svg>
+-                            {{ actionLoading ? 'Soumission en cours...' : 'Soumettre l\'├®valuation' }}
+-                        </button>
+-
+-                    </div>
+-                </ng-container>
+             </div>
+         </main>
+-    </div>
+-</div>
++    </div> <!-- /modal-shell -->
++</div> <!-- /modal-backdrop -->
+ 
+ <!-- ÔòÉÔòÉ DIALOG MODIFICATIONS NON ENREGISTR├ëES ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ -->
+ <div *ngIf="showUnsavedChangesDialog" class="viewer-backdrop" style="z-index:2000">

@@ -31,7 +31,7 @@ export interface EtudiantInfoDTO {
     prenom: string;
     matricule: string;
     email: string;
-    telephone: string;
+    phone: string;
     dateNaissance: string;
     numCarteIdentite: string;
     numPassport: string;
@@ -59,6 +59,18 @@ export interface HistoriqueStatusDTO {
     commentaire: string;
     loginUtilisateur: string;
     dateStatus: string;
+}
+
+export interface RevisionLog {
+    id: number;
+    timestamp: string;
+    username?: string;
+    action: string;
+    resourceType: string;
+    resourceId: number;
+    beforeValue?: string;
+    afterValue?: string;
+    description?: string;
 }
 
 export interface PageResponse<T> {
@@ -91,6 +103,7 @@ export class ScolariteService {
     private enrollmentApiUrl = `${environment.apiUrl}/INSCRIPTION-SERVICE/api/scolarite`;
     private workflowApiUrl = `${environment.workflowServiceUrl}/api/workflow`;
     private departementApiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/departements`;
+    private diplomaApiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/diplomes`;
 
     constructor(private http: HttpClient) { }
 
@@ -230,5 +243,22 @@ export class ScolariteService {
     getDemandesCompletes(page = 0, size = 10): Observable<PageResponse<DemandeDetailDTO>> {
         const params = new HttpParams().set('page', page).set('size', size);
         return this.http.get<PageResponse<DemandeDetailDTO>>(`${this.enrollmentApiUrl}/demandes/complets`, { params });
+    }
+
+    getRevisionLogs(resourceType: string, resourceId: number): Observable<RevisionLog[]> {
+        return this.http.get<RevisionLog[]>(`${this.departementApiUrl}/revision-logs/${resourceType}/${resourceId}`);
+    }
+
+    getBulkRevisionLogs(items: { type: string, id: number }[]): Observable<RevisionLog[]> {
+        return this.http.post<RevisionLog[]>(`${this.departementApiUrl}/revision-logs/bulk`, { items });
+    }
+
+    // ✅ NOUVEAU — Gestion des Groupes
+    getGroupsByNiveauSpecifique(niveauSpecifiqueId: number): Observable<any[]> {
+        return this.http.get<any[]>(`${this.diplomaApiUrl}/niveaux-specifiques/${niveauSpecifiqueId}/groupes`);
+    }
+
+    getDemandesByGroupId(groupId: number): Observable<any[]> {
+        return this.http.get<any[]>(`${this.enrollmentApiUrl}/demandes/groupe/${groupId}`);
     }
 }

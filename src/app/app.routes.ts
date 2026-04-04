@@ -12,6 +12,7 @@ import { UsersManagementComponent } from './components/users-management-componen
 import { DashboardDepartementComponent } from './components/dashboard-departement/dashboard-departement.component';
 import { ParametragePrerequisComponent } from './components/parametrage-prerequis/parametrage-prerequis.component';
 import { DepartementsManagementComponent } from './components/departements-management/departements-management.component';
+import { EmailTemplateEditorComponent } from './components/email-template-editor/email-template-editor.component';
 
 export const routes: Routes = [
     { path: '', component: HomeComponent },
@@ -26,6 +27,7 @@ export const routes: Routes = [
     { path: 'notifications', component: NotificationsComponent },
     { path: 'admin/users', component: UsersManagementComponent, canActivate: [authGuard], data: { roles: ['ADMIN'] } },
     { path: 'admin/departements', component: DepartementsManagementComponent, canActivate: [authGuard], data: { roles: ['ADMIN'] } },
+    { path: 'admin/email-templates', component: EmailTemplateEditorComponent, canActivate: [authGuard], data: { roles: ['ADMIN'] } },
     { path: 'parametrage-prerequis', component: ParametragePrerequisComponent, canActivate: [authGuard], data: { roles: ['ENSEIGNANT_RESPONSABLE'] } },
     { path: '**', redirectTo: '' }
 ];

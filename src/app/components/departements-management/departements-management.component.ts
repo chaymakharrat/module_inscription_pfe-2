@@ -7,8 +7,20 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { environment } from '../../envirements/enviremetns';
 import { NotificationService } from '../../services/notification.service';
 import { KeycloakService } from 'keycloak-angular';
+import { ScolariteService, RevisionLog } from '../../services/scolarite.service';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
+
+export interface VariantPrerequis {
+  id: number;
+  niveauSpecifiqueId?: number;
+  nom: string;
+  actif: boolean;
+  createdAt?: string;
+  createdBy?: string;
+  desactivatedBy?: string;
+  desactivatedAt?: string;
+}
 
 export interface Departement {
   id: number;
@@ -27,6 +39,24 @@ export interface PredictionDTO {
   fluxEstime: number;
 }
 
+export interface DemandeGroupDTO {
+  id: number;
+  numeroDossier: string;
+  etudiantNom: string;
+  etudiantPrenom: string;
+  statutActuel: string;
+  dateStatus?: string;
+}
+
+export interface EnrollmentGroup {
+  id: number;
+  nom: string;
+  statut: 'EN_FORMATION' | 'COMPLET' | 'EN_PROMOTION' | 'ANNULE';
+  niveauSpecifiqueId: number;
+  demandes?: DemandeGroupDTO[];
+  loadingDemandes?: boolean;
+}
+
 export interface DiplomeVariante {
   id: number;
   nom: string;
@@ -37,15 +67,7 @@ export interface DiplomeVariante {
   typeNom: string;
   departementNom: string;
   prerequis?: string[];              // Prérequis du TYPE (toujours présents)
-  variantPrerequis?: {
-    id: number;
-    nom: string;
-    actif: boolean;
-    createdBy?: string;
-    createdAt?: string;
-    desactivatedBy?: string;
-    desactivatedAt?: string;
-  }[];
+  variantPrerequis?: VariantPrerequis[];
   niveaux?: {
     id: number;
     niveau: number;
@@ -56,9 +78,12 @@ export interface DiplomeVariante {
   }[];
   createdBy?: string;
   createdAt?: string;
-  updatedBy?: string;
-  updatedAt?: string;
   enseignantResponsable?: string;
+  
+  // ✅ NOUVEAU — Groupes & Demandes
+  groups?: EnrollmentGroup[];
+  loadingGroups?: boolean;
+  showGroups?: boolean;
 }
 
 export interface DiplomeResponsableDetail {
@@ -105,8 +130,6 @@ export interface PrerequisItemDTO {
   nom: string;
   createdBy?: string;
   createdAt?: string;
-  desactivatedBy?: string;
-  desactivatedAt?: string;
   actif?: boolean;
   isDeletable?: boolean;
   isTypeLinked?: boolean;
@@ -161,9 +184,23 @@ export class DepartementsManagementComponent implements OnInit {
   loading = false;
   expandedDeptId: number | null = null;
   expandedDepts: Set<number> = new Set(); // Multi-expand support
-  viewMode: 'grid' | 'list' = 'grid';
+  viewMode: 'grid' | 'list' = 'list';
   adminEmail = '';
   originalVariante: any = null;
+
+  // ✅ NOUVEAU — Audit Trail & Changement Responsable
+  showHistoryModal = false;
+  historyLogs: RevisionLog[] = [];
+  historyResourceType = '';
+  historyResourceId = 0;
+  historyTitle = '';
+  historyLoading = false;
+
+  showChangeResponsableModal = false;
+  selectedDRForChange?: DiplomeResponsableDetail;
+  freeTeachers: any[] = [];
+  newResponsableId?: number;
+  changeLoading = false;
 
   // ─── Modals ────────────────────────────────────────────────────────────────
   showCreateDeptModal = false;
@@ -188,6 +225,8 @@ export class DepartementsManagementComponent implements OnInit {
   cloneConditionDossiers = false;      // ✅ Track if dossiers condition reached
   formLoading = false;
 
+
+
   yearToUnlock: AnneeUniversitaire | null = null; // ✅ Security
 
   selectedDept: Departement | null = null;
@@ -200,7 +239,6 @@ export class DepartementsManagementComponent implements OnInit {
     typeId: 0,
     enseignantId: 0
   };
-
   languesSelection: SelectedLangue[] = [];
 
   varianteForm = {
@@ -255,6 +293,7 @@ export class DepartementsManagementComponent implements OnInit {
     private http: HttpClient,
     private sanitizer: DomSanitizer,
     private notificationService: NotificationService,
+    private scolariteService: ScolariteService,
     private keycloak: KeycloakService,
     private cdr: ChangeDetectorRef
   ) { }
@@ -339,10 +378,12 @@ export class DepartementsManagementComponent implements OnInit {
   }
 
   relockCurrentYear(): void {
-    const selected = this.anneesDisponibles.find(a => a.annee === this.anneeUniversitaire);
-    if (selected) {
-      this.executeToggleLock(selected);
-    }
+    if (!this.anneeUniversitaire) return;
+    this.http.patch(`${environment.apiUrl}/DEPARTEMENT-SERVICE/api/departements/annees-universitaires/${this.anneeUniversitaire}/sceller`, {})
+      .subscribe(() => {
+        this.showToast('Année re-verrouillée avec succès', 'success');
+        this.loadAnneesUniversitaires();
+      });
   }
 
   private executeToggleLock(annee: AnneeUniversitaire): void {
@@ -462,7 +503,126 @@ export class DepartementsManagementComponent implements OnInit {
     });
   }
 
+  // 🕒 LOGIQUE AUDIT TRAIL
+  openHistory(type: string, id: number, label: string) {
+    console.log('🕒 Tentative d\'ouverture de l\'historique:', { type, id, label });
+    this.historyResourceType = type;
+    this.historyResourceId = id;
+    this.historyTitle = label;
+    this.showHistoryModal = true;
+    this.historyLoading = true;
+    this.historyLogs = [];
+    this.cdr.detectChanges();
 
+    // Construction de la liste des ressources à auditer
+    let requests: any[] = [{ type, id }];
+
+    // ✅ NOUVEAU — Support Enseignant
+    if (type === 'ENSEIGNANT') {
+      // Pour l'instant on ne charge que lui, mais on pourrait agréger
+    }
+
+    // Si on demande l'historique d'une Variante (Diplôme Étudié), on agrège ses niveaux et prérequis
+    if (type === 'DIPLOME_ETUDIER') {
+      // 1. Trouver la variante dans les données locales
+      let variant: DiplomeVariante | undefined;
+      this.diplomesByDept.forEach(diplomes => {
+        diplomes.forEach(dr => {
+          const v = dr.variantes.find(varItem => varItem.id === id);
+          if (v) variant = v;
+        });
+      });
+
+      if (variant) {
+        // 2. Ajouter les IDs des niveaux spécifiques
+        if (variant.niveaux) {
+          variant.niveaux.forEach(n => {
+            requests.push({ type: 'NIVEAU_DIPLOME_SPECIFIQUE', id: n.id });
+          });
+        }
+        // 3. Ajouter les IDs des prérequis liés (NiveauSpecifiquePrerequisEntity)
+        if (variant.variantPrerequis) {
+          variant.variantPrerequis.forEach(p => {
+            if (p.niveauSpecifiqueId) {
+              requests.push({ type: 'NIVEAU_SPECIFIQUE_PREREQUIS', id: p.niveauSpecifiqueId });
+            }
+          });
+        }
+      }
+    }
+
+    // Appel au service (Simple ou Bulk)
+    const logObservable = requests.length > 1
+      ? this.scolariteService.getBulkRevisionLogs(requests)
+      : this.scolariteService.getRevisionLogs(type, id);
+
+    logObservable.subscribe({
+      next: (logs) => {
+        console.log('✅ Logs récupérés:', logs);
+        this.historyLogs = logs || [];
+        this.historyLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('❌ Erreur lors de la récupération des logs:', err);
+        this.showToast("Erreur lors de la récupération de l'historique", 'error');
+        this.historyLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  formatLogAction(action: string): string {
+    switch (action) {
+      case 'CREATION': return 'Création';
+      case 'ACTIVATION': return 'Activation';
+      case 'DESACTIVATION': return 'Désactivation';
+      case 'UPDATE_FEES': return 'Changement de frais';
+      case 'UPDATE_SCORE': return 'Changement de score';
+      case 'UPDATE_CAPACITY': return 'Changement de capacité';
+      case 'UPDATE_GROUP_SIZE': return 'Changement de groupe';
+      case 'UPDATE_CONFIG': return 'Configuration modifiée';
+      default: return action;
+    }
+  }
+
+  getLogIconSvg(action: string): SafeHtml {
+    let svg = '';
+    switch (action) {
+      case 'CREATION':
+        svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="11" fill="#2563eb"/>
+                <path d="M12 7V17M7 12H17" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+               </svg>`;
+        break;
+      case 'ACTIVATION':
+        svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="11" fill="#10b981"/>
+                <path d="M7 12L10.5 15.5L17.5 8.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+               </svg>`;
+        break;
+      case 'DESACTIVATION':
+        svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="11" fill="#ef4444"/>
+                <path d="M8 8L16 16M16 8L8 16" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+               </svg>`;
+        break;
+      case 'UPDATE_FEES':
+      case 'MODIFICATION_FRAIS':
+        svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="11" fill="#f59e0b"/>
+                <path d="M12 6V18M15 8H10.5C9.67157 8 9 8.67157 9 9.5C9 10.3284 9.67157 11 10.5 11H13.5C14.3284 11 15 11.6716 15 12.5C15 13.3284 14.3284 14 13.5 14H9M12 6V18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+               </svg>`;
+        break;
+      default:
+        svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="11" fill="#64748b"/>
+                <path d="M11 4H4C2.89543 4 2 4.89543 2 6V20C2 21.1046 2.89543 22 4 22H18C19.1046 22 20 21.1046 20 20V13M18.5 2.5C19.3284 1.67157 20.6716 1.67157 21.5 2.5C22.3284 3.32843 22.3284 4.67157 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+               </svg>`;
+        break;
+    }
+    return this.sanitizer.bypassSecurityTrustHtml(svg);
+  }
 
   askConfirmation(title: string, message: string, confirmText: string = 'Confirmer', isAlert: boolean = false): Promise<boolean> {
     this.showConfirmModal = true;
@@ -809,8 +969,6 @@ export class DepartementsManagementComponent implements OnInit {
         variantPrerequis: dto.variantPrerequis ?? [],
         createdBy: dto.createdBy,
         createdAt: dto.createdAt,
-        updatedBy: dto.updatedBy,
-        updatedAt: dto.updatedAt,
         enseignantResponsable: dto.enseignantResponsable
       });
     }
@@ -865,6 +1023,10 @@ export class DepartementsManagementComponent implements OnInit {
       'linear-gradient(135deg, #06b6d4, #0e7490)',
     ];
     return g[index % g.length];
+  }
+
+  getMonogramClass(index: number): string {
+    return 'mono-' + (index % 6);
   }
 
   getTypeIconSVG(type: string): SafeHtml {
@@ -973,6 +1135,13 @@ export class DepartementsManagementComponent implements OnInit {
       if (!lang.niveaux.some(n => n.selected)) {
         this.showToast(`Veuillez sélectionner au moins un niveau pour ${lang.langue}`, 'error');
         return;
+      }
+      // ✅ Règle de divisibilité frontend
+      for (const n of lang.niveaux.filter(lev => lev.selected)) {
+        if (n.capaciteMax % n.tailleGroupe !== 0) {
+          this.showToast(`⚠️ ${lang.langue} - Niveau ${n.niveauInt}: La capacité (${n.capaciteMax}) doit être divisible par la taille du groupe (${n.tailleGroupe})`, 'error');
+          return;
+        }
       }
     }
 
@@ -1137,6 +1306,13 @@ export class DepartementsManagementComponent implements OnInit {
       this.showToast('Veuillez sélectionner au moins un niveau', 'error');
       return;
     }
+    // ✅ Règle de divisibilité frontend
+    for (const n of selectedNiveaux) {
+      if (n.capaciteMax % n.tailleGroupe !== 0) {
+        this.showToast(`⚠️ Niveau ${n.niveauInt}: La capacité (${n.capaciteMax}) doit être un multiple de la taille du groupe (${n.tailleGroupe})`, 'error');
+        return;
+      }
+    }
     if (Object.values(this.formErrors).some(Boolean)) return;
     if (this.selectedDiplomeResponsable?.variantes.some(v => v.langue === this.varianteForm.langue)) {
       this.showToast(`La langue « ${this.varianteForm.langue} » existe déjà pour ce diplôme`, 'error');
@@ -1235,7 +1411,7 @@ export class DepartementsManagementComponent implements OnInit {
         const newMap = new Map(this.diplomesByDept);
         newMap.delete(deptId);
         this.diplomesByDept = newMap;
-        
+
         setTimeout(() => {
           this.loadDiplomesForDept(deptId);
           this.loadDepartements();
@@ -1276,6 +1452,13 @@ export class DepartementsManagementComponent implements OnInit {
   }
 
   updateVariante(): void {
+    // ✅ Règle de divisibilité frontend
+    for (const n of this.editVarianteForm.niveaux.filter((lev: any) => lev.selected)) {
+      if (n.capaciteMax % n.tailleGroupe !== 0) {
+        this.showToast(`⚠️ Niveau ${n.niveauInt}: La capacité (${n.capaciteMax}) doit être un multiple de la taille du groupe (${n.tailleGroupe})`, 'error');
+        return;
+      }
+    }
     this.formLoading = true;
     const payload = {
       fraisInscription: this.editVarianteForm.fraisInscription,
@@ -1300,7 +1483,7 @@ export class DepartementsManagementComponent implements OnInit {
           const newMap = new Map(this.diplomesByDept);
           newMap.delete(id);
           this.diplomesByDept = newMap;
-          
+
           setTimeout(() => {
             this.loadDiplomesForDept(id);
             this.loadDepartements();
@@ -1318,6 +1501,7 @@ export class DepartementsManagementComponent implements OnInit {
   }
 
   closeModals(): void {
+    console.log('🚪 Fermeture de tous les modaux');
     this.showCreateDeptModal = false;
     this.showCreateDiplomeModal = false;
     this.showCreateVarianteModal = false;
@@ -1326,6 +1510,7 @@ export class DepartementsManagementComponent implements OnInit {
     this.showYearSettingsModal = false;
     this.showUnlockConfirmationModal = false;
     this.showCloneErrorModal = false;
+    this.showHistoryModal = false; // ✅ Ajouté
     this.cloneErrorMessage = '';
     this.selectedDept = null;
     this.selectedDiplomeResponsable = null;
@@ -1381,4 +1566,133 @@ export class DepartementsManagementComponent implements OnInit {
       this.openEditVarianteModal(v, targetDeptId);
     }
   }
-}
+  // ─── Gestion des Responsables ──────────────────────────────────────────────
+
+  openChangeResponsableModal(dr: DiplomeResponsableDetail): void {
+    console.log('🔄 Tentative de changement de responsable pour:', dr);
+    this.selectedDRForChange = dr;
+    this.newResponsableId = undefined;
+    this.changeLoading = true;
+    this.showChangeResponsableModal = true;
+    console.log('🟢 showChangeResponsableModal fixé à TRUE');
+    this.cdr.detectChanges(); // Force l'affichage du modal immédiatement
+
+    this.http.get<any[]>(`${environment.apiUrl}/DEPARTEMENT-SERVICE/api/enseignants/libres`).subscribe({
+      next: (teachers) => {
+        console.log('✅ Enseignants libres récupérés:', teachers);
+        this.freeTeachers = teachers;
+        this.changeLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('❌ Erreur récupération enseignants libres:', err);
+        this.showToast('Erreur lors de la récupération des enseignants', 'error');
+        this.changeLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  updateResponsable(): void {
+    if (!this.newResponsableId || !this.selectedDRForChange) return;
+
+    this.changeLoading = true;
+    const dr = this.selectedDRForChange;
+    const isLicence = dr.typeNom?.toUpperCase().includes('LICENCE');
+
+    const payload: any = {
+      nomDiplome: dr.nomDiplome
+    };
+
+    if (isLicence) {
+      // ✅ RÈGLE : Global pour les Licences (affecte toutes les licences du département)
+      payload.departementId = dr.departementId;
+      const typeId = this.types.find(t => t.nom?.toUpperCase() === 'LICENCE')?.id;
+      payload.typeId = typeId;
+      payload.diplomeResponsableId = null;
+    } else {
+      // ✅ RÈGLE : Spécifique pour les Masters
+      payload.diplomeResponsableId = dr.id;
+      payload.departementId = null;
+      payload.typeId = null;
+    }
+
+    this.http.put(`${environment.apiUrl}/DEPARTEMENT-SERVICE/api/enseignants/${this.newResponsableId}`, payload).subscribe({
+      next: () => {
+        this.showToast('Responsable mis à jour avec succès', 'success');
+        this.showChangeResponsableModal = false;
+        this.loadDiplomesForDept(Number(dr.departementId));
+        this.loadDepartements();
+      },
+      error: (err) => {
+        this.showToast(this.extractErrorMessage(err), 'error');
+        this.changeLoading = false;
+      }
+    });
+  }
+
+  // ─── Groupes & Demandes ──────────────────────────────────────────────────
+
+  /**
+   * Bascule l'affichage des groupes pour une variante
+   */
+  toggleGroups(variante: DiplomeVariante): void {
+    variante.showGroups = !variante.showGroups;
+    
+    // Si on ouvre et qu'on n'a pas encore chargé les groupes
+    if (variante.showGroups && !variante.groups && variante.niveaux && variante.niveaux.length > 0) {
+      this.loadGroupsForVariante(variante);
+    }
+  }
+
+  private loadGroupsForVariante(variante: DiplomeVariante): void {
+    if (!variante.niveaux || variante.niveaux.length === 0) return;
+    
+    // On prend l'ID du premier niveau (en général une variante = un niveau spécifique dans cette vue)
+    const niveauId = variante.niveaux[0].id;
+    variante.loadingGroups = true;
+    
+    this.scolariteService.getGroupsByNiveauSpecifique(niveauId).subscribe({
+      next: (groups: any[]) => {
+        variante.groups = groups.map(g => ({
+          ...g,
+          demandes: [],
+          loadingDemandes: false
+        }));
+        variante.loadingGroups = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        variante.loadingGroups = false;
+        this.showToast('Erreur lors du chargement des groupes', 'error');
+      }
+    });
+  }
+
+  /**
+   * Charge les demandes (étudiants) pour un groupe spécifique
+   */
+  loadDemandesForGroup(group: EnrollmentGroup): void {
+    if (group.demandes && group.demandes.length > 0) return; // Déjà chargé
+    
+    group.loadingDemandes = true;
+    this.scolariteService.getDemandesByGroupId(group.id).subscribe({
+      next: (demandes: any[]) => {
+        group.demandes = demandes.map(d => ({
+          id: d.id,
+          numeroDossier: d.numeroDossier,
+          etudiantNom: d.etudiant?.nom || 'N/A',
+          etudiantPrenom: d.etudiant?.prenom || '',
+          statutActuel: d.statutActuel,
+          dateStatus: d.dateStatus
+        }));
+        group.loadingDemandes = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        group.loadingDemandes = false;
+        this.showToast('Erreur lors du chargement des étudiants', 'error');
+      }
+    });
+  }
+}

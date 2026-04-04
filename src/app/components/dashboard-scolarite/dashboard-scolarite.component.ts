@@ -84,6 +84,26 @@ export class ScolariteDashboardComponent implements OnInit {
     delaiMoyenTraitement: '0h'
   };
 
+  get tauxValidation(): number {
+    if (this.stats.total === 0) return 0;
+    return Math.round((this.stats.validees / this.stats.total) * 100);
+  }
+
+  get tauxRejet(): number {
+    if (this.stats.total === 0) return 0;
+    return Math.round((this.stats.rejetees / this.stats.total) * 100);
+  }
+
+  get tauxEnCours(): number {
+    if (this.stats.total === 0) return 0;
+    return Math.round((this.stats.enAttente / this.stats.total) * 100);
+  }
+
+  get validationCircleDashoffset(): number {
+    const circumference = 175.93; // 2 * PI * 28
+    return circumference - (circumference * this.tauxValidation) / 100;
+  }
+
   // Liste des dossiers
   demandes: DemandeDetailDTO[] = [];
   currentPage = 0;
@@ -166,8 +186,6 @@ export class ScolariteDashboardComponent implements OnInit {
   // 🆕 Nouveaux états pour les améliorations
   filterMode: 'all' | 'mine' = 'all';
   studentHistory: DemandeDetailDTO[] = [];
-  tauxValidation = 92;
-  tendanceAujourdhui = 5;
   hoveredDemandeId: number | null = null;
   reliabilityScore: number = 100;
   studentHistoryStats = { total: 0, valides: 0, rejetes: 0, enCours: 0 };
@@ -481,6 +499,49 @@ export class ScolariteDashboardComponent implements OnInit {
     return { total, valides, rejetes, enCours };
   }
 
+  /** Retourne les initiales (Prénom + Nom) en évitant les préfixes "Al-" ou "ال" */
+  getAvatarInitials(prenom?: string, nom?: string): string {
+    if (!prenom && !nom) return '??';
+
+    const getCleanInitial = (name: string) => {
+      if (!name) return '';
+      let clean = name.trim();
+
+      // Fix pour noms arabes commençant par ال (Alif + Lam)
+      if (clean.startsWith('\u0627\u0644')) {
+        clean = clean.substring(2);
+      }
+
+      // Fix pour préfixes latins (Al , Al-, El , El-)
+      const prefixes = ['Al ', 'Al-', 'El ', 'El-'];
+      for (const p of prefixes) {
+        if (clean.toLowerCase().startsWith(p.toLowerCase())) {
+          clean = clean.substring(p.length).trim();
+          break;
+        }
+      }
+
+      return clean.length > 0 ? clean.charAt(0).toUpperCase() : '';
+    };
+
+    const pInit = getCleanInitial(prenom || '');
+    const nInit = getCleanInitial(nom || '');
+
+    return (pInit + nInit) || '??';
+  }
+
+  formatPhone(phone: string | null | undefined): string {
+    if (!phone) return 'Non renseigné';
+    const cleaned = phone.replace(/\s+/g, '');
+    const match = cleaned.match(/^(\+\d{1,3})(\d+)$/);
+    if (match) {
+      const [_, prefix, rest] = match;
+      const formattedRest = rest.replace(/(\d{2})(?=\d)/g, '$1 ').trim();
+      return `(${prefix}) ${formattedRest}`;
+    }
+    return phone;
+  }
+
   /** Formate les statuts techniques en libellés lisibles */
   formatStatus(status: string): string {
     if (!status) return 'Inconnu';
@@ -595,28 +656,6 @@ export class ScolariteDashboardComponent implements OnInit {
       ? docsNames
       : "- (Aucun document rejeté détecté)";
   }
-
-  //   prepareRejetComment() {
-  //     if (!this.selectedDemande) return;
-  //     const studentName = `${this.selectedDemande.etudiant.prenom} ${this.selectedDemande.etudiant.nom}`;
-  //     const dossierNum = this.selectedDemande.numeroDossier;
-
-  //     this.commentaire = `Aperçu de l'email
-  // -----------------------------------------
-  // À : ${this.selectedDemande.etudiant.email}
-  // Objet : Décision concernant votre dossier #${dossierNum}
-
-  // Bonjour ${this.selectedDemande.etudiant.prenom},
-
-  // Après étude de votre dossier d'inscription, nous avons le regret de vous informer que votre candidature n'a pas été retenue.
-
-  // Motif : (Préciser le motif de rejet ici)
-
-  // Si vous souhaitez obtenir plus d'informations, veuillez contacter notre service de scolarité.
-
-  // Cordialement,
-  // Le Service de Scolarité — ITECH University`;
-  //   }
   prepareRejetComment() {
     // Plus utilisé — l'email est construit par le backend
     this.commentaire = '';
@@ -653,16 +692,7 @@ export class ScolariteDashboardComponent implements OnInit {
     this.forceCloseModal();
   }
 
-  // openValidationDialog() {
-  //   this.showValidationDialog = true;
-  //   this.showRejetDialog = false;
-  // }
 
-  // openRejetDialog() {
-  //   this.showRejetDialog = true;
-  //   this.showValidationDialog = false;
-  //   this.prepareRejetComment();
-  // }
   openRejetDialog() {
     this.showRejetDialog = true;
     this.showValidationDialog = false;
@@ -711,10 +741,6 @@ export class ScolariteDashboardComponent implements OnInit {
     });
   }
 
-  // openDemanderPiecesDialog() {
-  //   this.showDemanderPiecesDialog = true;
-  //   this.preparePieceRequestComment();
-  // }
   validerDossier() {
     if (!this.selectedDemande || !this.taskId) return;
 
@@ -945,6 +971,16 @@ export class ScolariteDashboardComponent implements OnInit {
     return this.selectedDemande.documents.every(doc => doc.statut === 'VALIDE');
   }
 
+  get areAllDocumentsTreated(): boolean {
+    if (!this.selectedDemande || !this.selectedDemande.documents) return false;
+    // Un dossier est "traité" seulement si CHAQUE document a reçu une décision (VALIDE / REJETE)
+    // ou est marqué comme MANQUANTE (décision implicite de dossier incomplet).
+    // On bloque s'il reste des documents SOUMIS ou RELANCE non traités.
+    return this.selectedDemande.documents.every(doc =>
+      doc.statut === 'VALIDE' || doc.statut === 'REJETE' || doc.statut === 'MANQUANTE'
+    );
+  }
+
   get isAssignedToOther(): boolean {
     if (!this.taskId || !this.taskAssignee) return false;
     const currentUser = this.userProfile?.email || this.userProfile?.username;
@@ -1001,7 +1037,7 @@ export class ScolariteDashboardComponent implements OnInit {
   }
 
   getInitials(nom: string, prenom: string): string {
-    return (nom.charAt(0) + prenom.charAt(0)).toUpperCase();
+    return this.getAvatarInitials(prenom, nom);
   }
 
   getAvatarColor(index: number): string {
@@ -1028,7 +1064,11 @@ export class ScolariteDashboardComponent implements OnInit {
       return 'Il y a ' + Math.round(heures) + 'h';
     } else {
       const jours = Math.floor(heures / 24);
-      return 'Il y a ' + jours + 'j';
+      const resteHeures = Math.round(heures % 24);
+      if (resteHeures > 0) {
+        return `Il y a ${jours}j et ${resteHeures}h`;
+      }
+      return `Il y a ${jours}j`;
     }
   }
   /**

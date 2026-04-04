@@ -77,9 +77,20 @@
     flex-shrink: 0;
 }
 
-.opt-icon-gray { background: #f1f3f9; color: #64748b; }
-.opt-icon-amber { background: #fffbeb; color: #d97706; }
-.opt-icon-red { background: #fef2f2; color: #dc2626; }
+.opt-icon-gray {
+    background: #f1f3f9;
+    color: #64748b;
+}
+
+.opt-icon-amber {
+    background: #fffbeb;
+    color: #d97706;
+}
+
+.opt-icon-red {
+    background: #fef2f2;
+    color: #dc2626;
+}
 
 .opt-text {
     flex: 1;
@@ -349,10 +360,14 @@
     --purple-light: #f5f3ff;
     --radius: 12px;
     --radius-lg: 16px;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);
-    --shadow: 0 4px 12px rgba(0, 0, 0, .07), 0 2px 4px rgba(0, 0, 0, .04);
-    --shadow-lg: 0 16px 40px rgba(0, 0, 0, .12), 0 4px 12px rgba(0, 0, 0, .05);
-    font-family: 'DM Sans', sans-serif;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, .06),
+        0 1px 2px rgba(0, 0, 0, .04);
+    --shadow: 0 4px 12px rgba(0, 0, 0, .07),
+        0 2px 4px rgba(0, 0, 0, .04);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, .12),
+        0 4px 12px rgba(0, 0, 0, .05);
+    font-family: 'DM Sans',
+        sans-serif;
 }
 
 @keyframes fadeIn {
@@ -2438,9 +2453,20 @@
     letter-spacing: 0.05em;
 }
 
-.status-paye { background: #dcfce7; color: #166534; }
-.status-partiel { background: #fef9c3; color: #854d0e; }
-.status-en_attente { background: #f1f5f9; color: #475569; }
+.status-paye {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-partiel {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.status-en_attente {
+    background: #f1f5f9;
+    color: #475569;
+}
 
 .invoice-meta-grid {
     display: grid;
@@ -2511,8 +2537,14 @@
     color: #16a34a;
 }
 
-.discount-icon { font-size: 1rem; }
-.discount-text { font-size: 0.85rem; font-weight: 600; }
+.discount-icon {
+    font-size: 1rem;
+}
+
+.discount-text {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
 
 /* Summary */
 .invoice-footer-wrap {
@@ -2695,7 +2727,10 @@
     color: #0f172a;
 }
 
-.prem-e-amount small { font-size: 0.8rem; opacity: 0.6; }
+.prem-e-amount small {
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
 
 .prem-e-date {
     font-size: 0.75rem;
@@ -2730,7 +2765,10 @@
     transform: scale(1.02);
 }
 
-.btn-encaisser-echeance svg { width: 16px; height: 16px; }
+.btn-encaisser-echeance svg {
+    width: 16px;
+    height: 16px;
+}
 
 .prem-e-success {
     display: flex;
@@ -2743,7 +2781,10 @@
     border-top: 1px dashed #f1f5f9;
 }
 
-.prem-e-success svg { width: 18px; height: 18px; }
+.prem-e-success svg {
+    width: 18px;
+    height: 18px;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    SECTION REMISES — Référentiel des remises
@@ -3445,7 +3486,7 @@
     border-radius: 24px;
     padding: 40px 32px;
     text-align: center;
-    box-shadow: 
+    box-shadow:
         0 20px 50px rgba(0, 0, 0, 0.1),
         0 0 0 1px rgba(0, 0, 0, 0.05);
 }
@@ -3566,6 +3607,7 @@
         opacity: 0;
         transform: translateY(20px) scale(0.98);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -3592,7 +3634,7 @@
     width: 100%;
     max-width: 400px;
     border-radius: 20px;
-    box-shadow: 
+    box-shadow:
         0 20px 40px -8px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(0, 0, 0, 0.05);
     display: flex;
@@ -3884,13 +3926,16 @@
     background: #f0fdf4;
     border-color: #bbf7d0;
 }
+
 .status-valide .status-icon-ring {
     background: #dcfce7;
     color: #16a34a;
 }
+
 .status-valide .status-card-title {
     color: #166534;
 }
+
 .status-valide .status-card-sub {
     color: #15803d;
 }
@@ -3899,13 +3944,16 @@
     background: #f8fafc;
     border-color: #e2e8f0;
 }
+
 .status-soumis .status-icon-ring {
     background: #f1f5f9;
     color: #64748b;
 }
+
 .status-soumis .status-card-title {
     color: #0f172a;
 }
+
 .status-soumis .status-card-sub {
     color: #64748b;
 }
@@ -3914,13 +3962,16 @@
     background: #fef2f2;
     border-color: #fecaca;
 }
+
 .status-refuse .status-icon-ring {
     background: #fee2e2;
     color: #dc2626;
 }
+
 .status-refuse .status-card-title {
     color: #991b1b;
 }
+
 .status-refuse .status-card-sub {
     color: #b91c1c;
 }
@@ -4040,7 +4091,8 @@
     border-color: var(--blue);
 }
 
-.modern-btn-primary, .modern-btn-secondary {
+.modern-btn-primary,
+.modern-btn-secondary {
     padding: 10px 16px;
     border-radius: 10px;
     font-size: 13px;
@@ -4067,11 +4119,21 @@
     color: white;
 }
 
-.btn-green { background: #16a34a; }
-.btn-green:hover:not(:disabled) { background: #15803d; }
+.btn-green {
+    background: #16a34a;
+}
 
-.btn-red { background: #dc2626; }
-.btn-red:hover:not(:disabled) { background: #b91c1c; }
+.btn-green:hover:not(:disabled) {
+    background: #15803d;
+}
+
+.btn-red {
+    background: #dc2626;
+}
+
+.btn-red:hover:not(:disabled) {
+    background: #b91c1c;
+}
 
 .spinner-white {
     width: 14px;
@@ -4083,8 +4145,17 @@
 }
 
 /* ── Status Banner Helpers ── */
-.banner-ok { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-.banner-ko { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.banner-ok {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.banner-ko {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
 
 /* Existing logic for disabled action cards */
 .action-card.disabled-action {
@@ -4094,8 +4165,8 @@
     background: #f8fafc;
     border-color: #e2e8f0;
 }
+
 .action-card.disabled-action:hover {
     transform: none;
     box-shadow: none;
 }
-

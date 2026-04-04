@@ -413,6 +413,7 @@
                         <tr>
                             <th>Nom</th>
                             <th>Date Créa.</th>
+                            <th style="text-align:center">Utilisation</th>
                             <th>Statut</th>
                             <th style="text-align:right">Action</th>
                         </tr>
@@ -421,6 +422,31 @@
                         <tr *ngFor="let p of myPrerequis" [class.inactive-row]="!p.actif">
                             <td><strong>{{ p.nom }}</strong></td>
                             <td>{{ p.createdAt | date:'shortDate' }}</td>
+                            <td style="text-align:center">
+                                <!-- Mode Custom Tooltip CSS Premium -->
+                                <div *ngIf="p.usages && p.usages.length > 0" class="custom-tooltip-wrapper">
+                                    <span class="badge-hover-trigger">
+                                        {{ p.usages.length }}
+                                    </span>
+                                    <div class="custom-tooltip-content">
+                                        <div class="tooltip-header">Formations concernées :</div>
+                                        <ul class="tooltip-list">
+                                            <li *ngFor="let usage of p.usages">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="color: #60a5fa; margin-right: 8px; flex-shrink: 0;">
+                                                    <circle cx="12" cy="12" r="10" stroke="none" fill="currentColor" fill-opacity="0.2"/>
+                                                    <polyline points="16 9 11 14 8 11" stroke-width="3"/>
+                                                </svg>
+                                                <span>{{ usage }}</span>
+                                            </li>
+                                        </ul>
+                                        <div class="tooltip-arrow"></div>
+                                    </div>
+                                </div>
+                                <span *ngIf="!p.usages || p.usages.length === 0" 
+                                      style="color: #94a3b8; font-size: 11px; font-weight: bold;">
+                                    0
+                                </span>
+                            </td>
                             <td>
                                 <span class="status-badge" [class.s-active]="p.actif" [class.s-inactive]="!p.actif">
                                     {{ p.actif ? 'Actif' : 'Désactivé' }}

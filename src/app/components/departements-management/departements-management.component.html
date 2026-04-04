@@ -1,4 +1,57 @@
 <div class="dept-page">
+    <!-- ═══════════════════ MODAL HISTORIQUE ═══════════════════ -->
+    <div class="modal-overlay audit-overlay" *ngIf="showHistoryModal" (click)="closeModals()">
+        <div class="modal-content audit-modal" (click)="$event.stopPropagation()">
+            <button class="modal-close" (click)="closeModals()">✕</button>
+
+            <div class="modal-icon-title">
+                <div class="modal-icon">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <div>
+                    <h3>Historique d'audit</h3>
+                    <p class="modal-subtitle">{{ historyTitle }}</p>
+                </div>
+            </div>
+
+            <div class="modal-body custom-scrollbar">
+                <div class="audit-loading" *ngIf="historyLoading">
+                    <div class="spinner-sm"></div> Chargement de l'historique...
+                </div>
+                <div class="audit-empty" *ngIf="!historyLoading && (historyLogs.length === 0)">
+                    <div class="empty-icon">📝</div>
+                    <p>Aucun log trouvé pour cette ressource.</p>
+                </div>
+
+                <div class="audit-timeline" *ngIf="!historyLoading && historyLogs.length > 0">
+                    <div class="audit-item" *ngFor="let log of historyLogs">
+                        <div class="audit-dot" [ngClass]="log.action">
+                            <span class="dot-icon" [innerHTML]="getLogIconSvg(log.action)"></span>
+                        </div>
+                        <div class="audit-content">
+                            <div class="audit-header">
+                                <span class="audit-action">{{ formatLogAction(log.action) }}</span>
+                                <span class="audit-time">{{ log.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+                            </div>
+                            <div class="audit-desc" *ngIf="log.description">{{ log.description }}</div>
+                            <div class="audit-user">
+                                <span style="color: var(--text-3); font-size: 11px;">Par</span>
+                                <strong>{{ log.username || 'Système' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-primary" (click)="closeModals()" style="width: 100%;">Fermer</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ═══════════════════ HEADER 2 NIVEAUX ═══════════════════ -->
     <header class="dept-header">
@@ -249,60 +302,75 @@
                 <!-- Card Header -->
                 <div class="dept-card-header" (click)="toggleDept(dept.id)">
 
-                    <!-- Monogramme couleur plate par index -->
-                    <div class="dept-monogram" [ngClass]="'mono-' + (di % 6)">
+                    <!-- Monogramme -->
+                    <div class="dept-monogram" [ngClass]="getMonogramClass(dept.id)">
                         {{ dept.nom.charAt(0).toUpperCase() }}
                     </div>
 
+                    <!-- Dashboard Info (Horizontal) -->
                     <div class="dept-info">
-                        <div class="dept-name-row">
-                            <h3 class="dept-name">{{ dept.nom }}</h3>
-                            <span class="badge-inactif" *ngIf="!dept.actif">Inactif</span>
+                        <div class="dept-main-info">
+                            <div class="dept-name-row">
+                                <h3 class="dept-name">{{ dept.nom }}</h3>
+                                <span class="badge-inactif" *ngIf="!dept.actif">Inactif</span>
 
-                            <!-- Toggle en mode édition -->
-                            <label class="toggle-switch-sm" (click)="$event.stopPropagation()" *ngIf="!isReadOnly">
-                                <input type="checkbox" [checked]="dept.actif" (change)="toggleDeptStatus(dept)">
-                                <div class="toggle-track-sm">
-                                    <div class="toggle-thumb-sm"></div>
-                                </div>
-                            </label>
-                            <!-- Pill statut en mode archive -->
-                            <span class="status-pill" [class.active]="dept.actif" *ngIf="isReadOnly">
-                                {{ dept.actif ? 'Actif' : 'Inactif' }}
-                            </span>
+                                <!-- Toggle en mode édition -->
+                                <label class="toggle-switch-sm" (click)="$event.stopPropagation()" *ngIf="!isReadOnly">
+                                    <input type="checkbox" [checked]="dept.actif" (change)="toggleDeptStatus(dept)">
+                                    <div class="toggle-track-sm">
+                                        <div class="toggle-thumb-sm"></div>
+                                    </div>
+                                </label>
+                                <!-- Pill statut en mode archive -->
+                                <span class="status-pill" [class.active]="dept.actif" *ngIf="isReadOnly">
+                                    {{ dept.actif ? 'Actif' : 'Inactif' }}
+                                </span>
+                            </div>
+
+                            <div class="dept-stats-row">
+                                <span>{{ getDiplomesCountForDept(dept.id) }} diplôme(s)</span>
+                                <span class="meta-dot"></span>
+                                <span>{{ getTotalVariantesForDept(dept.id) }} variante(s)</span>
+
+                                <!-- Pills types résumés (cartes fermées) -->
+                                <ng-container
+                                    *ngIf="expandedDeptId !== dept.id && getDiplomesForDept(dept.id).length > 0">
+                                    <span class="meta-dot"></span>
+                                    <div class="dept-type-pills">
+                                        <span *ngFor="let dr of getDiplomesForDept(dept.id).slice(0, 3)"
+                                            class="type-summary-pill" [ngClass]="getTypeClass(dr.typeNom)">
+                                            {{ dr.typeNom }}
+                                        </span>
+                                    </div>
+                                </ng-container>
+                            </div>
                         </div>
 
-                        <p class="dept-meta">
-                            {{ getDiplomesCountForDept(dept.id) }} diplôme(s)
-                            <span class="meta-dot"></span>
-                            {{ getTotalVariantesForDept(dept.id) }} variante(s)
-
-                            <!-- Pills types résumés (cartes fermées) -->
-                            <ng-container *ngIf="expandedDeptId !== dept.id && getDiplomesForDept(dept.id).length > 0">
-                                <span class="meta-dot"></span>
-                                <span *ngFor="let dr of getDiplomesForDept(dept.id).slice(0, 3)"
-                                    class="type-summary-pill" [ngClass]="getTypeClass(dr.typeNom)">
-                                    {{ dr.typeNom }}
-                                </span>
-                            </ng-container>
-                        </p>
-                    </div>
-
-                    <div class="dept-card-actions">
-                        <button class="icon-btn-sm" (click)="$event.stopPropagation(); openCreateDiplomeModal(dept)"
-                            title="Ajouter un diplôme" *ngIf="!isReadOnly">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5">
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
-                        </button>
-                        <button class="icon-btn-sm expand-btn" [class.open]="expandedDeptId === dept.id">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </button>
+                        <div class="dept-card-actions">
+                            <button class="icon-btn-sm" (click)="$event.stopPropagation(); openCreateDiplomeModal(dept)"
+                                title="Ajouter un diplôme" *ngIf="!isReadOnly">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                            </button>
+                            <button class="icon-btn-sm"
+                                (click)="$event.stopPropagation(); openHistory('DEPARTEMENT', dept.id, dept.nom)"
+                                title="Voir l'historique">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </button>
+                            <button class="icon-btn-sm expand-btn" [class.open]="expandedDeptId === dept.id">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -344,7 +412,20 @@
                                     <div class="dr-responsible-v4" *ngIf="dr.enseignantResponsable">
                                         <div class="rs-avatar">{{ dr.enseignantResponsable.substring(0,1).toUpperCase()
                                             }}</div>
-                                        <span class="rs-email">{{ dr.enseignantResponsable }}</span>
+                                        <div class="rs-info">
+                                            <span class="rs-email">{{ dr.enseignantResponsable }}</span>
+                                            <div class="rs-actions">
+                                                <button class="rs-action-btn" (click)="openChangeResponsableModal(dr)"
+                                                    title="Changer le responsable">
+                                                    <i class="fas fa-user-edit"></i>
+                                                </button>
+                                                <button class="rs-action-btn"
+                                                    (click)="openHistory('ENSEIGNANT', dr.enseignantId!, dr.enseignantResponsable)"
+                                                    title="Historique de l'enseignant">
+                                                    <i class="fas fa-history"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="v-sep"></div>
                                     <!-- Toggle (éditable) ou badge statut (archive) -->
@@ -359,6 +440,16 @@
                                         [class.archive-status-on]="dr.actif" [class.archive-status-off]="!dr.actif">
                                         {{ dr.actif ? 'Actif' : 'Inactif' }}
                                     </span>
+                                    <button class="audit-trigger"
+                                        (click)="openHistory('DIPLOME_RESPONSABLE', dr.id, dr.nomDiplome)"
+                                        title="Voir l'historique d'audit">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
 
@@ -406,54 +497,27 @@
                                             <span class="vp-tl-count" *ngIf="v.variantPrerequis?.length">
                                                 {{ v.variantPrerequis!.length }}
                                             </span>
-                                        </div>
+                                            <!-- Aucun -->
+                                            <div *ngIf="!v.variantPrerequis?.length" class="vp-none">
+                                                <span class="vp-none-icon">—</span> Aucun configuré
+                                            </div>
 
-                                        <!-- Aucun -->
-                                        <div *ngIf="!v.variantPrerequis?.length" class="vp-none">
-                                            <span class="vp-none-icon">—</span> Aucun configuré
-                                        </div>
-
-                                        <!-- Liste timeline -->
-                                        <div *ngIf="v.variantPrerequis?.length" class="vp-timeline">
-                                            <div *ngFor="let p of v.variantPrerequis" class="vp-tl-item"
-                                                [class.vp-tl-inactive]="!p.actif">
-
-                                                <!-- Dot statut -->
-                                                <div class="vp-tl-dot" [class.vp-tl-dot-off]="!p.actif">
-                                                    <svg *ngIf="p.actif" width="8" height="8" viewBox="0 0 8 8">
-                                                        <circle cx="4" cy="4" r="4" fill="#22c55e" />
-                                                    </svg>
-                                                    <svg *ngIf="!p.actif" width="8" height="8" viewBox="0 0 8 8">
-                                                        <circle cx="4" cy="4" r="4" fill="#ef4444" />
-                                                    </svg>
-                                                </div>
-
-                                                <!-- Contenu -->
-                                                <div class="vp-tl-body">
-                                                    <div class="vp-tl-name">{{ p.nom }}</div>
-                                                    <div class="vp-tl-events">
-                                                        <!-- Création -->
-                                                        <div class="vp-tl-event">
-                                                            <span class="vp-tl-event-icon vp-icon-add">+</span>
-                                                            <span class="vp-tl-event-text">
-                                                                Ajouté par <strong>{{ (p.createdBy?.split('@') ||
-                                                                    ['Système'])[0] }}</strong>
-                                                                <span class="vp-tl-date">{{ p.createdAt |
-                                                                    date:'dd/MM/yy' }}</span>
-                                                            </span>
-                                                        </div>
-                                                        <!-- Désactivation -->
-                                                        <div class="vp-tl-event vp-tl-event-off" *ngIf="!p.actif">
-                                                            <span class="vp-tl-event-icon vp-icon-off">✕</span>
-                                                            <span class="vp-tl-event-text">
-                                                                Désactivé par <strong>{{ (p.desactivatedBy?.split('@')
-                                                                    ||
-                                                                    ['Système'])[0] }}</strong>
-                                                                <span class="vp-tl-date">{{ p.desactivatedAt |
-                                                                    date:'dd/MM/yy' }}</span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                            <!-- Liste Chips (Mode Professionnel) -->
+                                            <div *ngIf="v.variantPrerequis?.length" class="vp-chips-wrap">
+                                                <div *ngFor="let p of v.variantPrerequis" class="vp-chip"
+                                                    [class.inactive]="!p.actif">
+                                                    <span class="vp-chip-dot"></span>
+                                                    <span class="vp-chip-name">{{ p.nom }}</span>
+                                                    <button class="vp-audit-btn"
+                                                        (click)="openHistory('NIVEAU_SPECIFIQUE_PREREQUIS', p.niveauSpecifiqueId || p.id, p.nom)"
+                                                        title="Historique">
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                            stroke="currentColor" stroke-width="3"
+                                                            stroke-linecap="round" stroke-linejoin="round">
+                                                            <circle cx="12" cy="12" r="10"></circle>
+                                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -470,13 +534,23 @@
                                                         (change)="toggleVariante(v)">
                                                     <span class="slider-mini-v4"></span>
                                                 </label>
-                                                <button class="v-edit-v4" (click)="editVariante(v)">
+                                                <button class="v-edit-v4" (click)="editVariante(v)" title="Modifier">
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                                                         stroke="currentColor" stroke-width="3">
                                                         <path
                                                             d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                                                         <path
                                                             d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                    </svg>
+                                                </button>
+                                                <button class="v-edit-v4"
+                                                    (click)="openHistory('DIPLOME_ETUDIER', v.id, v.langue + ' (' + v.nom + ')')"
+                                                    title="Historique">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                                        stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <polyline points="12 6 12 12 16 14"></polyline>
                                                     </svg>
                                                 </button>
                                             </ng-container>
@@ -488,9 +562,68 @@
                                                 {{ v.actif ? 'Actif' : 'Inactif' }}
                                             </span>
                                         </div>
+
+                                        <!-- ✅ NOUVEL AFFICHAGE DES GROUPES & DEMANDES -->
+                                        <div class="v-groups-section" *ngIf="v.showGroups">
+                                            <div class="v-groups-header">
+                                                <span class="v-groups-title">Groupes de TD/TP</span>
+                                                <div class="v-groups-loading" *ngIf="v.loadingGroups">
+                                                    <div class="spinner-mini"></div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Liste des Groupes -->
+                                            <div class="v-groups-list" *ngIf="v.groups && v.groups.length > 0">
+                                                <div *ngFor="let group of v.groups" class="group-item">
+                                                    <div class="group-header" (click)="loadDemandesForGroup(group)">
+                                                        <div class="group-info">
+                                                            <span class="group-dot" [ngClass]="group.statut"></span>
+                                                            <span class="group-name">{{ group.nom }}</span>
+                                                            <span class="group-status-pill" [ngClass]="group.statut">
+                                                                {{ group.statut === 'EN_FORMATION' ? 'En formation' : group.statut }}
+                                                            </span>
+                                                        </div>
+                                                        <div class="group-chevron">
+                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                                <polyline points="6 9 12 15 18 9" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Demandes (Étudiants) dans le groupe -->
+                                                    <div class="v-group-students" *ngIf="group.loadingDemandes || (group.demandes && group.demandes.length > 0)">
+                                                        <div class="spinner-mini mx-4 my-2" *ngIf="group.loadingDemandes"></div>
+                                                        <div class="student-item" *ngFor="let d of group.demandes">
+                                                            <div class="student-main">
+                                                                <span class="student-name">{{ d.etudiantNom }} {{ d.etudiantPrenom }}</span>
+                                                                <span class="student-dossier">#{{ d.numeroDossier }}</span>
+                                                            </div>
+                                                            <div class="student-status">
+                                                                <span class="status-indicator" [ngClass]="d.statutActuel"></span>
+                                                                <span class="status-text">{{ d.statutActuel }}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="v-groups-empty" *ngIf="!v.loadingGroups && (!v.groups || v.groups.length === 0)">
+                                                Aucun groupe formé pour le moment.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="v-card-actions-premium">
+                                        <button class="btn-groups-toggle" (click)="toggleGroups(v)" [class.active]="v.showGroups">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                                                <circle cx="9" cy="7" r="4" />
+                                                <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                                                <path d="M16 3.13a4 4 0 010 7.75" />
+                                            </svg>
+                                            {{ v.showGroups ? 'Masquer groupes' : 'Consulter groupes' }}
+                                        </button>
                                     </div>
                                 </div>
-
                                 <!-- Add Language Trigger -->
                                 <button class="v-add-trigger-v4" (click)="openCreateVarianteModal(dr)"
                                     *ngIf="!isReadOnly">
@@ -1032,8 +1165,10 @@
                                             </svg>
                                             GLOBAL
                                         </div>
-                                        <label *ngIf="!p.isTypeLinked" class="toggle-switch">
+                                        <label *ngIf="!p.isTypeLinked" class="toggle-switch"
+                                            [class.disabled-switch]="p.usages?.length > 0 && p.actif">
                                             <input type="checkbox" [checked]="p.actif"
+                                                [disabled]="p.usages?.length > 0 && p.actif"
                                                 (change)="togglePrerequisStatusGlobal(p)">
                                             <div class="toggle-track">
                                                 <div class="toggle-thumb"></div>
@@ -1278,5 +1413,72 @@
         <button class="btn-clone-error-close" (click)="showCloneErrorModal = false">
             J'ai compris
         </button>
+    </div> <!-- fin modal-overlay clone-error-overlay -->
+</div> <!-- fin dept-page -->
+
+
+<!-- Modal : Changer Responsable -->
+<div class="modal-v4-overlay" *ngIf="showChangeResponsableModal">
+    <div class="modal-v4-card" style="max-width: 500px;">
+        <div class="modal-v4-header">
+            <div class="modal-v4-title-box">
+                <i class="fas fa-user-tie modal-v4-icon"></i>
+                <div>
+                    <h3 class="modal-v4-title">Changer le responsable</h3>
+                    <p class="modal-v4-subtitle">Pour : {{ selectedDRForChange?.nomDiplome }}</p>
+                </div>
+            </div>
+            <button class="modal-v4-close" (click)="showChangeResponsableModal = false">&times;</button>
+        </div>
+
+        <div class="modal-v4-body">
+            <div class="alert-v4 alert-info-v4"
+                *ngIf="selectedDRForChange?.typeNom?.toUpperCase()?.includes('LICENCE')">
+                <i class="fas fa-info-circle"></i>
+                <span><strong>Règle Licence :</strong> L'enseignant sera responsable de toutes les licences du
+                    département.</span>
+            </div>
+
+            <div class="form-group-v4">
+                <label class="label-v4">Choisir un nouvel enseignant</label>
+                <div class="select-v4-wrapper" [class.loading]="changeLoading">
+                    <select class="input-v4 select-v4" [(ngModel)]="newResponsableId">
+                        <option [ngValue]="undefined" disabled>Sélectionner un enseignant...</option>
+                        <option *ngFor="let t of freeTeachers" [ngValue]="t.id">
+                            {{ t.emailUniversitaire }}
+                        </option>
+                    </select>
+                </div>
+                <p class="help-text-v4" *ngIf="freeTeachers.length === 0 && !changeLoading">
+                    Aucun enseignant libre trouvé.
+                </p>
+            </div>
+        </div>
+
+        <div class="modal-v4-footer">
+            <button class="btn-v4 btn-v4-secondary" (click)="showChangeResponsableModal = false"
+                [disabled]="changeLoading">
+                Annuler
+            </button>
+            <button class="btn-v4 btn-v4-primary" (click)="updateResponsable()"
+                [disabled]="!newResponsableId || changeLoading">
+                <i class="fas fa-check" *ngIf="!changeLoading"></i>
+                <div class="spinner-v4" *ngIf="changeLoading"></div>
+                {{ changeLoading ? 'Mise à jour...' : 'Confirmer le changement' }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ NOTIFICATIONS TOAST ═══════════════════ -->
+<div class="toast-container" *ngIf="toastVisible">
+    <div class="toast-item" [ngClass]="toastType">
+        <div class="toast-icon">
+            <span *ngIf="toastType === 'success'">✅</span>
+            <span *ngIf="toastType === 'error'">❌</span>
+        </div>
+        <div class="toast-content">
+            {{ toastMessage }}
+        </div>
     </div>
 </div>
