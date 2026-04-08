@@ -37,8 +37,7 @@ export class StudentService {
         formData.append('file', file);
         formData.append('type', type);
         formData.append('etudiantId', studentId.toString());
-        // SEULEMENT lier à l'enrollment si c'est un relevé de notes de niveau (spécifique au diplôme)
-        if (enrollmentId && type === 'RELEVE_NOTES_NIVEAU') {
+        if (enrollmentId) {
             formData.append('enrollmentId', enrollmentId.toString());
         }
         return this.httpNoAuth.post(
@@ -66,13 +65,16 @@ export class StudentService {
         return this.http.patch<Student>(`${this.apiUrl}/${id}/contact`, data);
     }
 
+    updateStudentProfile(id: number, data: Partial<Student>): Observable<Student> {
+        return this.http.put<Student>(`${this.apiUrl}/${id}`, data);
+    }
+
     uploadDocument(studentId: number, type: string, file: File, enrollmentId?: number): Observable<any> {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', type);
         formData.append('etudiantId', studentId.toString());
-        // SEULEMENT lier à l'enrollment si c'est un relevé de notes de niveau (spécifique au diplôme)
-        if (enrollmentId && type === 'RELEVE_NOTES_NIVEAU') {
+        if (enrollmentId) {
             formData.append('enrollmentId', enrollmentId.toString());
         }
         return this.http.post(

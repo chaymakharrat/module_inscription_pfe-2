@@ -9,6 +9,7 @@ export interface DemandeDetailDTO {
     numeroDossier: string;
     etudiantId: number;
     nomDiplome: string;
+    diplomeDemande?: string;
     typeDiplome?: string;
     langueDiplome?: string;
     niveauChoisi?: string;
@@ -23,6 +24,8 @@ export interface DemandeDetailDTO {
     taskId?: string;
     taskAssignee?: string;
     tokenAcces?: string;
+    dernierDiplomeSnapshot?: string;
+    anneeDernierDiplomeSnapshot?: number;
 }
 
 export interface EtudiantInfoDTO {
@@ -44,14 +47,27 @@ export interface EtudiantInfoDTO {
     genre?: string;
 }
 
+export interface DocumentArchiveDTO {
+    archiveId: number;
+    nomFichier: string;
+    dateArchive: string;
+    commentaireValidation?: string;
+    enrollmentId?: number;
+}
+
+
 export interface DocumentStatusDTO {
     documentId: number;
     type: string;
     nomFichier: string;
-    statut: 'SOUMIS' | 'MANQUANTE' | 'VALIDE' | 'REJETE' | string;
+    statut: 'SOUMIS' | 'MANQUANTE' | 'VALIDE' | 'REJETE' | 'RELANCE' | string;
+    typeEnvoie?: 'SOUMIS' | 'MANQUANTE' | 'VALIDE' | 'REJETE' | 'RELANCE' | string;
     isValidated: boolean;
     commentaireValidation: string;
+    enrollmentId?: number;
+    archives?: DocumentArchiveDTO[];
 }
+
 
 export interface HistoriqueStatusDTO {
     id: number;
@@ -90,6 +106,7 @@ export interface CamundaTask {
     assignee: string;
     created: string;
     processInstanceId: string;
+    taskDefinitionKey?: string;
 }
 
 /** Année universitaire courante — Plus de constante hardcodée */
@@ -104,6 +121,7 @@ export class ScolariteService {
     private workflowApiUrl = `${environment.workflowServiceUrl}/api/workflow`;
     private departementApiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/departements`;
     private diplomaApiUrl = `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/diplomes`;
+    private financeApiUrl = `${environment.apiUrl}/FINANCE-SERVICE/api/finance`;
 
     constructor(private http: HttpClient) { }
 
@@ -251,6 +269,15 @@ export class ScolariteService {
 
     getBulkRevisionLogs(items: { type: string, id: number }[]): Observable<RevisionLog[]> {
         return this.http.post<RevisionLog[]>(`${this.departementApiUrl}/revision-logs/bulk`, { items });
+    }
+
+    // ✅ NOUVEAU — Logs Finance
+    getFinanceRevisionLogs(resourceType: string, resourceId: number): Observable<RevisionLog[]> {
+        return this.http.get<RevisionLog[]>(`${this.financeApiUrl}/revision-logs/${resourceType}/${resourceId}`);
+    }
+
+    getBulkFinanceRevisionLogs(items: { type: string, id: number }[]): Observable<RevisionLog[]> {
+        return this.http.post<RevisionLog[]>(`${this.financeApiUrl}/revision-logs/bulk`, { items });
     }
 
     // ✅ NOUVEAU — Gestion des Groupes

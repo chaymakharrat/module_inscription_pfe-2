@@ -192,6 +192,12 @@ export class DashboardDepartementComponent implements OnInit {
   showPreview = false;
   activeDocumentId: number | null = null;
 
+  // 🆕 Historique des documents
+  showDocHistory: { [key: number]: boolean } = {};
+  toggleDocHistory(docId: number) {
+    this.showDocHistory[docId] = !this.showDocHistory[docId];
+  }
+
   // Décision
   showDecisionForm = false;
   pendingDecision: 'ACCEPTE' | 'LISTE_ATTENTE' | 'REJETE' | null = null;
@@ -529,7 +535,7 @@ export class DashboardDepartementComponent implements OnInit {
     this.motifEnCours = new Map();
 
     if (demande.etudiantId) {
-      this.loadDocumentsEtudiant(demande.etudiantId);
+      this.loadDocumentsEtudiant(demande.etudiantId, demande.id);
       this.loadEtudiantInfo(demande.etudiantId);
     }
 
@@ -1049,10 +1055,76 @@ export class DashboardDepartementComponent implements OnInit {
       (this.userProfile.lastName?.charAt(0) || '')).toUpperCase() || this.getInitiales();
   }
 
-  getFilteredDocuments(): DocumentStatusDTO[] {
-    return this.etudiantDocuments.filter(doc =>
-      ['RELEVE_NOTES', 'RELEVE_NOTES_SUPERIEUR', 'RELEVE_NOTES_NIVEAU'].includes(doc.type)
+  /** Retourne le statut effectif d'un document (typeEnvoie > statut) */
+  getEffectiveStatus(doc: any): string {
+    return (doc?.typeEnvoie || doc?.statut || 'MANQUANTE').toUpperCase();
+  }
+
+  getFilteredDocuments(): any[] {
+    if (!this.etudiantDocuments) return [];
+
+    // On ne garde que les relevés de notes pour le département
+    const relevés = this.etudiantDocuments.filter(doc =>
+      doc.type.startsWith('RELEVE_NOTES_')
     );
+
+    // L'API renvoie UNE entrée par type avec le doc principal et ses archives.
+    // Si le doc principal est REJETE mais possède une archive RELANCE (nouvelle soumission),
+    // on promeut la version RELANCE comme document principal visible pour validation.
+    return relevés.map(doc => {
+      const archives: any[] = doc.archives || [];
+      const relanceArchive = archives.find((a: any) => a.statut === 'RELANCE');
+
+      if (doc.statut === 'REJETE' && relanceArchive) {
+        const historyEntry = {
+          documentId: doc.documentId,
+          type: doc.type,
+          nomFichier: doc.nomFichier,
+          statut: 'REJETE',
+          commentaireValidation: doc.commentaireValidation,
+        };
+        const otherArchives = archives
+          .filter((a: any) => a.statut !== 'RELANCE')
+          .map((a: any) => ({ documentId: a.id, type: doc.type, nomFichier: a.nomFichier, statut: a.statut, commentaireValidation: a.commentaireValidation }));
+
+        return {
+          ...doc,
+          documentId: relanceArchive.id,
+          nomFichier: relanceArchive.nomFichier,
+          statut: 'RELANCE',
+          commentaireValidation: null,
+          archives: [historyEntry, ...otherArchives],
+        };
+      }
+
+      return doc;
+    });
+  }
+
+  /** Récupère les archives du document actuellement affiché/actif */
+  getActiveDocumentArchives(): any[] {
+    if (!this.activeDocumentId || !this.etudiantDocuments) return [];
+    const doc = this.etudiantDocuments.find(d => d.documentId === this.activeDocumentId);
+    return doc?.archives || [];
+  }
+
+  /** Vérifie si le document actuellement actif est en état RELANCE */
+  isActiveDocRelance(): boolean {
+    if (!this.activeDocumentId) return false;
+    const filtered = this.getFilteredDocuments();
+    const active = filtered.find(d => d.documentId === this.activeDocumentId);
+    return active ? this.getEffectiveStatus(active) === 'RELANCE' : false;
+  }
+
+  /** Helper pour convertir un DocumentStatusDTO en archive lors de la déduplication */
+  private mapToArchive(doc: DocumentStatusDTO): any {
+    return {
+      documentId: doc.documentId,
+      nomFichier: doc.nomFichier,
+      statut: doc.statut,
+      commentaireValidation: doc.commentaireValidation,
+      type: doc.type
+    };
   }
 
   getInitialesEtudiant(d: DemandeDeptDTO): string {
@@ -1249,13 +1321,15 @@ export class DashboardDepartementComponent implements OnInit {
 
   // ─── DOCUMENTS ───────────────────────────────────────────────────────────
 
-  loadDocumentsEtudiant(etudiantId: number): void {
+  loadDocumentsEtudiant(etudiantId: number, enrollmentId?: number): void {
     this.loadingDocuments = true;
     this.etudiantDocuments = [];
+    const params = enrollmentId ? `?enrollmentId=${enrollmentId}` : '';
     this.http.get<DocumentStatusDTO[]>(
-      `${this.ETUDIANT_SERVICE_URL}/api/documents/etudiant/${etudiantId}/status`)
+      `${this.ETUDIANT_SERVICE_URL}/api/documents/etudiant/${etudiantId}/status${params}`)
       .subscribe({
         next: (docs) => {
+          console.log('📦 API /status response (dept):', JSON.stringify(docs));
           this.etudiantDocuments = docs;
           this.loadingDocuments = false;
           if (this.pendingDocChanges.size > 0) {
@@ -1339,9 +1413,14 @@ export class DashboardDepartementComponent implements OnInit {
   documentTypeLabel(type: string): string {
     const labels: Record<string, string> = {
       'CARTE_IDENTITE': 'Carte d\'identité', 'PASSPORT': 'Passeport',
-      'BAC': 'Diplôme du Baccalauréat', 'RELEVE_NOTES_BAC': 'Relevé de notes Bac',
+      'BAC': 'Diplôme du Baccalauréat', 'DIPLOME_BAC': 'Diplôme du Baccalauréat',
+      'RELEVE_NOTES_BAC': 'Relevé de notes Bac',
       'CERTIFICAT_RESIDENCE': 'Certificat de résidence', 'ACTE_NAISSANCE': 'Acte de naissance',
-      'DIPLOME_SUPERIEUR': 'Dernier diplôme', 'RELEVE_NOTES_SUPERIEUR': 'Relevé de notes universitaire'
+      'DIPLOME_LICENCE': 'Diplôme de Licence', 'RELEVE_NOTES_LICENCE': 'Relevé de notes Licence',
+      'DIPLOME_MASTER': 'Diplôme de Master', 'RELEVE_NOTES_MASTER': 'Relevé de notes Master',
+      'DIPLOME_INGENIEUR': 'Diplôme d\'Ingénieur', 'RELEVE_NOTES_INGENIEUR': 'Relevé de notes Ingénieur',
+      'DIPLOME_PREPARATOIRE': 'Attestation de Préparatoire', 'RELEVE_NOTES_PREPARATOIRE': 'Relevé de notes Préparatoire',
+      'RELEVE_NOTES_NIVEAU': 'Relevé de notes (Niveau)'
     };
     return labels[type] || type;
   }

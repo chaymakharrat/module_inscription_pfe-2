@@ -55,6 +55,7 @@ export interface EnrollmentGroup {
   niveauSpecifiqueId: number;
   demandes?: DemandeGroupDTO[];
   loadingDemandes?: boolean;
+  showDemandes?: boolean;
 }
 
 export interface DiplomeVariante {
@@ -1433,14 +1434,14 @@ export class DepartementsManagementComponent implements OnInit {
       actif: v.actif,
       deptId: deptId,
       niveaux: this.niveauxList.map(n => {
-        const existing = v.niveaux?.find(vn => vn.id === n.id);
+        const existing = v.niveaux?.find(vn => vn.niveau === n.niveau);
         return {
           niveauId: n.id,
           niveauInt: n.niveau,
-          capaciteMax: existing?.capaciteMax ?? 30,
-          tailleGroupe: existing?.tailleGroupe ?? 15,
+          capaciteMax: existing?.capaciteMax ?? 60,
+          tailleGroupe: existing?.tailleGroupe ?? 25,
           scoreMinimum: existing?.scoreMinimum ?? 10,
-          selected: existing ? (existing.actif !== false) : false
+          selected: !!existing
         };
       })
     };
@@ -1511,9 +1512,11 @@ export class DepartementsManagementComponent implements OnInit {
     this.showUnlockConfirmationModal = false;
     this.showCloneErrorModal = false;
     this.showHistoryModal = false; // ✅ Ajouté
+    this.showGroupDemandesModal = false; // ✅ Ajouté pour le nouveau Tiroir Étudiants
     this.cloneErrorMessage = '';
     this.selectedDept = null;
     this.selectedDiplomeResponsable = null;
+    this.selectedGroupForDemandes = null; // ✅ Reset du ciblage groupe
     this.enseignantsLibres = [];
     this.enseignantAutoAssigne = null;
     this.formErrors = {};
@@ -1657,7 +1660,8 @@ export class DepartementsManagementComponent implements OnInit {
         variante.groups = groups.map(g => ({
           ...g,
           demandes: [],
-          loadingDemandes: false
+          loadingDemandes: false,
+          showDemandes: false
         }));
         variante.loadingGroups = false;
         this.cdr.detectChanges();
@@ -1670,22 +1674,80 @@ export class DepartementsManagementComponent implements OnInit {
   }
 
   /**
-   * Charge les demandes (étudiants) pour un groupe spécifique
+   * Charge les demandes (étudiants) pour un groupe spécifique et ouvre le tiroir latéral
    */
-  loadDemandesForGroup(group: EnrollmentGroup): void {
-    if (group.demandes && group.demandes.length > 0) return; // Déjà chargé
+  showGroupDemandesModal = false;
+  selectedGroupForDemandes: any = null;
+
+  // ═══ Recherche + Pagination (Modale Étudiants) ═══
+  studentSearchQuery = '';
+  studentCurrentPage = 0;
+  studentPageSize = 10;
+
+  getFilteredStudents(): any[] {
+    const all = this.selectedGroupForDemandes?.demandes || [];
+    if (!this.studentSearchQuery.trim()) return all;
+    const q = this.studentSearchQuery.toLowerCase();
+    return all.filter((d: any) =>
+      (d.etudiantNom + ' ' + d.etudiantPrenom).toLowerCase().includes(q) ||
+      (d.numeroDossier || '').toLowerCase().includes(q)
+    );
+  }
+
+  getPaginatedStudents(): any[] {
+    const filtered = this.getFilteredStudents();
+    const start = this.studentCurrentPage * this.studentPageSize;
+    return filtered.slice(start, start + this.studentPageSize);
+  }
+
+  min(a: number, b: number): number { return Math.min(a, b); }
+
+  closeGroupDemandesModal(): void {
+    this.studentSearchQuery = '';
+    this.studentCurrentPage = 0;
+    this.closeModals();
+  }
+
+  // ═══ Tri de date (Modale Audit) ═══
+  auditSortOrder: 'asc' | 'desc' = 'desc';
+
+  toggleAuditSort(): void {
+    this.auditSortOrder = this.auditSortOrder === 'desc' ? 'asc' : 'desc';
+  }
+
+  getSortedLogs(): any[] {
+    return [...this.historyLogs].sort((a, b) => {
+      const dateA = new Date(a.timestamp).getTime();
+      const dateB = new Date(b.timestamp).getTime();
+      return this.auditSortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+  }
+
+  loadDemandesForGroup(group: any): void {
+    // On ouvre le tiroir et fixe le contexte
+    this.selectedGroupForDemandes = group;
+    this.showGroupDemandesModal = true;
+
+    // Si on l'a déjà chargé en cache on s'arrête
+    if (group.demandes && group.demandes.length > 0) return;
     
     group.loadingDemandes = true;
     this.scolariteService.getDemandesByGroupId(group.id).subscribe({
       next: (demandes: any[]) => {
-        group.demandes = demandes.map(d => ({
-          id: d.id,
-          numeroDossier: d.numeroDossier,
-          etudiantNom: d.etudiant?.nom || 'N/A',
-          etudiantPrenom: d.etudiant?.prenom || '',
-          statutActuel: d.statutActuel,
-          dateStatus: d.dateStatus
-        }));
+        group.demandes = demandes.map(d => {
+          // Trouver la date exacte du passage au statut INSCRIT
+          const historiqueInscrit = (d.historique || []).find(
+            (h: any) => h.statut === 'INSCRIT'
+          );
+          return {
+            id: d.id,
+            numeroDossier: d.numeroDossier,
+            etudiantNom: d.etudiant?.nom || d.student?.nom || 'N/A',
+            etudiantPrenom: d.etudiant?.prenom || d.student?.prenom || '',
+            statutActuel: d.statutActuel || d.statut,
+            dateInscription: historiqueInscrit?.dateStatus ?? null
+          };
+        });
         group.loadingDemandes = false;
         this.cdr.detectChanges();
       },

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { SafePipe } from '../../pipes/safe.pipe';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../envirements/enviremetns';
 
@@ -68,7 +69,6 @@ export class UsersManagementComponent implements OnInit {
   selectedIds: number[] = [];
 
   // ═══════ MODALS ═══════
-  showDetailModal = false;
   showDeactivateModal = false;
   showDeleteModal = false;
   showFormModal = false;
@@ -140,13 +140,11 @@ export class UsersManagementComponent implements OnInit {
   }
 
   loadStats(): void {
-    // ✅ Les 5 rôles séparément
-    const roles = ['ETUDIANT', 'ENSEIGNANT', 'ENSEIGNANT_RESPONSABLE', 'AGENT_FINANCE', 'ADMIN'];
-    roles.forEach(role => {
-      this.http.get<PageResponse<Utilisateur>>(
-        `${this.apiUrl}/filtre?role=${role}&page=0&size=1`
-      ).subscribe(res => {
+    const rolesList = ['ETUDIANT', 'ENSEIGNANT', 'ENSEIGNANT_RESPONSABLE', 'AGENT_FINANCE', 'ADMIN'];
+    rolesList.forEach(role => {
+      this.http.get<PageResponse<Utilisateur>>(`${this.apiUrl}/filtre?role=${role}&page=0&size=1`).subscribe(res => {
         this.roleCounts[role] = res.totalElements;
+        console.log(`Stats pour ${role}: ${res.totalElements}`);
       });
     });
 
@@ -177,6 +175,15 @@ export class UsersManagementComponent implements OnInit {
 
   get activeRoles(): Role[] {
     return this.roles.filter(r => r.actif);
+  }
+
+  get selectableRoles(): Role[] {
+    return this.roles.filter(r => r.actif && r.nom !== 'ADMIN' && r.nom !== 'ENSEIGNANT_RESPONSABLE');
+  }
+
+  isProtectedUser(user: Utilisateur | null): boolean {
+    if (!user) return false;
+    return user.role.nom === 'ADMIN' || user.role.nom === 'ENSEIGNANT_RESPONSABLE';
   }
 
   // ═══════════════════ FILTRES ═══════════════════
@@ -258,9 +265,13 @@ export class UsersManagementComponent implements OnInit {
 
   toggleUserStatus(user: Utilisateur, event: Event): void {
     event.stopPropagation();
-    const checkbox = event.target as HTMLInputElement;
+    
+    if (this.isProtectedUser(user)) {
+      this.showToast('Opération impossible : Ce compte est protégé', 'error');
+      return;
+    }
+
     if (user.actif) {
-      checkbox.checked = true;
       this.selectedUser = user;
       this.showDeactivateModal = true;
     } else {
@@ -298,19 +309,6 @@ export class UsersManagementComponent implements OnInit {
         this.loadStats();
       },
       error: () => this.showToast('Erreur lors de la désactivation', 'error')
-    });
-  }
-
-  supprimerUtilisateur(user: Utilisateur): void {
-    this.http.delete(`${this.apiUrl}/${user.id}`).subscribe({
-      next: () => {
-        this.users = this.users.filter(u => u.id !== user.id);
-        this.totalElements--;
-        this.closeModals();
-        this.showToast(`Compte supprimé définitivement`, 'success');
-        this.loadStats();
-      },
-      error: () => this.showToast('Erreur lors de la suppression', 'error')
     });
   }
 
@@ -365,21 +363,12 @@ export class UsersManagementComponent implements OnInit {
 
   // ═══════════════════ MODALS ═══════════════════
 
-  openUserDetail(user: Utilisateur): void {
-    this.selectedUser = user;
-    this.showDetailModal = true;
-  }
+
 
   openDeactivateModal(user: Utilisateur): void {
     this.selectedUser = user;
     this.deactivateReason = '';
     this.showDeactivateModal = true;
-    this.showDetailModal = false;
-  }
-
-  confirmDelete(user: Utilisateur): void {
-    this.selectedUser = user;
-    this.showDeleteModal = true;
   }
 
   openCreateModal(): void {
@@ -397,15 +386,16 @@ export class UsersManagementComponent implements OnInit {
       nom: user.nom,
       prenom: user.prenom,
       numeroDeTelephone: user.numeroDeTelephone,
-      role: user.role.nom // ← Utiliser le nom du rôle pour le dropdown
+      role: user.role.nom
     };
     this.showFormModal = true;
   }
 
   closeModals(): void {
+    this.showDeactivateModal = false;
     this.showDeleteModal = false;
     this.showFormModal = false;
-    this.showRoleModal = false; // ← NOUVEAU
+    this.showRoleModal = false;
     this.selectedUser = null;
     this.deactivateReason = '';
   }
@@ -419,91 +409,91 @@ export class UsersManagementComponent implements OnInit {
 
   addRole(): void {
     if (!this.newRoleNom.trim()) return;
-    this.http.post<Role>(`${environment.apiUrl}/AUTHENTIFICATION-SERVICE/authentifier/roles`, {
-      nom: this.newRoleNom.toUpperCase().replace(/\s+/g, '_'),
+    const roleData = {
+      nom: this.newRoleNom.trim().toUpperCase().replace(/\s+/g, '_'),
       actif: true
-    }).subscribe({
+    };
+
+    this.http.post(`${environment.apiUrl}/AUTHENTIFICATION-SERVICE/authentifier/roles`, roleData).subscribe({
       next: () => {
         this.newRoleNom = '';
         this.loadRoles();
         this.showToast('Rôle ajouté avec succès', 'success');
       },
       error: (err) => {
-        const errorMsg = err.status === 409 ? err.error : 'Erreur lors de l\'ajout';
-        this.showToast(errorMsg, 'error');
+        console.error('Erreur lors de l\'ajout du rôle:', err);
+        if (err.status === 409) {
+          this.showToast('Ce rôle existe déjà !', 'error');
+        } else {
+          this.showToast(`Erreur (${err.status}): ${err.message}`, 'error');
+        }
       }
     });
   }
 
-  toggleRoleStatus(role: Role): void {
+  toggleRoleStatus(role: Role, event?: Event): void {
+    // Sécurité : Bloquer la désactivation si des users possèdent le rôle (Global)
+    if (role.actif) { // L'utilisateur veut le passer à false
+      const totalUsersInRole = this.roleCounts[role.nom.trim().toUpperCase()] || 0;
+      if (totalUsersInRole > 0) {
+        this.showToast(`Impossible : ${totalUsersInRole} utilisateur(s) possèdent le rôle ${role.nom}`, 'error');
+        // On force le bouton physique du navigateur à rester sur ON
+        if (event && event.target) {
+          (event.target as HTMLInputElement).checked = true;
+        }
+        return;
+      }
+    }
+
     this.http.put<Role>(`${environment.apiUrl}/AUTHENTIFICATION-SERVICE/authentifier/roles/${role.id}/status`, {}).subscribe({
       next: (updatedRole) => {
         role.actif = updatedRole.actif;
         this.showToast(`Rôle ${role.nom} ${role.actif ? 'activé' : 'désactivé'}`, 'success');
-        this.loadRoles();
       },
       error: (err) => {
-        const errorMsg = err.status === 409 ? err.error : 'Erreur lors du changement de statut';
-        this.showToast(errorMsg, 'error');
+        this.showToast('Erreur de mise à jour', 'error');
+        role.actif = !role.actif;
       }
     });
   }
 
   submitForm(): void {
     if (!this.formData.role || !this.formData.nom || !this.formData.prenom) {
-      this.showToast('Nom, Prénom et Rôle sont obligatoires', 'error');
+      this.showToast('Champs obligatoires manquants', 'error');
       return;
     }
     this.formLoading = true;
-
     this.http.post<Utilisateur>(`${this.apiUrl}/create`, this.formData).subscribe({
       next: (user) => {
-
-        // ✅ Si enseignant → créer dans dept-service
         if (user.role.nom === 'ENSEIGNANT') {
-
-          this.http.post(`${this.deptApiUrl}/api/enseignants`, {
-            emailUniversitaire: user.login
-          }).subscribe({
+          this.http.post(`${this.deptApiUrl}/api/enseignants`, { emailUniversitaire: user.login }).subscribe({
             next: () => {
-              this.formLoading = false;
-              this.closeModals();
-              this.loadUsers();
-              this.loadStats();
-              this.showToast(`Enseignant ${user.prenom} ${user.nom} créé`, 'success');
+              this.finalizeCreation(user);
             },
             error: () => {
-              // Rollback : supprimer le user auth
-              this.http.delete(`${this.apiUrl}/${user.id}`).subscribe({
-                next: () => {
-                  this.formLoading = false;
-                  this.showToast('Erreur : aucun compte créé (rollback effectué)', 'error');
-                },
-                error: () => {
-                  this.formLoading = false;
-                  this.showToast(
-                    `ATTENTION : compte auth créé (id: ${user.id}) mais dept-service en échec. Suppression manuelle requise.`,
-                    'error'
-                  );
-                }
+              this.http.delete(`${this.apiUrl}/${user.id}`).subscribe(() => {
+                this.formLoading = false;
+                this.showToast('Erreur service Enseignant (Rollback)', 'error');
               });
             }
           });
-
         } else {
-          // Autres rôles → pas de dept-service
-          this.formLoading = false;
-          this.closeModals();
-          this.loadUsers();
-          this.loadStats();
-          this.showToast(`Compte créé pour ${user.prenom} ${user.nom}`, 'success');
+          this.finalizeCreation(user);
         }
       },
       error: () => {
         this.formLoading = false;
-        this.showToast('Erreur lors de la création du compte', 'error');
+        this.showToast('Erreur création compte', 'error');
       }
     });
+  }
+
+  private finalizeCreation(user: Utilisateur): void {
+    this.formLoading = false;
+    this.closeModals();
+    this.loadUsers();
+    this.loadStats();
+    this.showToast(`Compte créé : ${user.prenom}`, 'success');
   }
 
   // ═══════════════════ HELPERS UI ═══════════════════
@@ -515,59 +505,50 @@ export class UsersManagementComponent implements OnInit {
 
   getAvatarGradient(index: number): string {
     const gradients = [
-      'linear-gradient(135deg, #6366f1, #4f46e5)',
-      'linear-gradient(135deg, #0891b2, #0e7490)',
-      'linear-gradient(135deg, #059669, #047857)',
-      'linear-gradient(135deg, #d97706, #b45309)',
-      'linear-gradient(135deg, #dc2626, #b91c1c)',
-      'linear-gradient(135deg, #7c3aed, #6d28d9)',
-      'linear-gradient(135deg, #2563eb, #1d4ed8)',
-      'linear-gradient(135deg, #0d9488, #0f766e)',
+      'linear-gradient(135deg, #2563eb, #3b82f6)', 'linear-gradient(135deg, #059669, #34d399)',
+      'linear-gradient(135deg, #d97706, #fbbf24)', 'linear-gradient(135deg, #dc2626, #f87171)',
+      'linear-gradient(135deg, #7c3aed, #a78bfa)', 'linear-gradient(135deg, #0d9488, #14b8a6)',
     ];
     return gradients[index % gradients.length];
   }
 
   getInitials(nom: string, prenom: string): string {
-    if (!nom && !prenom) return '??';
-    return ((prenom?.charAt(0) || '') + (nom?.charAt(0) || '')).toUpperCase();
+    return ((prenom?.charAt(0) || '') + (nom?.charAt(0) || '')).toUpperCase() || '??';
   }
 
   getRoleLabel(role: string): string {
     const labels: Record<string, string> = {
-      'ETUDIANT': 'Étudiant',
-      'ENSEIGNANT': 'Enseignant',                         // ← simple
-      'ENSEIGNANT_RESPONSABLE': 'Ens. Responsable',       // ← responsable
-      'AGENT_FINANCE': 'Finance',
-      'ADMIN': 'Admin'
+      'ETUDIANT': 'Étudiant', 'ENSEIGNANT': 'Enseignant',
+      'ENSEIGNANT_RESPONSABLE': 'Ens. Responsable', 'AGENT_FINANCE': 'Finance', 'ADMIN': 'Admin'
     };
     return labels[role] || role;
   }
 
-  getRoleIcon(role: string): string {
-    const icons: Record<string, string> = {
-      'ETUDIANT': '🎓',
-      'ENSEIGNANT': '👨‍🏫',
-      'ENSEIGNANT_RESPONSABLE': '⭐',
-      'AGENT_FINANCE': '💰',
-      'ADMIN': '⚡'
-    };
-    return icons[role] || '👤';
-  }
-
   getRoleClass(role: string): string {
     const classes: Record<string, string> = {
-      'ETUDIANT': 'badge-etudiant',
-      'ENSEIGNANT': 'badge-enseignant',
-      'ENSEIGNANT_RESPONSABLE': 'badge-responsable',
-      'AGENT_FINANCE': 'badge-finance',
-      'ADMIN': 'badge-admin'
+      'ETUDIANT': 'badge-etudiant', 'ENSEIGNANT': 'badge-enseignant',
+      'ENSEIGNANT_RESPONSABLE': 'badge-responsable', 'AGENT_FINANCE': 'badge-finance', 'ADMIN': 'badge-admin'
     };
     return classes[role] || '';
   }
 
+  getRoleSvgIcon(role: string): string {
+    if (!role) return '';
+    const roleKey = role.trim().toUpperCase();
+    const icons: Record<string, string> = {
+      'ETUDIANT': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" style="width:24px;height:24px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>`,
+      'ENSEIGNANT': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" style="width:24px;height:24px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>`,
+      'ENSEIGNANT_RESPONSABLE': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" style="width:24px;height:24px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>`,
+      'AGENT_FINANCE': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" style="width:24px;height:24px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+      'ADMIN': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" style="width:24px;height:24px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 21.248a11.955 11.955 0 01-7.618-13.264L12 3.935l7.618 4.047z"/></svg>`
+    };
+    return icons[roleKey] || `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" style="width:24px;height:24px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+  }
+
   // ═══════════════════ TOAST ═══════════════════
 
-  showToast(message: string, type: 'success' | 'error'): void {
+  showToast(message: string, type: 'success' | 'error' = 'success'): void {
+    console.log('Appel de showToast:', message, type);
     this.toastMessage = message;
     this.toastType = type;
     this.toastVisible = true;

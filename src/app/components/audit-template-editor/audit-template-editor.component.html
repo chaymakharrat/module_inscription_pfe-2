@@ -1,0 +1,174 @@
+<div class="audit-studio-container">
+    <div class="max-w-[1400px] mx-auto space-y-6">
+
+        <!-- Header & Context Navigation -->
+        <div class="glass-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight flex items-center">
+                    <svg class="w-8 h-8 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Audit Studio
+                </h1>
+                <p class="text-slate-500 mt-1 font-medium">Gérez le verbiage des logs historiques en toute sécurité.</p>
+            </div>
+
+            <!-- Dashboard Switcher -->
+            <div class="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                <button (click)="switchContext('FINANCE-SERVICE')" [class.active]="activeContext === 'FINANCE-SERVICE'"
+                    class="tab-btn flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Finance
+                </button>
+                <button (click)="switchContext('DEPARTEMENT-SERVICE')"
+                    [class.active]="activeContext === 'DEPARTEMENT-SERVICE'" class="tab-btn flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Scolarité
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- Left Sidebar: Template list -->
+            <div class="lg:col-span-4 space-y-4">
+                <div class="glass-card overflow-hidden">
+                    <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                        <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Modèles disponibles
+                            ({{ templates.length }})
+                        </span>
+                        <div *ngIf="isLoading"
+                            class="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full">
+                        </div>
+                    </div>
+
+                    <div class="sidebar-list p-2">
+                        <ng-container *ngIf="!isLoading; else loadingState">
+                            <div *ngFor="let t of templates" (click)="selectTemplate(t)"
+                                [class.active]="selectedTemplate?.id === t.id"
+                                class="template-item p-4 rounded-xl border border-transparent hover:border-blue-100 hover:bg-slate-50 cursor-pointer group mb-1">
+                                <div class="flex items-start gap-3">
+                                    <div
+                                        class="bg-blue-100 text-blue-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-slate-800 text-sm leading-tight">
+                                            {{ templateNames[t.code] || t.code }}
+                                        </h3>
+                                        <p class="text-[10px] text-slate-400 font-mono mt-0.5 tracking-tight uppercase">
+                                            {{ t.code }}</p>
+                                        <p class="text-xs text-slate-500 mt-1 line-clamp-1 italic">{{ t.description }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </ng-container>
+
+                        <ng-template #loadingState>
+                            <div class="p-12 text-center text-slate-400">
+                                <p class="text-sm">Chargement des modèles...</p>
+                            </div>
+                        </ng-template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Editor -->
+            <div class="lg:col-span-8">
+                <div class="glass-card h-full min-h-[600px] flex flex-col">
+                    <ng-container *ngIf="selectedTemplate; else noSelection">
+
+                        <div class="p-6 border-b border-slate-200 bg-white">
+                            <div class="flex items-center justify-between mb-4">
+                                <span
+                                    class="bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                    En cours d'édition
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <button (click)="selectedTemplate = null"
+                                        class="px-4 py-2 text-slate-500 hover:text-slate-800 font-bold text-sm">
+                                        Annuler
+                                    </button>
+                                    <button (click)="saveTemplate()" [disabled]="isSaving"
+                                        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl shadow-lg shadow-blue-200 transition-all font-black text-sm flex items-center">
+                                        <span *ngIf="isSaving"
+                                            class="mr-2 animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                                        Enregistrer
+                                    </button>
+                                </div>
+                            </div>
+                            <h2 class="text-2xl font-black text-slate-800">{{ templateNames[selectedTemplate.code] ||
+                                selectedTemplate.code }}</h2>
+                            <p class="text-[10px] text-slate-400 font-mono tracking-widest uppercase mb-2">{{
+                                selectedTemplate.code }}</p>
+                            <p class="text-slate-500 font-medium italic text-sm">{{ selectedTemplate.description }}</p>
+                        </div>
+
+                        <!-- Main Editor -->
+                        <div class="p-8 flex-1">
+                            <div class="mb-6">
+                                <label
+                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Rédigez
+                                    votre message</label>
+                                <div #editorRef contenteditable="true" class="editor-area bg-slate-50">
+                                </div>
+                                <div
+                                    class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p class="text-xs text-amber-800 font-medium">
+                                        Les badges <span
+                                            class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold">{{ '{' }}n{{
+                                            '}' }}</span> sont protégés. Ils représentent les données dynamiques du
+                                        système. Vous ne pouvez pas les supprimer ni les déplacer, seulement modifier le
+                                        texte autour.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="mt-12 bg-slate-50 rounded-2xl p-6 border border-slate-200 border-dashed">
+                                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Aperçu du
+                                    rendu final</h4>
+                                <div class="bg-white p-6 rounded-xl border border-slate-100 text-lg text-slate-800 shadow-sm leading-relaxed"
+                                    [innerHTML]="getPreview()">
+                                </div>
+                            </div>
+                        </div>
+
+                    </ng-container>
+
+                    <ng-template #noSelection>
+                        <div class="empty-state p-20 text-center flex-1 flex flex-col items-center justify-center">
+                            <div
+                                class="w-24 h-24 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 border border-slate-100">
+                                <svg class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h2 class="text-2xl font-black text-slate-400">Aucun modèle sélectionné</h2>
+                            <p class="text-slate-400 mt-2 max-w-sm font-medium">Choisissez un modèle dans la liste à
+                                gauche pour commencer son édition sécurisée.</p>
+                        </div>
+                    </ng-template>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

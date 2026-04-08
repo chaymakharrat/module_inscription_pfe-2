@@ -38,9 +38,7 @@ export class NotificationService {
     return this.http.get<Notification[]>(`${this.baseUrl}/received/${login}`);
   }
 
-  getSentNotifications(login: string): Observable<Notification[]> {
-    return this.http.get<Notification[]>(`${this.baseUrl}/sent/${login}`);
-  }
+
 
   markAsRead(id: number, email: string): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/${id}/mark-as-read`, {}).pipe(

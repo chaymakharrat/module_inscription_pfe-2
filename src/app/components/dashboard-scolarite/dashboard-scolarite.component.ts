@@ -137,6 +137,7 @@ export class ScolariteDashboardComponent implements OnInit {
 
   // Commentaire pour validation/rejet
   commentaire = '';
+  loadingDocs = false;
   showValidationDialog = false;
   showRejetDialog = false;
   showDemanderPiecesDialog = false;
@@ -145,6 +146,13 @@ export class ScolariteDashboardComponent implements OnInit {
   showRejectDocDialog = false;
   selectedDocToReject: any = null;
   rejectionDocComment = '';
+
+  // 🆕 Historique des documents
+  showDocHistory: { [key: number]: boolean } = {};
+  toggleDocHistory(docId: number) {
+    this.showDocHistory[docId] = !this.showDocHistory[docId];
+  }
+
 
   // Cache de session : survive la fermeture du modal (vidé seulement après décision finale ou discard explicite)
   // clé = dossierId, valeur = Map<documentId, {statut, commentaire?}>
@@ -189,6 +197,7 @@ export class ScolariteDashboardComponent implements OnInit {
   hoveredDemandeId: number | null = null;
   reliabilityScore: number = 100;
   studentHistoryStats = { total: 0, valides: 0, rejetes: 0, enCours: 0 };
+  studentHistoryGrouped: { annee: string; demandes: DemandeDetailDTO[] }[] = [];
 
   // 🆕 Filtre année universitaire
   selectedAnnee: string = '';
@@ -439,19 +448,81 @@ export class ScolariteDashboardComponent implements OnInit {
         this.studentHistory = history.sort((a, b) =>
           new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime()
         );
+        this.groupHistoryByYear();
         this.reliabilityScore = this.calculateReliabilityScore();
         this.studentHistoryStats = this.getStudentHistoryStats();
       }
     });
   }
+
+  groupHistoryByYear() {
+    const groupedMap = new Map<string, DemandeDetailDTO[]>();
+    for (const demande of this.studentHistory) {
+      if (this.selectedDemande && demande.id === this.selectedDemande.id) continue;
+
+      const annee = this.findAnneeForDate(demande.dateCreation);
+      if (!groupedMap.has(annee)) {
+        groupedMap.set(annee, []);
+      }
+      groupedMap.get(annee)!.push(demande);
+    }
+    this.studentHistoryGrouped = Array.from(groupedMap.entries())
+      .map(([annee, demandes]) => ({ annee, demandes }))
+      .sort((a, b) => b.annee.localeCompare(a.annee));
+  }
+
+  findAnneeForDate(dateStr: string): string {
+    const d = new Date(dateStr);
+    for (const anneeObj of this.anneesDisponibles) {
+      if (anneeObj.dateOuverture && anneeObj.dateFermeture) {
+        const debut = new Date(anneeObj.dateOuverture);
+        const fin = new Date(anneeObj.dateFermeture);
+        fin.setHours(23, 59, 59);
+        if (d >= debut && d <= fin) {
+          return anneeObj.annee;
+        }
+      }
+    }
+    return 'Inconnue (' + d.getFullYear() + ')';
+  }
+
+  hasDifferentHistoricalDiploma(demande: DemandeDetailDTO): boolean {
+    if (!this.selectedDemande) return false;
+    const oldDernierDiplome = demande.dernierDiplomeSnapshot;
+    const currentDernierDiplome = this.selectedDemande.etudiant?.dernierDiplome;
+    if (!oldDernierDiplome) return false;
+    return oldDernierDiplome !== currentDernierDiplome;
+  }
+
+  getRejectedDocs(demande: DemandeDetailDTO): any[] {
+    if (!demande || !demande.documents) return [];
+    return demande.documents.filter(d => d.statut === 'REJETE');
+  }
+
+  getPastDiplomaDocs(demande: DemandeDetailDTO): any[] {
+    if (!demande || !demande.documents) return [];
+
+    // On extrait les docs de diplôme ou relevé de notes passés (ex: DIPLOME_LICENCE, RELEVE_NOTES_LICENCE)
+    // EXCLUSION du Baccalauréat car il est toujours nécessaire et ne change jamais
+    return demande.documents.filter(d =>
+      (d.type.startsWith('DIPLOME_') && d.type !== 'DIPLOME_BAC') ||
+      (d.type.startsWith('RELEVE_NOTES_') && d.type !== 'RELEVE_NOTES_NIVEAU' && d.type !== 'RELEVE_NOTES_BAC')
+    );
+  }
+
   getDocumentLabel(type: string): string {
     const labels: Record<string, string> = {
       'DIPLOME_LICENCE': 'Diplôme de Licence',
       'CARTE_IDENTITE': "Carte d'Identité",
-      'RELEVE_NOTES': 'Relevé de Notes',
       'RELEVE_NOTES_NIVEAU': 'Relevé de Notes (Niveau)',
-      'RELEVE_NOTES_SUPERIEUR': 'Relevé de Notes (Supérieur)',
       'DIPLOME_BAC': 'Diplôme du Baccalauréat',
+      'RELEVE_NOTES_BAC': 'Relevé de Notes du Baccalauréat',
+      'DIPLOME_MASTER': 'Diplôme de Master',
+      'DIPLOME_INGENIEUR': "Diplôme d'Ingénieur",
+      'RELEVE_NOTES_MASTER': 'Relevé de Notes de Master',
+      'RELEVE_NOTES_INGENIEUR': "Relevé de Notes d'Ingénieur",
+      'RELEVE_NOTES_PREPARATOIRE': 'Relevé de Notes de Préparatoire',
+      'RELEVE_NOTES_LICENCE': 'Relevé de Notes de Licence',
       'PHOTO_IDENTITE': "Photo d'Identité",
       'ACTE_NAISSANCE': 'Acte de Naissance'
     };
@@ -541,6 +612,80 @@ export class ScolariteDashboardComponent implements OnInit {
     }
     return phone;
   }
+  /**
+   * Retourne le statut effectif d'un document.
+   * typeEnvoie = colonne backend réelle (RELANCE, SOUMIS, REJETE…)
+   * On le priorise par rapport au champ statut qui peut être stale.
+   */
+  getEffectiveStatus(doc: any): string {
+    if (!doc) return 'MANQUANTE';
+    // Priorité au champ statut s'il a été modifié localement (VALIDE/REJETE)
+    if (doc.statut === 'VALIDE' || doc.statut === 'REJETE') return doc.statut;
+    return (doc.typeEnvoie || doc.statut || 'MANQUANTE').toUpperCase();
+  }
+
+  getFilteredDocuments(demande: DemandeDetailDTO | null): any[] {
+    if (!demande || !demande.documents) return [];
+
+    // 1. Filtrer par niveau académique (Snapshot)
+    const snapshot = demande.dernierDiplomeSnapshot || demande.etudiant?.dernierDiplome;
+    const typeFiltered = demande.documents.filter(doc => {
+      const type = doc.type;
+      if (['CARTE_IDENTITE', 'DIPLOME_BAC', 'RELEVE_NOTES_BAC', 'PHOTO_IDENTITE', 'ACTE_NAISSANCE'].includes(type)) return true;
+      if (type.startsWith('DIPLOME_') && type !== 'DIPLOME_BAC') {
+        if (snapshot === 'BACCALAUREAT') return false;
+        if (snapshot === 'PREPARATOIRE' && type !== 'DIPLOME_PREPARATOIRE') return false;
+        if (snapshot === 'LICENCE' && type !== 'DIPLOME_LICENCE') return false;
+        if (snapshot === 'INGENIEUR' && type !== 'DIPLOME_INGENIEUR') return false;
+        if (snapshot === 'MASTERE' || snapshot === 'MASTER') {
+          if (type !== 'DIPLOME_MASTER' && type !== 'DIPLOME_LICENCE') return false;
+        }
+      }
+      if (type.startsWith('RELEVE_NOTES_') && type !== 'RELEVE_NOTES_NIVEAU' && type !== 'RELEVE_NOTES_BAC') {
+        if (snapshot === 'BACCALAUREAT') return false;
+        if (snapshot === 'PREPARATOIRE' && type !== 'RELEVE_NOTES_PREPARATOIRE') return false;
+        if (snapshot === 'LICENCE' && type !== 'RELEVE_NOTES_LICENCE') return false;
+        if (snapshot === 'INGENIEUR' && type !== 'RELEVE_NOTES_INGENIEUR') return false;
+        if (snapshot === 'MASTERE' || snapshot === 'MASTER') {
+          if (type !== 'RELEVE_NOTES_MASTER' && type !== 'RELEVE_NOTES_LICENCE') return false;
+        }
+      }
+      return true;
+    });
+
+    // 2. L'API renvoie UNE entrée par type avec le doc principal et ses archives.
+    //    Si le doc principal est REJETE mais possède une archive RELANCE (nouvelle soumission),
+    //    on promeut la version RELANCE comme document principal visible.
+    return typeFiltered.map(doc => {
+      const archives: any[] = doc.archives || [];
+      const relanceArchive = archives.find((a: any) => a.statut === 'RELANCE');
+
+      if (doc.statut === 'REJETE' && relanceArchive) {
+        // Promouvoir la version RELANCE comme doc actif
+        const historyEntry = {
+          documentId: doc.documentId,
+          type: doc.type,
+          nomFichier: doc.nomFichier,
+          statut: 'REJETE',
+          commentaireValidation: doc.commentaireValidation,
+        };
+        const otherArchives = archives
+          .filter((a: any) => a.statut !== 'RELANCE')
+          .map((a: any) => ({ documentId: a.id, type: doc.type, nomFichier: a.nomFichier, statut: a.statut, commentaireValidation: a.commentaireValidation }));
+
+        return {
+          ...doc,
+          documentId: relanceArchive.id,   // ID de la version RELANCE
+          nomFichier: relanceArchive.nomFichier,
+          statut: 'RELANCE',
+          commentaireValidation: null,
+          archives: [historyEntry, ...otherArchives],
+        };
+      }
+
+      return doc;
+    });
+  }
 
   /** Formate les statuts techniques en libellés lisibles */
   formatStatus(status: string): string {
@@ -584,25 +729,51 @@ export class ScolariteDashboardComponent implements OnInit {
   }
 
 
-  openDemandeDetail(demande: DemandeDetailDTO, initialTab: 'documents' | 'etudiant' | 'action' = 'documents', actionType?: 'validation' | 'rejet' | 'pieces') {
-    this.pendingDossierId = demande.id;
+  /** Réapplique les modifications en attente du cache de session sur l'objet selectedDemande */
+  private reapplyPendingChanges() {
+    if (!this.selectedDemande || !this.selectedDemande.documents) return;
 
-    // Cloner la demande pour ne pas muter l'objet de la liste
-    this.selectedDemande = { ...demande, documents: demande.documents.map(d => ({ ...d })) };
-    this.showModal = true;
-    this.activeTab = initialTab;
-    this.commentaire = '';
-
-    // Appliquer les changements locaux en attente (depuis le cache de session)
     if (this.pendingDocChanges.size > 0) {
       this.pendingDocChanges.forEach((change, docId) => {
         const doc = this.selectedDemande!.documents.find(d => d.documentId === docId);
         if (doc) {
           doc.statut = change.statut;
+          doc.typeEnvoie = change.statut;
           if (change.commentaire) doc.commentaireValidation = change.commentaire;
         }
       });
     }
+  }
+
+  openDemandeDetail(demande: DemandeDetailDTO, initialTab: 'documents' | 'etudiant' | 'action' = 'documents', actionType?: 'validation' | 'rejet' | 'pieces') {
+    this.pendingDossierId = demande.id;
+
+    // Cloner la demande pour affichage immédiat
+    this.selectedDemande = { ...demande, documents: demande.documents.map(d => ({ ...d })) };
+    this.showModal = true;
+    this.activeTab = initialTab;
+    this.commentaire = '';
+    this.loadingDocs = true;
+
+    // 🆕 Forcer un rafraîchissement des statuts de documents avec l'ID d'inscription
+    console.log(`🔎 [Scolarité] Fetch documents pour etudiantId=${demande.etudiantId}, enrollmentId=${demande.id}`);
+    this.studentService.getDocumentsStatus(demande.etudiantId, demande.id).subscribe({
+      next: (docs) => {
+        console.log('📦 API /status response (scolarite):', JSON.stringify(docs));
+        if (this.selectedDemande && this.selectedDemande.id === demande.id) {
+          this.selectedDemande.documents = docs;
+          this.reapplyPendingChanges();
+        }
+        this.loadingDocs = false;
+      },
+      error: (err) => {
+        console.error('Erreur rafraîchissement documents:', err);
+        this.loadingDocs = false;
+      }
+    });
+
+    // Appliquer les changements locaux en attente
+    this.reapplyPendingChanges();
 
     // Configurer l'état initial selon l'action demandée
     this.showValidationDialog = actionType === 'validation';
@@ -897,17 +1068,23 @@ export class ScolariteDashboardComponent implements OnInit {
   confirmRejectDocument() {
     if (!this.selectedDocToReject || !this.rejectionDocComment.trim() || this.isAssignedToOther) return;
 
-    // Enregistrement LOCAL uniquement (pas d'API). L'API sera appelée à la décision finale.
+    // Enregistrement LOCAL. On localise le doc par ID promu (RELANCE) OU par type
     if (this.selectedDemande) {
-      const docIndex = this.selectedDemande.documents.findIndex(d => d.documentId === this.selectedDocToReject.documentId);
+      let docIndex = this.selectedDemande.documents.findIndex(d => d.documentId === this.selectedDocToReject.documentId);
+      if (docIndex === -1) {
+        docIndex = this.selectedDemande.documents.findIndex(d => d.type === this.selectedDocToReject.type);
+      }
+      
       if (docIndex > -1) {
         this.selectedDemande.documents[docIndex].statut = 'REJETE';
-        // Stocker aussi le commentaire de rejet pour le commit
+        this.selectedDemande.documents[docIndex].typeEnvoie = 'REJETE';
         this.selectedDemande.documents[docIndex].commentaireValidation = this.rejectionDocComment;
       }
     }
-    this.pendingDocChanges.set(this.selectedDocToReject.documentId, { statut: 'REJETE', commentaire: this.rejectionDocComment });
-
+    this.pendingDocChanges.set(this.selectedDocToReject.documentId, { 
+      statut: 'REJETE', 
+      commentaire: this.rejectionDocComment 
+    });
 
     this.showNotification('Document marqué comme rejeté (en attente de décision finale)', 'success');
     this.closeRejectDocDialog();
@@ -941,11 +1118,17 @@ export class ScolariteDashboardComponent implements OnInit {
   confirmAcceptDocument(doc: any) {
     if (!doc || this.isAssignedToOther) return;
 
-    // Enregistrement LOCAL uniquement (pas d'API). L'API sera appelée à la décision finale.
+    // Enregistrement LOCAL. On localise le doc par ID promu (RELANCE) OU par type
     if (this.selectedDemande) {
-      const docIndex = this.selectedDemande.documents.findIndex(d => d.documentId === doc.documentId);
+      // Chercher d'abord par documentId (cas standard SOUMIS/VALIDE)
+      let docIndex = this.selectedDemande.documents.findIndex(d => d.documentId === doc.documentId);
+      // Si non trouvé (cas RELANCE promu où documentId = archive.id), chercher par type
+      if (docIndex === -1) {
+        docIndex = this.selectedDemande.documents.findIndex(d => d.type === doc.type);
+      }
       if (docIndex > -1) {
         this.selectedDemande.documents[docIndex].statut = 'VALIDE';
+        this.selectedDemande.documents[docIndex].typeEnvoie = 'VALIDE';
       }
     }
     this.pendingDocChanges.set(doc.documentId, { statut: 'VALIDE' });
@@ -1003,10 +1186,11 @@ export class ScolariteDashboardComponent implements OnInit {
   }
 
   isOldRejectedDocument(doc: any): boolean {
-    if (!this.selectedDemande || !doc) return false;
-    // Un document est considéré comme "ancien rejeté" si le dossier est en RELANCE
-    // et que le document est actuellement à l'état REJETE.
-    return this.selectedDemande.statutActuel === 'RELANCE' && doc.statut === 'REJETE';
+    // Un document est "ancien rejeté" uniquement si son statut effectif est REJETE
+    // ET qu'il n'est PAS un doc promu RELANCE (qui a été re-soumis)
+    if (!doc) return false;
+    const effectiveStatus = this.getEffectiveStatus(doc);
+    return effectiveStatus === 'REJETE';
   }
 
   getDocumentStatusClass(statut: string): string {
@@ -1076,9 +1260,10 @@ export class ScolariteDashboardComponent implements OnInit {
  * Cet endpoint retourne le document avec Content-Disposition: inline
  * ce qui permet l'affichage dans l'iframe
  */
-  viewDocument(documentId: number, documentName: string) {
-    console.log('👁️ Opening document viewer:', documentId, documentName);
-    const url = `${this.ETUDIANT_SERVICE_URL}/api/documents/view/${documentId}`;
+  viewDocument(id: number, documentName: string, isArchive = false) {
+    console.log(`👁️ View ${isArchive ? 'archive' : 'document'}:`, id, documentName);
+    const endpoint = isArchive ? 'archives/view' : 'documents/view';
+    const url = `${this.ETUDIANT_SERVICE_URL}/api/${endpoint}/${id}`;
 
     this.scolariteService.getFileBlob(url).subscribe({
       next: (blob) => {

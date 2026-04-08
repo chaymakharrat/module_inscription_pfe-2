@@ -2,25 +2,29 @@
 
     <!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
     <header class="bg-white border-b border-[#e8eaf0] px-8 py-4 sticky top-0 z-40 flex items-center justify-between">
-        
+
         <!-- Left: Branding -->
         <div class="flex items-center gap-4">
             <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
             <div class="flex flex-col">
                 <h1 class="text-[15px] font-black text-[#0f1117] uppercase tracking-wide">Supervision Financière</h1>
                 <div class="flex items-center mt-1">
-                    <span class="px-2 py-0.5 rounded text-[8px] font-bold bg-gray-100 text-gray-500 uppercase tracking-widest border border-gray-200">Portail Gestion Admin</span>
+                    <span
+                        class="px-2 py-0.5 rounded text-[8px] font-bold bg-gray-100 text-gray-500 uppercase tracking-widest border border-gray-200">Portail
+                        Gestion Admin</span>
                 </div>
             </div>
         </div>
 
         <!-- Center: Sélecteur d'Année -->
         <div class="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center">
-            <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 drop-shadow-sm">Période Académique</span>
+            <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 drop-shadow-sm">Période
+                Académique</span>
             <div class="relative group">
                 <select [(ngModel)]="selectedAnnee" (change)="onAnneeChange()"
                     class="appearance-none bg-blue-50/50 hover:bg-blue-50 border border-blue-100 text-[#2563eb] text-xs font-black px-4 py-2.5 rounded-xl outline-none cursor-pointer w-[140px] text-center shadow-sm transition-colors">
@@ -29,11 +33,14 @@
                     </option>
                 </select>
                 <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-blue-500">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
                 </div>
             </div>
             <!-- Badge Read-Only -->
-            <span *ngIf="!isCurrentYear" class="absolute -bottom-5 px-2 py-0.5 rounded-full text-[8px] font-bold bg-rose-50 text-rose-500 border border-rose-100 uppercase tracking-widest flex items-center gap-1 whitespace-nowrap">
+            <span *ngIf="!isCurrentYear"
+                class="absolute -bottom-5 px-2 py-0.5 rounded-full text-[8px] font-bold bg-rose-50 text-rose-500 border border-rose-100 uppercase tracking-widest flex items-center gap-1 whitespace-nowrap">
                 Lecture seule
             </span>
         </div>
@@ -42,10 +49,13 @@
         <div class="flex items-center gap-6">
             <div class="flex items-center text-right">
                 <div class="flex flex-col mr-3">
-                    <span class="text-[11px] font-black text-[#0f1117] leading-none">{{ userProfile?.firstName }} {{ userProfile?.lastName }}</span>
-                    <span class="text-[8px] font-bold text-[#2563eb] uppercase tracking-widest mt-1">{{ getDisplayRole() }}</span>
+                    <span class="text-[11px] font-black text-[#0f1117] leading-none">{{ userProfile?.firstName }} {{
+                        userProfile?.lastName }}</span>
+                    <span class="text-[8px] font-bold text-[#2563eb] uppercase tracking-widest mt-1">{{ getDisplayRole()
+                        }}</span>
                 </div>
-                <div class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shadow-md border-2 border-blue-100">
+                <div
+                    class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shadow-md border-2 border-blue-100">
                     {{ getProfileInitials() }}
                 </div>
             </div>
@@ -53,10 +63,11 @@
             <div class="h-7 w-px bg-gray-200"></div>
 
             <!-- Remises Button (Header) -->
-            <button (click)="ouvrirRemisesDrawer()" [disabled]="!isCurrentYear" 
+            <button (click)="ouvrirRemisesDrawer()" [disabled]="!isCurrentYear"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white text-[11px] font-black tracking-wide shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
                 Référentiel Remises
                 <span class="bg-white/20 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white ml-0.5">
@@ -401,255 +412,352 @@
             </div>
         </div>
 
-        <!-- ══ TABLEAU PRINCIPAL ══════════════════════════════════════════════════ -->
-        <div class="section-card">
-            <div class="section-header-premium">
-                <div class="section-title-wrap">
-                    <h2 class="section-title">
-                        <svg class="w-5 h-5 text-[#2563eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Gestion des Dossiers Financiers
-                    </h2>
-                    <p class="section-subtitle">Supervision des formulaires de paiement et des remises</p>
-                </div>
+        <!-- ══ RAPPELS TÉLÉPHONIQUES EN ATTENTE ══════════════════════════════════ -->
+        <div *ngIf="rappelTelephoneTasks.length > 0 || rappelLoading" class="mb-8">
 
+            <!-- Header section -->
+            <div class="flex items-center justify-between mb-4 px-2">
                 <div class="flex items-center gap-3">
-                    <!-- Refresh -->
-                    <button (click)="refreshAll()"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#e8eaf0] bg-white text-[#8b92a9] hover:text-[#2563eb] hover:border-[#2563eb] transition-all font-bold text-[12px]">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-500/30 animate-pulse">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-[17px] font-black text-[#0f1117] tracking-tight">
+                            Rappels Téléphoniques
+                        </h2>
+                        <p class="text-[10px] font-bold text-blue-600 uppercase tracking-[0.1em]">
+                            {{ rappelTelephoneTasks.length }} dossier(s) en attente de contact
+                        </p>
+                    </div>
+                </div>
+                <button (click)="loadRappelTelephoneTasks()"
+                    class="flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-100 bg-blue-50/50 text-blue-600 text-[11px] font-black hover:bg-blue-100 transition-all shadow-sm active:scale-95">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Actualiser
+                </button>
+            </div>
+
+            <!-- Loading skeleton -->
+            <div *ngIf="rappelLoading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                <div *ngFor="let _ of [1,2,3]"
+                    class="bg-white rounded-3xl border border-blue-50 p-6 animate-pulse shadow-sm">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-16 h-16 bg-gray-100 rounded-2xl"></div>
+                        <div class="flex-1">
+                            <div class="h-4 bg-gray-100 rounded w-3/4 mb-2"></div>
+                            <div class="h-3 bg-gray-100 rounded w-1/2"></div>
+                        </div>
+                    </div>
+                    <div class="h-10 bg-blue-50/50 rounded-2xl"></div>
+                </div>
+            </div>
+
+            <!-- ══ MODE : GRILLE DE CARTES COMPACTES (Premium & Fluide) ══ -->
+            <div *ngIf="rappelTelephoneTasks.length > 0 && !rappelLoading"
+                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-fadeIn">
+                <div *ngFor="let rappel of rappelTelephoneTasks" class="rappel-modern-card group">
+
+                    <!-- Top Ribbon info (Language and ID) -->
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="tag-mini bg-rose-50 text-rose-600 border-rose-100 uppercase text-[9px] font-black">
+                            {{ rappel.langue }}
+                        </span>
+                        <span class="text-[10px] font-bold text-slate-400">#{{ rappel.enrollmentId }}</span>
+                    </div>
+
+                    <!-- Identity -->
+                    <div class="flex items-center gap-3 mb-4">
+                        <div
+                            class="rappel-avatar-xs bg-gradient-to-br from-blue-600 to-indigo-700 shadow-md shadow-blue-200">
+                            {{ (rappel.prenomEtudiant[0] || '') + (rappel.nomEtudiant[0] || '') | uppercase }}
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="rappel-card-name truncate">{{ rappel.prenomEtudiant }} {{ rappel.nomEtudiant }}
+                            </h4>
+                            <p class="rappel-card-sub truncate text-[11px] font-medium text-slate-500">{{
+                                rappel.nomDiplome }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Details Box -->
+                    <div class="bg-slate-50/80 rounded-xl p-3 mb-4 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Niveau</span>
+                            <span class="text-[11px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
+                                Niveau {{ rappel.niveau }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2 text-emerald-600">
+                            <i class="fas fa-phone-alt text-[10px]"></i>
+                            <span class="font-mono text-[12px] font-bold">{{ formatPhone(rappel.telephoneEtudiant)
+                                }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <button (click)="completerRappelTelephone(rappel.enrollmentId)"
+                        [disabled]="rappel.loading"
+                        class="btn-traiter-card-modern">
+                        <svg *ngIf="!rappel.loading" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <div *ngIf="rappel.loading" class="spinner-mini"></div>
+                        <span>Traiter l'appel</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TABLEAU PRINCIPAL ══════════════════════════════════════════════════ -->
+    <div class="section-card">
+        <div class="section-header-premium">
+            <div class="section-title-wrap">
+                <h2 class="section-title">
+                    <svg class="w-5 h-5 text-[#2563eb]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Gestion des Dossiers Financiers
+                </h2>
+                <p class="section-subtitle">Supervision des formulaires de paiement et des remises</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Refresh -->
+                <button (click)="refreshAll()"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#e8eaf0] bg-white text-[#8b92a9] hover:text-[#2563eb] hover:border-[#2563eb] transition-all font-bold text-[12px]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Rafraîchir
+                </button>
+                <!-- Remises was moved to Header -->
+
+                <!-- View Toggle -->
+                <div class="view-toggle">
+                    <button (click)="viewMode = 'list'" [class.active]="viewMode === 'list'">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Rafraîchir
-                    </button>
-                    <!-- Remises was moved to Header -->
-
-                    <!-- View Toggle -->
-                    <div class="view-toggle">
-                        <button (click)="viewMode = 'list'" [class.active]="viewMode === 'list'">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                            </svg>
-                        </button>
-                        <button (click)="viewMode = 'grid'" [class.active]="viewMode === 'grid'">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Search + Filters -->
-            <div class="toolbar">
-                <div class="search-box">
-                    <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input type="text" class="search-input" [(ngModel)]="searchTerm" (input)="onSearch()"
-                        placeholder="Rechercher un étudiant, un dossier...">
-                </div>
-
-                <div class="filter-group">
-                    <button class="filter-btn" [class.active]="currentFilter === 'tous'"
-                        (click)="setFilter('tous')">Tous</button>
-                    <button class="filter-btn" [class.active]="currentFilter === 'SOUMIS'"
-                        (click)="setFilter('SOUMIS')">
-                        <span class="dot dot-blue"></span> À Traiter
-                    </button>
-                    <button class="filter-btn" [class.active]="currentFilter === 'VALIDE'"
-                        (click)="setFilter('VALIDE')">
-                        <span class="dot dot-green"></span> Validés
-                    </button>
-                    <button class="filter-btn" [class.active]="currentFilter === 'REFUSE'"
-                        (click)="setFilter('REFUSE')">
-                        <span class="dot dot-rose"></span> Refusés
-                    </button>
-                </div>
-            </div>
-
-            <!-- LIST VIEW -->
-            <div class="table-wrap" *ngIf="viewMode === 'list'">
-                <table class="finance-table">
-                    <thead>
-                        <tr>
-                            <th>Étudiant</th>
-                            <th>Formation</th>
-                            <th>Préférences</th>
-                            <th>Statut</th>
-                            <th class="text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let f of formulaires; let i = index" class="table-row animate-fadeIn"
-                            [style.animation-delay]="i * 0.04 + 's'" (click)="openDetail(f)">
-                            <td>
-                                <div class="student-cell">
-                                    <div class="mini-avatar" [style.background]="getAvatarColor(i)">{{ getInitiales(f)
-                                        }}</div>
-                                    <div class="student-info">
-                                        <span class="student-name">{{ f.prenomEtudiant }} {{ f.nomEtudiant }}</span>
-                                        <span class="student-id">{{ f.emailEtudiant }}</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="diplome-cell">
-                                    <span class="diplome-name">{{ f.nomDiplome }}</span>
-                                    <span class="diplome-langue">Niveau {{ f.niveauChoisi }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="flex flex-wrap gap-1">
-                                    <span class="statut-chip" [class.chip-blue]="f.typePaiement === 'TOTAL'"
-                                        [class.chip-purple]="f.typePaiement === 'PARTIEL'">
-                                        {{ f.typePaiement }}
-                                    </span>
-                                    <span *ngIf="f.totalRemiseDemandee > 0" class="statut-chip chip-amber">
-                                        -{{ f.totalRemiseDemandee }}% (acceptées : {{ f.totalRemiseAcceptee }}%)
-                                    </span>
-                                    <span
-                                        *ngIf="f.typePaiement === 'PARTIEL' && getNombreEcheancesImpayees(f.facture) > 0"
-                                        class="statut-chip chip-red">
-                                        {{ getNombreEcheancesImpayees(f.facture) }} échéance(s) impayée(s)
-                                    </span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="statut-chip" [ngClass]="getStatutDemandeClass(f.statutDemande)">
-                                    {{ getStatutDemandeLabel(f.statutDemande) }}
-                                </span>
-                            </td>
-                            <td class="text-right">
-                                <div class="actions-cell" (click)="$event.stopPropagation()">
-                                    <button class="action-btn btn-view" (click)="openDetail(f)" title="Voir détails">
-                                        <svg viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                            <path fill-rule="evenodd"
-                                                d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <button class="action-btn btn-accept"
-                                        [disabled]="!isActionnable(f) || !isCurrentYear"
-                                        (click)="openDetail(f, 'preferences')"
-                                        [title]="isCurrentYear ? 'Traiter' : 'Consulter'">
-                                        <svg viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr *ngIf="formulaires.length === 0 && !loading">
-                            <td colspan="5" class="empty-state">
-                                <div class="empty-content">
-                                    <p>Aucun dossier trouvé</p>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr *ngIf="loading">
-                            <td colspan="5" style="padding: 40px; text-align: center;">
-                                <div
-                                    style="display: inline-block; width: 28px; height: 28px; border: 3px solid #e8eaf0; border-top-color: #2563eb; border-radius: 50%; animation: spin .7s linear infinite;">
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- GRID VIEW -->
-            <div class="grid-view animate-fadeIn" *ngIf="viewMode === 'grid'">
-                <div class="dossier-grid">
-                    <div *ngFor="let f of formulaires; let i = index" class="dossier-card"
-                        [style.animation-delay]="i * 0.05 + 's'" (click)="openDetail(f)">
-                        <div class="card-header">
-                            <div class="card-avatar" [style.background]="getAvatarColor(i)">{{ getInitiales(f) }}</div>
-                            <div class="card-status-wrap">
-                                <span class="statut-chip" [ngClass]="getStatutDemandeClass(f.statutDemande)">{{
-                                    getStatutDemandeLabel(f.statutDemande) }}</span>
-                                <span class="card-date">{{ getTempsEcoule(f.dateExpiration) }}</span>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <h3 class="card-name">{{ f.prenomEtudiant }} {{ f.nomEtudiant }}</h3>
-                            <p class="card-email">{{ f.emailEtudiant }}</p>
-                            <div class="card-info-grid">
-                                <div class="info-item">
-                                    <span class="info-label">Diplôme</span>
-                                    <span class="info-val">{{ f.nomDiplome }}</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Paiement</span>
-                                    <span class="info-val">{{ f.typePaiement }}</span>
-                                </div>
-                                <div class="info-item" *ngIf="f.typePaiement === 'PARTIEL'">
-                                    <span class="info-label">Échéances restantes</span>
-                                    <span class="info-val text-red-600 font-bold">{{
-                                        getNombreEcheancesImpayees(f.facture) }}</span>
-                                </div>
-                            </div>
-                            <div class="card-prereq" [class.prereq-ok]="f.statut === 'VALIDE'"
-                                [class.prereq-ko]="f.statut === 'REFUSE' || f.statut === 'SOUMIS'">
-                                {{ f.statut === 'VALIDE' ? '✓ Dossier validé' : (f.statut === 'REFUSE' ? '✕ Dossier
-                                refusé' : '⚠ Action requise') }}
-                            </div>
-                        </div>
-                        <div class="card-actions" (click)="$event.stopPropagation()">
-                            <button class="card-btn btn-view" (click)="openDetail(f)">Détails</button>
-                            <button class="card-btn btn-accept" [disabled]="!isActionnable(f) || !isCurrentYear"
-                                (click)="openDetail(f, 'preferences')">
-                                {{ isCurrentYear ? 'Traiter' : 'Consulter' }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pagination -->
-            <div class="pagination-container" *ngIf="totalPages > 0">
-                <div class="pagination-info">
-                    Affichage de <strong>{{ currentPage * pageSize + 1 }}</strong> à
-                    <strong>{{ Math.min((currentPage + 1) * pageSize, totalElements) }}</strong> sur
-                    <strong>{{ totalElements }}</strong> dossiers
-                </div>
-                <div class="pagination-controls">
-                    <button (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0"
-                        class="p-2 border border-[#e8eaf0] rounded-lg hover:bg-[#f1f3f9] disabled:opacity-30 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M15 19l-7-7 7-7" stroke-width="2.5" stroke-linecap="round"
-                                stroke-linejoin="round" />
+                                d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                         </svg>
                     </button>
-                    <div class="flex items-center gap-1 mx-2">
-                        <button *ngFor="let p of getPagesArray()" (click)="goToPage(p)"
-                            class="px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all"
-                            [class.bg-blue-600]="currentPage === p" [class.text-white]="currentPage === p"
-                            [class.text-gray-600]="currentPage !== p">
-                            {{ p + 1 }}
-                        </button>
-                    </div>
-                    <button (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages - 1"
-                        class="p-2 border border-[#e8eaf0] rounded-lg hover:bg-[#f1f3f9] disabled:opacity-30 transition-colors">
+                    <button (click)="viewMode = 'grid'" [class.active]="viewMode === 'grid'">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 5l7 7-7 7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                         </svg>
                     </button>
                 </div>
             </div>
         </div>
 
-    </div><!-- /fin-content -->
-</div>
+        <!-- Search + Filters -->
+        <div class="toolbar">
+            <div class="search-box">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" class="search-input" [(ngModel)]="searchTerm" (input)="onSearch()"
+                    placeholder="Rechercher un étudiant, un dossier...">
+            </div>
+
+            <div class="filter-group">
+                <button class="filter-btn" [class.active]="currentFilter === 'tous'"
+                    (click)="setFilter('tous')">Tous</button>
+                <button class="filter-btn" [class.active]="currentFilter === 'SOUMIS'" (click)="setFilter('SOUMIS')">
+                    <span class="dot dot-blue"></span> À Traiter
+                </button>
+                <button class="filter-btn" [class.active]="currentFilter === 'VALIDE'" (click)="setFilter('VALIDE')">
+                    <span class="dot dot-green"></span> Validés
+                </button>
+                <button class="filter-btn" [class.active]="currentFilter === 'REFUSE'" (click)="setFilter('REFUSE')">
+                    <span class="dot dot-rose"></span> Refusés
+                </button>
+            </div>
+        </div>
+
+        <!-- LIST VIEW -->
+        <div class="table-wrap" *ngIf="viewMode === 'list'">
+            <table class="finance-table">
+                <thead>
+                    <tr>
+                        <th>Étudiant</th>
+                        <th>Formation</th>
+                        <th>Préférences</th>
+                        <th>Statut</th>
+                        <th class="text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let f of formulaires; let i = index" class="table-row animate-fadeIn"
+                        [style.animation-delay]="i * 0.04 + 's'" (click)="openDetail(f)">
+                        <td>
+                            <div class="student-cell">
+                                <div class="mini-avatar" [style.background]="getAvatarColor(i)">{{ getInitiales(f)
+                                    }}</div>
+                                <div class="student-info">
+                                    <span class="student-name">{{ f.prenomEtudiant }} {{ f.nomEtudiant }}</span>
+                                    <span class="student-id">{{ f.emailEtudiant }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="diplome-cell">
+                                <span class="diplome-name">{{ f.nomDiplome }}</span>
+                                <span class="diplome-langue">Niveau {{ f.niveauChoisi }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="flex flex-wrap gap-1">
+                                <span class="statut-chip" [class.chip-blue]="f.typePaiement === 'TOTAL'"
+                                    [class.chip-purple]="f.typePaiement === 'PARTIEL'">
+                                    {{ f.typePaiement }}
+                                </span>
+                                <span *ngIf="f.totalRemiseDemandee > 0" class="statut-chip chip-amber">
+                                    -{{ f.totalRemiseDemandee }}% (acceptées : {{ f.totalRemiseAcceptee }}%)
+                                </span>
+                                <span *ngIf="f.typePaiement === 'PARTIEL' && getNombreEcheancesImpayees(f.facture) > 0"
+                                    class="statut-chip chip-red">
+                                    {{ getNombreEcheancesImpayees(f.facture) }} échéance(s) impayée(s)
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="statut-chip" [ngClass]="getStatutDemandeClass(f.statutDemande)">
+                                {{ getStatutDemandeLabel(f.statutDemande) }}
+                            </span>
+                        </td>
+                        <td class="text-right">
+                            <div class="actions-cell" (click)="$event.stopPropagation()">
+                                <button class="action-btn btn-view" (click)="openDetail(f)" title="Voir détails">
+                                    <svg viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                        <path fill-rule="evenodd"
+                                            d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                                <button class="action-btn btn-accept" [disabled]="!isActionnable(f) || !isCurrentYear"
+                                    (click)="openDetail(f, 'preferences')"
+                                    [title]="isCurrentYear ? 'Traiter' : 'Consulter'">
+                                    <svg viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr *ngIf="formulaires.length === 0 && !loading">
+                        <td colspan="5" class="empty-state">
+                            <div class="empty-content">
+                                <p>Aucun dossier trouvé</p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr *ngIf="loading">
+                        <td colspan="5" style="padding: 40px; text-align: center;">
+                            <div
+                                style="display: inline-block; width: 28px; height: 28px; border: 3px solid #e8eaf0; border-top-color: #2563eb; border-radius: 50%; animation: spin .7s linear infinite;">
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- GRID VIEW -->
+        <div class="grid-view animate-fadeIn" *ngIf="viewMode === 'grid'">
+            <div class="dossier-grid">
+                <div *ngFor="let f of formulaires; let i = index" class="dossier-card"
+                    [style.animation-delay]="i * 0.05 + 's'" (click)="openDetail(f)">
+                    <div class="card-header">
+                        <div class="card-avatar" [style.background]="getAvatarColor(i)">{{ getInitiales(f) }}</div>
+                        <div class="card-status-wrap">
+                            <span class="statut-chip" [ngClass]="getStatutDemandeClass(f.statutDemande)">{{
+                                getStatutDemandeLabel(f.statutDemande) }}</span>
+                            <span class="card-date">{{ getTempsEcoule(f.dateExpiration) }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-name">{{ f.prenomEtudiant }} {{ f.nomEtudiant }}</h3>
+                        <p class="card-email">{{ f.emailEtudiant }}</p>
+                        <div class="card-info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Diplôme</span>
+                                <span class="info-val">{{ f.nomDiplome }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Paiement</span>
+                                <span class="info-val">{{ f.typePaiement }}</span>
+                            </div>
+                            <div class="info-item" *ngIf="f.typePaiement === 'PARTIEL'">
+                                <span class="info-label">Échéances restantes</span>
+                                <span class="info-val text-red-600 font-bold">{{
+                                    getNombreEcheancesImpayees(f.facture) }}</span>
+                            </div>
+                        </div>
+                        <div class="card-prereq" [class.prereq-ok]="f.statut === 'VALIDE'"
+                            [class.prereq-ko]="f.statut === 'REFUSE' || f.statut === 'SOUMIS'">
+                            {{ f.statut === 'VALIDE' ? '✓ Dossier validé' : (f.statut === 'REFUSE' ? '✕ Dossier
+                            refusé' : '⚠ Action requise') }}
+                        </div>
+                    </div>
+                    <div class="card-actions" (click)="$event.stopPropagation()">
+                        <button class="card-btn btn-view" (click)="openDetail(f)">Détails</button>
+                        <button class="card-btn btn-accept" [disabled]="!isActionnable(f) || !isCurrentYear"
+                            (click)="openDetail(f, 'preferences')">
+                            {{ isCurrentYear ? 'Traiter' : 'Consulter' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container" *ngIf="totalPages > 0">
+            <div class="pagination-info">
+                Affichage de <strong>{{ currentPage * pageSize + 1 }}</strong> à
+                <strong>{{ Math.min((currentPage + 1) * pageSize, totalElements) }}</strong> sur
+                <strong>{{ totalElements }}</strong> dossiers
+            </div>
+            <div class="pagination-controls">
+                <button (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0"
+                    class="p-2 border border-[#e8eaf0] rounded-lg hover:bg-[#f1f3f9] disabled:opacity-30 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M15 19l-7-7 7-7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <div class="flex items-center gap-1 mx-2">
+                    <button *ngFor="let p of getPagesArray()" (click)="goToPage(p)"
+                        class="px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all"
+                        [class.bg-blue-600]="currentPage === p" [class.text-white]="currentPage === p"
+                        [class.text-gray-600]="currentPage !== p">
+                        {{ p + 1 }}
+                    </button>
+                </div>
+                <button (click)="goToPage(currentPage + 1)" [disabled]="currentPage >= totalPages - 1"
+                    class="p-2 border border-[#e8eaf0] rounded-lg hover:bg-[#f1f3f9] disabled:opacity-30 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 5l7 7-7 7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /fin-content -->
 <!-- ══ SECTION GESTION REMISES ══════════════════════════════════════════════ -->
 <!-- ══ DRAWER REMISES ══════════════════════════════════════════════════════ -->
 <div *ngIf="showRemisesDrawer" style="position:fixed;inset:0;z-index:250;display:flex;justify-content:flex-end;"
@@ -1416,11 +1524,13 @@
                         <div *ngIf="selectedFormulaire.statut !== 'SOUMIS'" class="decision-readonly-compact">
                             <div class="readonly-banner" [class.banner-ok]="selectedFormulaire.statut === 'VALIDE'"
                                 [class.banner-ko]="selectedFormulaire.statut === 'REFUSE'">
-                                <svg *ngIf="selectedFormulaire.statut === 'VALIDE'" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5">
+                                <svg *ngIf="selectedFormulaire.statut === 'VALIDE'" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24" class="w-5 h-5">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <svg *ngIf="selectedFormulaire.statut === 'REFUSE'" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-5 h-5">
+                                <svg *ngIf="selectedFormulaire.statut === 'REFUSE'" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24" class="w-5 h-5">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -1431,8 +1541,8 @@
                         <!-- Bouton de validation unique -->
                         <div *ngIf="selectedFormulaire.statut === 'SOUMIS' && !showDecisionForm && isCurrentYear"
                             class="flex justify-center mt-4">
-                            <div class="modern-action-card card-accept w-full max-w-md" (click)="prepareDecision('VALIDER')"
-                                [class.disabled]="!toutesRemisesDecidees()">
+                            <div class="modern-action-card card-accept w-full max-w-md"
+                                (click)="prepareDecision('VALIDER')" [class.disabled]="!toutesRemisesDecidees()">
                                 <div class="mac-icon">
                                     <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -1459,8 +1569,7 @@
                             <div class="flex gap-3 mt-4">
                                 <button class="modern-btn-secondary flex-1"
                                     (click)="showDecisionForm = false">Annuler</button>
-                                <button class="modern-btn-primary flex-2 btn-green"
-                                    [disabled]="actionLoading"
+                                <button class="modern-btn-primary flex-2 btn-green" [disabled]="actionLoading"
                                     (click)="confirmerDecision()">
                                     <span *ngIf="actionLoading" class="spinner-white mr-2"></span>
                                     {{ actionLoading ? 'Traitement...' : 'Confirmer la Validation' }}
@@ -1678,11 +1787,10 @@
                                         <div style="display:flex;align-items:center;gap:8px;">
                                             <span
                                                 style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;"
-                                                [style.background]="e.statut === 'PAYE' ? '#dcfce7' : (e.enRetard ? '#fef2f2' : '#eff4ff')"
-                                                [style.color]="e.statut === 'PAYE' ? '#166534' : (e.enRetard ? '#dc2626' : '#2563eb')">
-                                                {{ e.statut === 'PAYE' ? '✓ Payée' : (e.enRetard ? '⚠ En retard' : '⏳ En
-                                                attente') }}
-                                            </span>
+                                                [style.background]="e.statut === 'PAYE' ? '#dcfce7' : (e.statut === 'ANNULE' ? '#fef2f2' : (e.enRetard ? '#fef2f2' : '#eff4ff'))"
+                                                [style.color]="e.statut === 'PAYE' ? '#166534' : (e.statut === 'ANNULE' ? '#dc2626' : (e.enRetard ? '#dc2626' : '#2563eb'))">
+                                                {{ e.statut === 'PAYE' ? '✓ Payée' : (e.statut === 'ANNULE' ? '✕ Annulée' : (e.enRetard ? '⚠ En retard' : '⏳ En attente')) }}
+</span>
                                             <button *ngIf="e.statut === 'PAYE'" (click)="downloadRecuPaiement(e.id)"
                                                 [disabled]="recuPdfLoadingMap[e.id]"
                                                 style="display:flex;align-items:center;gap:6px;padding:5px 10px;
@@ -1700,7 +1808,8 @@
                                             </button>
                                         </div>
                                         <!-- Bouton encaisser -->
-                                        <button *ngIf="e.statut !== 'PAYE'" (click)="ouvrirPaiement(e)" style="display:inline-flex;align-items:center;gap:6px;
+                                        <button *ngIf="e.statut === 'EN_ATTENTE' && selectedFormulaire.statutDemande !== 'REJETE_FINANCE' && selectedFormulaire.statutDemande !== 'REJETE_SCOLARITE' && selectedFormulaire.statutDemande !== 'REJETE_DEPARTEMENT'" 
+                                            (click)="ouvrirPaiement(e)" style="display:inline-flex;align-items:center;gap:6px;
                            padding:7px 14px;background:#059669;color:white;
                            border:none;border-radius:8px;font-size:11px;
                            font-weight:700;cursor:pointer;transition:all .2s;">

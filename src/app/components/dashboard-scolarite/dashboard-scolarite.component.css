@@ -1713,6 +1713,102 @@
     margin: 0;
 }
 
+.viewer.doc-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* 🆕 Archive Styles */
+.doc-btn.btn-history {
+    background: #fdf4ff;
+    color: #a855f7;
+    border: 1px solid #f5d0fe;
+}
+
+.doc-btn.btn-history:hover {
+    background: #fae8ff;
+    border-color: #d8b4fe;
+    transform: translateY(-2px);
+}
+
+.doc-btn.btn-history.active {
+    background: #a855f7;
+    color: #ffffff;
+    border-color: #9333ea;
+}
+
+.doc-archives-panel {
+    grid-column: 1 / -1;
+    margin-top: 12px;
+    background: #fcfcfd;
+    border: 1px dashed #e2e8f0;
+    border-radius: 12px;
+    padding: 12px;
+    animation: fadeIn 0.3s ease;
+}
+
+.archive-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+}
+
+.archive-item:last-child {
+    margin-bottom: 0;
+}
+
+.archive-item:hover {
+    border-color: #e2e8f0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.archive-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.archive-date {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.archive-rejection {
+    font-size: 11px;
+    color: #ef4444;
+    font-weight: 500;
+    margin: 0;
+}
+
+.archive-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.archive-btn:hover {
+    background: #f8fafc;
+    color: #2563eb;
+    border-color: #cbd5e1;
+}
+
 .viewer-actions {
     display: flex;
     gap: 8px;
@@ -3046,9 +3142,104 @@
     border: 1px solid #dbeafe;
 }
 
-.doc-summary-badge:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+/* ─── DOCUMENT ARCHIVES (HISTORY) ─── */
+.doc-archives-panel {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px dashed #e2e8f0;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.archive-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #f1f5f9;
+}
+
+.archive-item:hover {
+    border-color: #e2e8f0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.archive-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.archive-date {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.archive-rejection {
+    font-size: 11px;
+    color: #ef4444;
+    margin: 0;
+}
+
+.archive-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.archive-btn:hover {
+    background: #f1f5f9;
+    color: #2563eb;
+    border-color: #2563eb;
+}
+
+.btn-history.active {
+    color: #2563eb;
+    background: #eff6ff;
+    border-color: #2563eb;
+}
+
+/* ─── LOADING FRESH DOCS ─── */
+.loading-fresh-docs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.loader-mini {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #e2e8f0;
+    border-top: 2px solid #2563eb;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 /* ── FOOTER ACTIONS (USER DESIGN PREFERENCE) ── */

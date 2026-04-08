@@ -1,4 +1,4 @@
-import { Component, OnInit, Pipe, PipeTransform } from '@angular/core';
+import { Component, OnInit, OnDestroy, Pipe, PipeTransform } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -13,8 +13,8 @@ import { SafePipe } from '../../pipes/safe.pipe';
 import { ScolariteService } from '../../services/scolarite.service';
 
 export type StatutFormulaire = 'EN_ATTENTE' | 'SOUMIS' | 'VALIDE' | 'REFUSE';
-export type StatutEcheance = 'EN_ATTENTE' | 'PAYE' | 'IMPAYE';
-export type StatutPaiement = 'EN_ATTENTE' | 'PARTIEL' | 'PAYE';
+export type StatutEcheance = 'EN_ATTENTE' | 'PAYE' | 'IMPAYE' | 'ANNULE';
+export type StatutPaiement = 'EN_ATTENTE' | 'PARTIEL' | 'PAYE' | 'ANNULE';
 export type TypePaiement = 'TOTAL' | 'PARTIEL';
 export type ModePaiement = 'ESPECES' | 'CARTE_BANCAIRE' | 'VIREMENT' | 'CHEQUE' | 'EN_LIGNE';
 
@@ -160,7 +160,7 @@ export interface CreateUpdateRemiseDTO {
     ])
   ]
 })
-export class DashboardFinanceComponent implements OnInit {
+export class DashboardFinanceComponent implements OnInit, OnDestroy {
 
   private apiUrl = `${environment.apiUrl}/FINANCE-SERVICE/api/dashboard-finance`;
   protected Math = Math;
@@ -214,6 +214,22 @@ export class DashboardFinanceComponent implements OnInit {
   modePaiementSelectionne: ModePaiement = 'ESPECES';
   paiementLoading = false;
 
+  // ── Rappels téléphoniques actifs ─────────────────────────────────────────
+  rappelTelephoneTasks: Array<{
+    enrollmentId: number;
+    nomEtudiant: string;
+    prenomEtudiant: string;
+    telephoneEtudiant: string;
+    nomDiplome: string;
+    niveau: string; // ← AJOUTÉ
+    langue: string; // ← AJOUTÉ
+    taskKey: string;
+    loading: boolean;
+  }> = [];
+  rappelLoading = false;
+  private rappelPollingTimer: any = null;
+
+
   showRejetDialog = false;
   motifRejet = '';
   quickRejetMotifs = [
@@ -265,9 +281,18 @@ export class DashboardFinanceComponent implements OnInit {
       this.emailAgent = this.userProfile?.email || '';
       if (this.emailAgent) {
         this.loadAcademicYears();
+        this.loadRappelTelephoneTasks();
+        // Polling toutes les 30s pour les rappels téléphoniques
+        this.rappelPollingTimer = setInterval(() => this.loadRappelTelephoneTasks(), 30000);
       }
     } catch (e) {
       console.error('Keycloak error:', e);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.rappelPollingTimer) {
+      clearInterval(this.rappelPollingTimer);
     }
   }
 
@@ -468,6 +493,83 @@ export class DashboardFinanceComponent implements OnInit {
     this.loadStats();
     this.loadFormulaires();
     this.loadPipelineAndFrais();
+    this.loadRappelTelephoneTasks();
+  }
+
+  // ── Rappels téléphoniques ──────────────────────────────────────────────────
+
+  /**
+   * Charge toutes les tâches "rappel téléphone" actives dans Camunda,
+   * les enrichit avec les données du formulaire correspondant.
+   */
+  loadRappelTelephoneTasks(): void {
+    this.rappelLoading = true;
+    // On récupère TOUS les formulaires actifs (page large) pour croiser avec les tâches actives
+    this.http.get<PageResponse<FormulaireDashboardDTO>>(
+      `${this.apiUrl}/formulaires?page=0&size=9999&annee=${this.selectedAnnee}`
+    ).subscribe({
+      next: (res) => {
+        const rappels: typeof this.rappelTelephoneTasks = [];
+
+        // Pour chaque formulaire, on vérifie s'il a une tâche rappel active
+        const checks = res.content.map(f =>
+          this.scolariteService.getTasksForEnrollment(f.enrollmentId).toPromise()
+            .then(tasks => {
+              const rappelTask = tasks?.find(t =>
+                t.taskDefinitionKey === 'Activity_1519yf5' ||
+                t.taskDefinitionKey === 'Activity_05n0o02'
+              );
+              if (rappelTask) {
+                rappels.push({
+                  enrollmentId: f.enrollmentId,
+                  nomEtudiant: f.nomEtudiant || '—',
+                  prenomEtudiant: f.prenomEtudiant || '',
+                  telephoneEtudiant: f.telephone || '—',
+                  nomDiplome: f.nomDiplome || '—',
+                  niveau: f.niveauChoisi || '—', // ← AJOUTÉ
+                  langue: f.langueDiplome || '—', // ← AJOUTÉ
+                  taskKey: rappelTask.taskDefinitionKey || '',
+                  loading: false
+                });
+              }
+            })
+            .catch(() => {/* silencieux */ })
+        );
+
+        Promise.all(checks).then(() => {
+          this.rappelTelephoneTasks = rappels;
+          this.rappelLoading = false;
+        });
+      },
+      error: () => { this.rappelLoading = false; }
+    });
+  }
+
+  /**
+   * L'agent finance a appelé le candidat → compléter la tâche rappel téléphone
+   * → le workflow avance vers "configurer paiement".
+   */
+  completerRappelTelephone(enrollmentId: number): void {
+    const rappel = this.rappelTelephoneTasks.find(r => r.enrollmentId === enrollmentId);
+    if (!rappel) return;
+    rappel.loading = true;
+
+    this.http.post(
+      `${environment.workflowServiceUrl}/api/workflow/tasks/enrollment/${enrollmentId}/complete-rappel-telephone`,
+      null,
+      { params: { agentEmail: this.emailAgent } }
+    ).subscribe({
+      next: () => {
+        this.showToast(`✅ Rappel traité — passage à "Configurer paiement" pour ${rappel.prenomEtudiant} ${rappel.nomEtudiant}`, 'success');
+        this.rappelTelephoneTasks = this.rappelTelephoneTasks.filter(r => r.enrollmentId !== enrollmentId);
+        this.refreshAll();
+      },
+      error: (e) => {
+        rappel.loading = false;
+        console.error('❌ Erreur complete-rappel-telephone:', e);
+        this.showToast('❌ Erreur lors du traitement du rappel', 'error');
+      }
+    });
   }
 
   setFilter(filter: StatutFormulaire | 'tous'): void {
@@ -495,6 +597,26 @@ export class DashboardFinanceComponent implements OnInit {
     if (end - start < maxVisible) start = Math.max(0, end - maxVisible);
     for (let i = start; i < end; i++) pages.push(i);
     return pages;
+  }
+
+  formatPhone(phone: string): string {
+    if (!phone || phone === '—') return phone;
+    // Nettoyer les espaces existants
+    const clean = phone.replace(/\s/g, '');
+
+    // Si c'est un format international (+XXX...)
+    if (clean.startsWith('+')) {
+      // On garde l'indicatif à part (souvent 3 ou 4 caractères avec le +)
+      // On insère un espace après l'indicatif (ex: +212)
+      // Puis on groupe par 2
+      const indicatif = clean.substring(0, 4);
+      const rest = clean.substring(4);
+      const formattedRest = rest.match(/.{1,2}/g)?.join(' ') || rest;
+      return `${indicatif} ${formattedRest}`;
+    }
+
+    // Format local (ex: 06...)
+    return clean.match(/.{1,2}/g)?.join(' ') || clean;
   }
 
   openDetail(f: FormulaireDashboardDTO, tab: 'preferences' | 'facture' = 'preferences'): void {

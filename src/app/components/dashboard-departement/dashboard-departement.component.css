@@ -1447,14 +1447,14 @@
     justify-content: center;
     padding-top: 6px;
     position: relative;
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
 .bac-v2-count {
     font-size: 10px;
     font-weight: 800;
     color: white;
-    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
 .bac-v2-tick {
@@ -1527,7 +1527,7 @@
     height: 24px;
     border-radius: 12px;
     padding: 0;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.08);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
     overflow: hidden;
 }
 
@@ -1541,7 +1541,7 @@
     height: 100%;
     transition: width 1s cubic-bezier(0.65, 0, 0.35, 1);
     position: relative;
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.4);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4);
 }
 
 .acceptation-segment:hover {
@@ -4837,7 +4837,7 @@
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 0;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .reset-btn-v2:hover {
@@ -4859,4 +4859,143 @@
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     gap: 4px;
-}
+}
+
+/* ─── DOCUMENT HISTORY (DEPARTMENT) ─── */
+.btn-history-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-history-toggle:hover {
+    background: #f1f5f9;
+    color: #2563eb;
+}
+
+.btn-history-toggle.active {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #2563eb;
+}
+
+.pill-dot-history {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 6px;
+    height: 6px;
+    background: #3b82f6;
+    border-radius: 50%;
+    border: 1.5px solid white;
+}
+
+.doc-history-panel {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px dashed #e2e8f0;
+}
+
+.history-entry {
+    background: white;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #f1f5f9;
+}
+
+.history-entry-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.history-status {
+    font-size: 9px;
+    font-weight: 800;
+    color: #e11d48;
+    background: #fff1f2;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.history-date {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+}
+
+.history-comment {
+    font-size: 11px;
+    color: #4b5563;
+    margin: 4px 0 8px;
+}
+
+.history-view-btn {
+    width: 100%;
+    padding: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.history-view-btn:hover {
+    background: #f9fafb;
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+/* ─── PILL STATUS COLORS ─── */
+.doc-pill.pill-relance {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.doc-pill.pill-rejete {
+    border-color: #fca5a5;
+    background: #fff5f5;
+    color: #b91c1c;
+}
+
+.doc-pill.pill-valide {
+    border-color: #6ee7b7;
+    background: #f0fdf4;
+    color: #065f46;
+}
+
+.pill-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    margin-left: 4px;
+}
+
+.pill-status-badge.pill-badge-rejete {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+

@@ -1,57 +1,120 @@
 <div class="dept-page">
-    <!-- ═══════════════════ MODAL HISTORIQUE ═══════════════════ -->
-    <div class="modal-overlay audit-overlay" *ngIf="showHistoryModal" (click)="closeModals()">
-        <div class="modal-content audit-modal" (click)="$event.stopPropagation()">
-            <button class="modal-close" (click)="closeModals()">✕</button>
+    <!-- ═══════════════════ MODALE HISTORIQUE AUDIT ═══════════════════ -->
+    <div class="modal-overlay" *ngIf="showHistoryModal" (click)="closeModals()">
+        <div class="modal-content"
+            style="max-width:900px; padding:0; border-radius:16px; overflow:hidden; max-height:85vh; display:flex; flex-direction:column;"
+            (click)="$event.stopPropagation()">
 
-            <div class="modal-icon-title">
-                <div class="modal-icon">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                </div>
-                <div>
-                    <h3>Historique d'audit</h3>
-                    <p class="modal-subtitle">{{ historyTitle }}</p>
-                </div>
-            </div>
-
-            <div class="modal-body custom-scrollbar">
-                <div class="audit-loading" *ngIf="historyLoading">
-                    <div class="spinner-sm"></div> Chargement de l'historique...
-                </div>
-                <div class="audit-empty" *ngIf="!historyLoading && (historyLogs.length === 0)">
-                    <div class="empty-icon">📝</div>
-                    <p>Aucun log trouvé pour cette ressource.</p>
-                </div>
-
-                <div class="audit-timeline" *ngIf="!historyLoading && historyLogs.length > 0">
-                    <div class="audit-item" *ngFor="let log of historyLogs">
-                        <div class="audit-dot" [ngClass]="log.action">
-                            <span class="dot-icon" [innerHTML]="getLogIconSvg(log.action)"></span>
-                        </div>
-                        <div class="audit-content">
-                            <div class="audit-header">
-                                <span class="audit-action">{{ formatLogAction(log.action) }}</span>
-                                <span class="audit-time">{{ log.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
-                            </div>
-                            <div class="audit-desc" *ngIf="log.description">{{ log.description }}</div>
-                            <div class="audit-user">
-                                <span style="color: var(--text-3); font-size: 11px;">Par</span>
-                                <strong>{{ log.username || 'Système' }}</strong>
-                            </div>
-                        </div>
+            <!-- Header -->
+            <div
+                style="padding:24px 28px 20px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <div
+                        style="width:42px; height:42px; background:#f1f5f9; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#475569; flex-shrink:0;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 style="margin:0 0 3px; font-size:18px; font-weight:700; color:#0f172a;">Journal d'audit</h3>
+                        <p style="margin:0; font-size:13px; color:#64748b;">{{ historyTitle }}</p>
                     </div>
                 </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <span
+                        style="background:#f1f5f9; color:#475569; font-size:11px; font-weight:700; padding:4px 12px; border-radius:99px;">{{
+                        historyLogs.length }} événement(s)</span>
+                    <button (click)="closeModals()"
+                        style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer; line-height:1; padding:2px;">✕</button>
+                </div>
             </div>
 
-            <div class="modal-footer">
-                <button class="btn-primary" (click)="closeModals()" style="width: 100%;">Fermer</button>
+            <!-- Body -->
+            <div style="overflow-y:auto; flex:1;">
+                <!-- Loading -->
+                <div *ngIf="historyLoading" style="padding:48px; text-align:center;">
+                    <div class="spinner-sm" style="margin:0 auto 10px;"></div>
+                    <span style="font-size:13px; color:#64748b;">Chargement du journal...</span>
+                </div>
+
+                <!-- Empty -->
+                <div *ngIf="!historyLoading && historyLogs.length === 0" style="padding:60px; text-align:center;">
+                    <div style="font-size:36px; margin-bottom:12px;">&#128196;</div>
+                    <p style="font-size:14px; color:#64748b; margin:0;">Aucun événement trouvé pour cette ressource.</p>
+                </div>
+
+                <!-- Tableau ERP -->
+                <div *ngIf="!historyLoading && historyLogs.length > 0">
+                    <table class="erp-datatable" style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th style="width:16%; cursor:pointer; user-select:none;" (click)="toggleAuditSort()">
+                                    DATE
+                                    <span style="font-size:10px; margin-left:3px;">{{ auditSortOrder === 'desc' ? '↓' :
+                                        '↑' }}</span>
+                                </th>
+                                <th style="width:16%;">ACTION</th>
+                                <th style="width:32%;">DESCRIPTION</th>
+                                <th style="width:22%;">AVANT → APRÈS</th>
+                                <th style="width:14%;">AGENT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let log of getSortedLogs(); let i = index" [class.erp-row-alt]="i % 2 !== 0">
+                                <td>
+                                    <span class="erp-date" style="font-size:14px;">{{ log.timestamp | date:'dd/MM/yy'
+                                        }}</span>
+                                    <span
+                                        style="display:block; font-size:12px; color:#94a3b8; font-family:'Courier New',monospace;">{{
+                                        log.timestamp | date:'HH:mm' }}</span>
+                                </td>
+                                <td>
+                                    <span class="audit-action-pill" [ngClass]="{
+                                        'pill-create': log.action === 'CREATION',
+                                        'pill-update': log.action === 'MODIFICATION' || log.action === 'UPDATE_FEES',
+                                        'pill-toggle': log.action === 'ACTIVATION' || log.action === 'DESACTIVATION',
+                                        'pill-delete': log.action === 'SUPPRESSION'
+                                    }">{{ formatLogAction(log.action) }}</span>
+                                </td>
+                                <td>
+                                    <span style="font-size:14px; color:#334155; line-height:1.5;">{{ log.description ||
+                                        '—' }}</span>
+                                </td>
+                                <td>
+                                    <div *ngIf="log.beforeValue || log.afterValue"
+                                        style="display:flex; flex-direction:column; gap:3px; font-size:13px; font-family:'Courier New',monospace;">
+                                        <span *ngIf="log.beforeValue"
+                                            style="color:#ef4444; text-decoration:line-through;">{{ log.beforeValue
+                                            }}</span>
+                                        <span *ngIf="log.afterValue" style="color:#22c55e;">{{ log.afterValue }}</span>
+                                    </div>
+                                    <span *ngIf="!log.beforeValue && !log.afterValue"
+                                        style="color:#cbd5e1; font-size:14px;">—</span>
+                                </td>
+                                <td>
+                                    <span style="font-size:14px; font-weight:600; color:#475569;">{{ log.username ||
+                                        'Système' }}</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div
+                style="padding:16px 28px; border-top:1px solid #f1f5f9; display:flex; justify-content:flex-end; background:#fff;">
+                <button (click)="closeModals()"
+                    style="background:#2563eb; color:#fff; border:none; padding:10px 28px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:background 0.2s;"
+                    onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+                    Fermer
+                </button>
             </div>
         </div>
     </div>
+
 
     <!-- ═══════════════════ HEADER 2 NIVEAUX ═══════════════════ -->
     <header class="dept-header">
@@ -410,19 +473,41 @@
 
                                 <div class="dr-controls">
                                     <div class="dr-responsible-v4" *ngIf="dr.enseignantResponsable">
+                                        <!-- Avatar -->
                                         <div class="rs-avatar">{{ dr.enseignantResponsable.substring(0,1).toUpperCase()
                                             }}</div>
-                                        <div class="rs-info">
+                                        <!-- Info + actions sur la meme ligne -->
+                                        <div style="display:flex; flex-direction:column; gap:4px;">
                                             <span class="rs-email">{{ dr.enseignantResponsable }}</span>
-                                            <div class="rs-actions">
-                                                <button class="rs-action-btn" (click)="openChangeResponsableModal(dr)"
-                                                    title="Changer le responsable">
-                                                    <i class="fas fa-user-edit"></i>
+                                            <div style="display:flex; gap:6px;" *ngIf="!isReadOnly">
+                                                <!-- Bouton Changer -->
+                                                <button (click)="openChangeResponsableModal(dr)"
+                                                    style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:6px; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; font-size:11px; font-weight:600; cursor:pointer; transition:all 0.2s;"
+                                                    onmouseover="this.style.borderColor='#2563eb'; this.style.color='#2563eb'; this.style.background='#eff6ff';"
+                                                    onmouseout="this.style.borderColor='#e2e8f0'; this.style.color='#475569'; this.style.background='#f8fafc';">
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                                        stroke-linejoin="round">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                        <circle cx="9" cy="7" r="4"></circle>
+                                                        <line x1="19" y1="8" x2="19" y2="14"></line>
+                                                        <line x1="22" y1="11" x2="16" y2="11"></line>
+                                                    </svg>
+                                                    Changer
                                                 </button>
-                                                <button class="rs-action-btn"
+                                                <!-- Bouton Historique -->
+                                                <button
                                                     (click)="openHistory('ENSEIGNANT', dr.enseignantId!, dr.enseignantResponsable)"
-                                                    title="Historique de l'enseignant">
-                                                    <i class="fas fa-history"></i>
+                                                    style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:6px; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; font-size:11px; font-weight:600; cursor:pointer; transition:all 0.2s;"
+                                                    onmouseover="this.style.borderColor='#7c3aed'; this.style.color='#7c3aed'; this.style.background='#f5f3ff';"
+                                                    onmouseout="this.style.borderColor='#e2e8f0'; this.style.color='#475569'; this.style.background='#f8fafc';">
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                                        stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                                    </svg>
+                                                    Historique
                                                 </button>
                                             </div>
                                         </div>
@@ -457,10 +542,47 @@
                             <div class="v-grid-v4">
                                 <div *ngFor="let v of dr.variantes" class="v-card-v4"
                                     [class.v-card-inactive]="!v.actif">
-                                    <div class="v-card-top">
+                                    <div class="v-card-top"
+                                        style="display:flex; justify-content:space-between; align-items:center;">
                                         <div class="v-lang">
                                             <span class="v-flag">{{ getLangueFlag(v.langue) }}</span>
                                             <span class="v-lang-txt">{{ v.langue }}</span>
+                                        </div>
+                                        <div class="v-actions" style="display:flex; align-items:center; gap:6px;">
+                                            <!-- Mode édition normal -->
+                                            <ng-container *ngIf="!isReadOnly">
+                                                <label class="switch-mini-v4" style="margin-right: 4px;">
+                                                    <input type="checkbox" [checked]="v.actif"
+                                                        (change)="toggleVariante(v)">
+                                                    <span class="slider-mini-v4"></span>
+                                                </label>
+                                                <button class="v-edit-v4" (click)="editVariante(v)" title="Modifier">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="3">
+                                                        <path
+                                                            d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                                        <path
+                                                            d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                    </svg>
+                                                </button>
+                                                <button class="v-edit-v4"
+                                                    (click)="openHistory('DIPLOME_ETUDIER', v.id, v.langue + ' (' + v.nom + ')')"
+                                                    title="Historique">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                                        stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                                    </svg>
+                                                </button>
+                                            </ng-container>
+                                            <!-- Mode archive — badge statique -->
+                                            <span *ngIf="isReadOnly" class="archive-status-badge archive-status-sm"
+                                                [class.archive-status-on]="v.actif"
+                                                [class.archive-status-off]="!v.actif">
+                                                <span class="archive-dot"></span>
+                                                {{ v.actif ? 'Actif' : 'Inactif' }}
+                                            </span>
                                         </div>
                                     </div>
 
@@ -524,97 +646,50 @@
 
                                     </div>
 
-                                    <!-- Card Actions -->
-                                    <div class="v-card-footer">
-                                        <div class="v-actions">
-                                            <!-- Mode édition normal -->
-                                            <ng-container *ngIf="!isReadOnly">
-                                                <label class="switch-mini-v4">
-                                                    <input type="checkbox" [checked]="v.actif"
-                                                        (change)="toggleVariante(v)">
-                                                    <span class="slider-mini-v4"></span>
-                                                </label>
-                                                <button class="v-edit-v4" (click)="editVariante(v)" title="Modifier">
-                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                                        stroke="currentColor" stroke-width="3">
-                                                        <path
-                                                            d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                                        <path
-                                                            d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                    </svg>
-                                                </button>
-                                                <button class="v-edit-v4"
-                                                    (click)="openHistory('DIPLOME_ETUDIER', v.id, v.langue + ' (' + v.nom + ')')"
-                                                    title="Historique">
-                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                                        stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                                        stroke-linejoin="round">
-                                                        <circle cx="12" cy="12" r="10"></circle>
-                                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                                    </svg>
-                                                </button>
-                                            </ng-container>
-                                            <!-- Mode archive — badge statique -->
-                                            <span *ngIf="isReadOnly" class="archive-status-badge archive-status-sm"
-                                                [class.archive-status-on]="v.actif"
-                                                [class.archive-status-off]="!v.actif">
-                                                <span class="archive-dot"></span>
-                                                {{ v.actif ? 'Actif' : 'Inactif' }}
-                                            </span>
+                                    <!-- Actions de variantes déplacées vers v-card-top -->
+
+                                    <!-- ✅ NOUVEL AFFICHAGE DES GROUPES & DEMANDES (Pleine Largeur) -->
+                                    <div class="v-groups-section" *ngIf="v.showGroups">
+                                        <div class="v-groups-header">
+                                            <span class="v-groups-title">Groupes de TD/TP</span>
+                                            <div class="v-groups-loading" *ngIf="v.loadingGroups">
+                                                <div class="spinner-mini"></div>
+                                            </div>
                                         </div>
 
-                                        <!-- ✅ NOUVEL AFFICHAGE DES GROUPES & DEMANDES -->
-                                        <div class="v-groups-section" *ngIf="v.showGroups">
-                                            <div class="v-groups-header">
-                                                <span class="v-groups-title">Groupes de TD/TP</span>
-                                                <div class="v-groups-loading" *ngIf="v.loadingGroups">
-                                                    <div class="spinner-mini"></div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Liste des Groupes -->
-                                            <div class="v-groups-list" *ngIf="v.groups && v.groups.length > 0">
-                                                <div *ngFor="let group of v.groups" class="group-item">
-                                                    <div class="group-header" (click)="loadDemandesForGroup(group)">
-                                                        <div class="group-info">
-                                                            <span class="group-dot" [ngClass]="group.statut"></span>
-                                                            <span class="group-name">{{ group.nom }}</span>
-                                                            <span class="group-status-pill" [ngClass]="group.statut">
-                                                                {{ group.statut === 'EN_FORMATION' ? 'En formation' : group.statut }}
-                                                            </span>
-                                                        </div>
-                                                        <div class="group-chevron">
-                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                                                <polyline points="6 9 12 15 18 9" />
-                                                            </svg>
-                                                        </div>
+                                        <!-- Liste des Groupes -->
+                                        <div class="v-groups-list" *ngIf="v.groups && v.groups.length > 0">
+                                            <div *ngFor="let group of v.groups" class="group-item">
+                                                <div class="group-header" (click)="loadDemandesForGroup(group)">
+                                                    <div class="group-info">
+                                                        <span class="group-dot" [ngClass]="group.statut"></span>
+                                                        <span class="group-name">{{ group.nom }}</span>
+                                                        <span class="group-status-pill" [ngClass]="group.statut">
+                                                            {{ group.statut === 'EN_FORMATION' ? 'En formation' :
+                                                            group.statut }}
+                                                        </span>
                                                     </div>
-
-                                                    <!-- Demandes (Étudiants) dans le groupe -->
-                                                    <div class="v-group-students" *ngIf="group.loadingDemandes || (group.demandes && group.demandes.length > 0)">
-                                                        <div class="spinner-mini mx-4 my-2" *ngIf="group.loadingDemandes"></div>
-                                                        <div class="student-item" *ngFor="let d of group.demandes">
-                                                            <div class="student-main">
-                                                                <span class="student-name">{{ d.etudiantNom }} {{ d.etudiantPrenom }}</span>
-                                                                <span class="student-dossier">#{{ d.numeroDossier }}</span>
-                                                            </div>
-                                                            <div class="student-status">
-                                                                <span class="status-indicator" [ngClass]="d.statutActuel"></span>
-                                                                <span class="status-text">{{ d.statutActuel }}</span>
-                                                            </div>
-                                                        </div>
+                                                    <div class="group-chevron">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                            stroke="currentColor" stroke-width="2.5"
+                                                            stroke-linecap="round" stroke-linejoin="round">
+                                                            <polyline points="9 18 15 12 9 6" />
+                                                        </svg>
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            <div class="v-groups-empty" *ngIf="!v.loadingGroups && (!v.groups || v.groups.length === 0)">
-                                                Aucun groupe formé pour le moment.
-                                            </div>
+                                        <div class="v-groups-empty"
+                                            *ngIf="!v.loadingGroups && (!v.groups || v.groups.length === 0)">
+                                            Aucun groupe formé pour le moment.
                                         </div>
                                     </div>
                                     <div class="v-card-actions-premium">
-                                        <button class="btn-groups-toggle" (click)="toggleGroups(v)" [class.active]="v.showGroups">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <button class="btn-groups-toggle" (click)="toggleGroups(v)"
+                                            [class.active]="v.showGroups">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2.5">
                                                 <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                                                 <circle cx="9" cy="7" r="4" />
                                                 <path d="M23 21v-2a4 4 0 00-3-3.87" />
@@ -777,14 +852,22 @@
                                             <span>{{ n.niveauInt }}<sup>{{ n.niveauInt === 1 ? 're' : 'e' }}</sup>
                                                 année</span>
                                         </label>
-                                        <div class="niveau-inputs" *ngIf="n.selected">
+                                        <div class="niveau-inputs" *ngIf="n.selected" style="flex-wrap: wrap;">
                                             <div class="input-mini">
                                                 <span>Capacité max</span>
-                                                <input type="number" [(ngModel)]="n.capaciteMax">
+                                                <input type="number" [(ngModel)]="n.capaciteMax" min="1">
                                             </div>
                                             <div class="input-mini">
                                                 <span>Taille groupe</span>
-                                                <input type="number" [(ngModel)]="n.tailleGroupe">
+                                                <input type="number" [(ngModel)]="n.tailleGroupe" min="1">
+                                            </div>
+                                            <div class="input-mini">
+                                                <span>Score minimal</span>
+                                                <input type="number" [(ngModel)]="n.scoreMinimum" min="0">
+                                            </div>
+                                            <div *ngIf="n.tailleGroupe > 0 && n.capaciteMax > 0 && (n.capaciteMax % n.tailleGroupe !== 0)"
+                                                style="width: 100%; font-size: 11px; color: var(--error); margin-top: 4px; padding-left: 4px;">
+                                                Capacité max doit être un multiple de la taille groupe.
                                             </div>
                                         </div>
                                     </div>
@@ -907,14 +990,22 @@
                                 <span class="check-box"></span>
                                 <span>{{ n.niveauInt }}<sup>e</sup> année</span>
                             </label>
-                            <div class="config-params" *ngIf="n.selected">
+                            <div class="config-params" *ngIf="n.selected" style="flex-wrap: wrap;">
                                 <div class="p-field">
                                     <span class="p-label">Capacité</span>
-                                    <input type="number" [(ngModel)]="n.capaciteMax" class="p-input">
+                                    <input type="number" [(ngModel)]="n.capaciteMax" class="p-input" min="1">
                                 </div>
                                 <div class="p-field">
                                     <span class="p-label">Taille gr.</span>
-                                    <input type="number" [(ngModel)]="n.tailleGroupe" class="p-input">
+                                    <input type="number" [(ngModel)]="n.tailleGroupe" class="p-input" min="1">
+                                </div>
+                                <div class="p-field">
+                                    <span class="p-label">Score min</span>
+                                    <input type="number" [(ngModel)]="n.scoreMinimum" class="p-input" min="0">
+                                </div>
+                                <div *ngIf="n.tailleGroupe > 0 && n.capaciteMax > 0 && (n.capaciteMax % n.tailleGroupe !== 0)"
+                                    style="width: 100%; font-size: 11px; color: var(--error); margin-top: 4px;">
+                                    Capacité max doit être un multiple de taille groupe.
                                 </div>
                             </div>
                         </div>
@@ -977,18 +1068,22 @@
                             <span class="check-box"></span>
                             <span>{{ n.niveauInt }}<sup>e</sup> année</span>
                         </label>
-                        <div class="config-params" *ngIf="n.selected">
+                        <div class="config-params" *ngIf="n.selected" style="flex-wrap: wrap;">
                             <div class="p-field">
                                 <span class="p-label">Score min</span>
-                                <input type="number" [(ngModel)]="n.scoreMinimum" class="p-input">
+                                <input type="number" [(ngModel)]="n.scoreMinimum" class="p-input" min="0">
                             </div>
                             <div class="p-field">
                                 <span class="p-label">Taille gr.</span>
-                                <input type="number" [(ngModel)]="n.tailleGroupe" class="p-input">
+                                <input type="number" [(ngModel)]="n.tailleGroupe" class="p-input" min="1">
                             </div>
                             <div class="p-field">
                                 <span class="p-label">Capacité max</span>
-                                <input type="number" [(ngModel)]="n.capaciteMax" class="p-input">
+                                <input type="number" [(ngModel)]="n.capaciteMax" class="p-input" min="1">
+                            </div>
+                            <div *ngIf="n.tailleGroupe > 0 && n.capaciteMax > 0 && (n.capaciteMax % n.tailleGroupe !== 0)"
+                                style="width: 100%; font-size: 11px; color: var(--error); margin-top: 4px;">
+                                Capacité max doit être un multiple de taille groupe.
                             </div>
                         </div>
                     </div>
@@ -1009,26 +1104,31 @@
 </div>
 
 
-<!-- ═══════════════════ MODAL CONFIG ADMIN ═══════════════════ -->
+<!-- ═══════════════════ MODALE CONFIG ADMIN ═══════════════════ -->
 <div class="modal-overlay" *ngIf="showAdminConfigModal" (click)="closeModals()">
-    <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-            <div class="modal-title-row">
-                <div class="modal-header-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5">
+    <div class="modal-content"
+        style="max-width: 800px; padding-bottom: 24px; max-height: 90vh; display: flex; flex-direction: column;"
+        (click)="$event.stopPropagation()">
+        <button class="modal-close" (click)="closeModals()"
+            style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">✕</button>
+        <div class="modal-header" style="padding: 24px; border-bottom: 1px solid #f1f5f9;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div
+                    style="width: 48px; height: 48px; background: #e0f2fe; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #0284c7;">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <path
                             d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
                     </svg>
                 </div>
                 <div>
-                    <h3>Configuration Globale</h3>
-                    <p class="modal-subtitle">Gestion des types, niveaux et prérequis</p>
+                    <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #0f172a;">Configuration Globale</h3>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Gestion des types, niveaux et
+                        prérequis du département</p>
                 </div>
             </div>
-            <button class="close-btn" (click)="closeModals()">✕</button>
         </div>
-        <div class="modal-tabs">
+        <div class="modal-tabs" style="border-bottom: 1px solid #f1f5f9; padding: 0 24px;">
             <button class="m-tab" [class.active]="activeAdminTab === 'types'"
                 (click)="activeAdminTab = 'types'">Types</button>
             <button class="m-tab" [class.active]="activeAdminTab === 'niveaux'"
@@ -1037,7 +1137,7 @@
                 (click)="activeAdminTab = 'prerequis'">Prérequis</button>
         </div>
 
-        <div class="modal-body custom-scrollbar">
+        <div class="modal-body custom-scrollbar" style="padding: 24px; overflow-y: auto;">
             <!-- VUE TYPES -->
             <div class="config-grid" *ngIf="activeAdminTab === 'types'">
                 <div class="config-sec" style="grid-column: 1 / -1">
@@ -1479,6 +1579,133 @@
         </div>
         <div class="toast-content">
             {{ toastMessage }}
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ MODALE ERP : TABLEAU DES ÉTUDIANTS ═══════════════════ -->
+<div class="modal-overlay" *ngIf="showGroupDemandesModal" (click)="closeModals()">
+    <div class="modal-content modal-erp-table" style="max-width: 950px; padding: 0; overflow: hidden; background: #fff;"
+        (click)="$event.stopPropagation()">
+
+        <!-- Header ERP Modal -->
+        <div class="erp-modal-header"
+            style="padding: 24px 32px; background: #fff; border-bottom: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Base de données : {{
+                    selectedGroupForDemandes?.nom }}</h2>
+                <div style="display:flex; align-items:center; gap: 12px;">
+                    <span style="font-size: 13px; color: #64748b; font-weight: 500;">
+                        Total : {{ selectedGroupForDemandes?.demandes?.length || 0 }} affectation(s)
+                    </span>
+                    <span class="group-status-pill" [ngClass]="selectedGroupForDemandes?.statut"
+                        style="padding: 4px 10px; font-size: 10px;">
+                        {{ selectedGroupForDemandes?.statut === 'EN_FORMATION' ? 'En formation' :
+                        selectedGroupForDemandes?.statut }}
+                    </span>
+                </div>
+            </div>
+            <div style="display:flex; gap: 12px; align-items:center;">
+                <!-- Barre de recherche -->
+                <div style="position:relative;">
+                    <svg style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8;"
+                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" [(ngModel)]="studentSearchQuery" (ngModelChange)="studentCurrentPage = 0"
+                        placeholder="Rechercher un étudiant..."
+                        style="padding: 8px 12px 8px 32px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #334155; outline:none; width: 220px;"
+                        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+                <button class="modal-close-btn" (click)="closeGroupDemandesModal()"
+                    style="background: #f1f5f9; border:none; width:36px; height:36px; border-radius:8px; cursor:pointer; color:#64748b; font-size: 18px; display:flex; align-items:center; justify-content:center;">✕</button>
+            </div>
+        </div>
+
+        <div class="erp-modal-body" style="padding: 32px;">
+            <div class="spinner-xl mx-auto my-12" *ngIf="selectedGroupForDemandes?.loadingDemandes"></div>
+
+            <div *ngIf="!selectedGroupForDemandes?.loadingDemandes && (!selectedGroupForDemandes?.demandes || selectedGroupForDemandes?.demandes.length === 0)"
+                class="empty-list-v4" style="padding: 60px 0;">
+                <div class="empty-icon-v4" style="font-size: 40px; margin-bottom: 12px;">🗄️</div>
+                <p style="font-size: 16px; color: #64748b;">Aucun étudiant trouvé dans ce segment.</p>
+            </div>
+
+            <!-- LE TABLEAU ERP -->
+            <div class="erp-table-container"
+                *ngIf="!selectedGroupForDemandes?.loadingDemandes && selectedGroupForDemandes?.demandes?.length > 0">
+                <!-- Empty after search -->
+                <div *ngIf="getFilteredStudents().length === 0" style="padding: 40px; text-align:center;">
+                    <div style="font-size:32px; margin-bottom:10px;">&#128269;</div>
+                    <p style="color:#64748b; font-size:14px;">Aucun résultat pour "{{ studentSearchQuery }}"</p>
+                </div>
+                <table class="erp-datatable" style="width: 100%; border-collapse: collapse; text-align: left;"
+                    *ngIf="getFilteredStudents().length > 0">
+                    <thead>
+                        <tr>
+                            <th style="width: 45%;">ÉTUDIANT(E)</th>
+                            <th style="width: 20%;">MATRICULE</th>
+                            <th style="width: 15%;">DATE AFFECT.</th>
+                            <th style="width: 20%;">STATUT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let d of getPaginatedStudents(); let i = index" [class.erp-row-alt]="i % 2 !== 0">
+                            <!-- Cell 1: Etudiant -->
+                            <td class="erp-cell-primary">
+                                <span class="erp-name">{{ d.etudiantNom }} {{ d.etudiantPrenom }}</span>
+                                <span class="erp-subtext">INSCRIP-2026-{{ d.id }}</span>
+                            </td>
+
+                            <!-- Cell 2: Matricule -->
+                            <td>
+                                <span class="erp-metric">{{ d.numeroDossier || 'N/A' }}</span>
+                            </td>
+
+                            <!-- Cell 3: Date inscription -->
+                            <td>
+                                <span class="erp-date" *ngIf="d.dateInscription">{{ d.dateInscription | date:'dd/MM/yy'
+                                    }}</span>
+                                <span style="font-size: 12px; color: #94a3b8; font-style: italic;"
+                                    *ngIf="!d.dateInscription">—</span>
+                            </td>
+
+                            <!-- Cell 4: Statut -->
+                            <td>
+                                <div class="erp-pill-wrapper">
+                                    <span class="status-erp-pill {{ d.statutActuel }}">{{ d.statutActuel }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Pagination -->
+                <div *ngIf="getFilteredStudents().length > studentPageSize"
+                    style="display:flex; justify-content:space-between; align-items:center; padding: 14px 24px; border-top: 1px solid #f1f5f9; background:#fafafa;">
+                    <span style="font-size:13px; color:#64748b;">
+                        {{ studentCurrentPage * studentPageSize + 1 }}–{{ min((studentCurrentPage + 1) *
+                        studentPageSize, getFilteredStudents().length) }}
+                        sur {{ getFilteredStudents().length }} résultat(s)
+                    </span>
+                    <div style="display:flex; gap:6px;">
+                        <button (click)="studentCurrentPage = studentCurrentPage - 1"
+                            [disabled]="studentCurrentPage === 0"
+                            style="padding: 6px 14px; border-radius:6px; border: 1px solid #e2e8f0; background:#fff; font-size:13px; font-weight:600; cursor:pointer; color:#334155;"
+                            [style.opacity]="studentCurrentPage === 0 ? '0.4' : '1'">
+                            ← Préc.
+                        </button>
+                        <button (click)="studentCurrentPage = studentCurrentPage + 1"
+                            [disabled]="(studentCurrentPage + 1) * studentPageSize >= getFilteredStudents().length"
+                            style="padding: 6px 14px; border-radius:6px; border: 1px solid #e2e8f0; background:#fff; font-size:13px; font-weight:600; cursor:pointer; color:#334155;"
+                            [style.opacity]="(studentCurrentPage + 1) * studentPageSize >= getFilteredStudents().length ? '0.4' : '1'">
+                            Suiv. →
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

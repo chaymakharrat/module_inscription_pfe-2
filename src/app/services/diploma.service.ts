@@ -25,9 +25,10 @@ export class DiplomaService {
         return this.http.get<NiveauDiplomeSpecifique[]>(`${this.apiUrl}/nom/${nomDiplome}/niveaux`);
     }
 
-    getDiplomesResponsables(): Observable<DiplomeResponsable[]> {
+    getDiplomesResponsables(annee?: string): Observable<DiplomeResponsable[]> {
+        const params = annee ? `?annee=${annee}` : '';
         return this.http.get<DiplomeResponsable[]>(
-            `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/departements/diplomes-responsables`
+            `${environment.apiUrl}/DEPARTEMENT-SERVICE/api/departements/diplomes-responsables${params}`
         );
     }
 

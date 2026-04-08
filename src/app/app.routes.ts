@@ -13,6 +13,7 @@ import { DashboardDepartementComponent } from './components/dashboard-departemen
 import { ParametragePrerequisComponent } from './components/parametrage-prerequis/parametrage-prerequis.component';
 import { DepartementsManagementComponent } from './components/departements-management/departements-management.component';
 import { EmailTemplateEditorComponent } from './components/email-template-editor/email-template-editor.component';
+import { AuditTemplateEditorComponent } from './components/audit-template-editor/audit-template-editor.component';
 
 export const routes: Routes = [
     { path: '', component: HomeComponent },
@@ -28,6 +29,7 @@ export const routes: Routes = [
     { path: 'admin/users', component: UsersManagementComponent, canActivate: [authGuard], data: { roles: ['ADMIN'] } },
     { path: 'admin/departements', component: DepartementsManagementComponent, canActivate: [authGuard], data: { roles: ['ADMIN'] } },
     { path: 'admin/email-templates', component: EmailTemplateEditorComponent, canActivate: [authGuard], data: { roles: ['ADMIN'] } },
+    { path: 'admin/audit-templates', component: AuditTemplateEditorComponent, canActivate: [authGuard], data: { roles: ['ADMIN'] } },
     { path: 'parametrage-prerequis', component: ParametragePrerequisComponent, canActivate: [authGuard], data: { roles: ['ENSEIGNANT_RESPONSABLE'] } },
     { path: '**', redirectTo: '' }
 ];

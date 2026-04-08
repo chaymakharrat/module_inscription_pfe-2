@@ -45,7 +45,7 @@ export class NotificationsComponent implements OnInit {
 
     const checkComplete = () => {
       completed++;
-      if (completed === 4) {
+      if (completed === 3) {
         this.loading = false;
         this.notifications.sort((a, b) =>
           new Date(b.dateEnvoie).getTime() - new Date(a.dateEnvoie).getTime()
@@ -71,11 +71,6 @@ export class NotificationsComponent implements OnInit {
       error: () => checkComplete()
     });
 
-    // EMAIL envoyés
-    this.notificationService.getSentNotifications(this.userEmail).subscribe({
-      next: (res) => { this.sentNotifications.push(...res); checkComplete(); },
-      error: () => checkComplete()
-    });
 
     // INTERNE envoyés
     this.notificationService.getSentInternalNotifications(this.userEmail).subscribe({

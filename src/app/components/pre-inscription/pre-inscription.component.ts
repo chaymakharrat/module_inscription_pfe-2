@@ -10,6 +10,7 @@ import { EnrollmentService } from '../../services/enrollment.service';
 import { PhoneValidationService } from '../../services/phone-validation.service';
 import { AlertService } from '../../services/alert.service';
 import { ScolariteService } from '../../services/scolarite.service';
+import { EmailVerificationService } from '../../services/email-verification.service';
 import { AnneeUniversitaire } from '../../models/academic-year.model';
 import { Country } from '../../models/country.model';
 import {
@@ -93,6 +94,14 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   etatCivilValidated = false;
   cursusValidated = false;
 
+  // 📧 Email Verification (OTP) State
+  emailVerified = false;
+  otpSent = false;
+  otpLoading = false;
+  otpError: string | null = null;
+  otpResendTimer = 0;
+  private timerInterval: any;
+
 
 
 
@@ -143,7 +152,17 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
    */
   get isRecentDemande(): boolean {
     if (!this.existingDemande?.dateCreation) return false;
+
     const created = new Date(this.existingDemande.dateCreation);
+
+    // 🌟 Nouvelle règle : Si la demande a été créée *avant* l'ouverture de la campagne d'inscription actuelle,
+    // elle appartient à l'année dernière. On autorise donc la modification du diplôme (isRecentDemande = false).
+    if (this.currentYearObj?.dateOuverture) {
+      const ouvertureCampagne = new Date(this.currentYearObj.dateOuverture);
+      return created >= ouvertureCampagne;
+    }
+
+    // Fallback de sécurité : 365 jours
     const diffMs = Date.now() - created.getTime();
     return diffMs < 365 * 24 * 60 * 60 * 1000;
   }
@@ -192,7 +211,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
     // ✅ Afficher aussi si les fichiers BAC sont uploadés (même QR illisible)
     const filesOk = this.selectedFiles.has(TypeDocument.DIPLOME_BAC)
-      || this.selectedFiles.has(TypeDocument.RELEVE_NOTES)
+      || this.selectedFiles.has(TypeDocument.RELEVE_NOTES_BAC)
       || (this.bacDiplomeData !== null)
       || (this.bacReleveData !== null);
 
@@ -219,7 +238,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     return ['email', 'phone'].every(f => {
       const c = pi.get(f);
       return c && c.value && (c.valid || c.disabled);
-    }) && this.coordonneesValidated;
+    }) && this.coordonneesValidated && (this.emailVerified || this.studentMode === 'existing');
   }
   // ── Nouvelle méthode appelée au blur de l'email ───────────
   onEmailBlur(): void {
@@ -229,6 +248,88 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       this.coordonneesValidated = true;
       this.cdr.detectChanges();
     }
+  }
+
+  // ── OTP Methods ────────────────────────────────────────────────────────
+  sendOtp(): void {
+    const email = this.personalInfo?.get('email')?.value;
+    if (!email) return;
+
+    this.otpLoading = true;
+    this.otpError = null;
+
+    this.emailVerificationService.sendOtp(email).subscribe({
+      next: () => {
+        setTimeout(() => {
+          this.otpSent = true;
+          this.otpLoading = false;
+          this.startResendTimer();
+          this.alertService.success('Un code de vérification a été envoyé à votre email.');
+          this.cdr.detectChanges();
+        });
+      },
+      error: (err) => {
+        this.otpLoading = false;
+        this.otpError = "Erreur lors de l'envoi du code. Veuillez réessayer.";
+        this.alertService.error(this.otpError);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  verifyOtp(code: string): void {
+    if (code.length !== 6) return;
+
+    const email = this.personalInfo?.get('email')?.value;
+    this.otpLoading = true;
+    this.otpError = null;
+
+    this.emailVerificationService.verifyOtp(email, code).subscribe({
+      next: (res: { valid: boolean; message: string }) => {
+        setTimeout(() => {
+          this.otpLoading = false;
+          if (res.valid) {
+            this.emailVerified = true;
+            this.otpSent = false; // Fermer le panneau OTP
+            this.alertService.success('Email vérifié avec succès !');
+          } else {
+            this.otpError = res.message || 'Code incorrect.';
+          }
+          this.cdr.detectChanges();
+        });
+      },
+      error: () => {
+        this.otpLoading = false;
+        this.otpError = 'Erreur technique. Veuillez réessayer.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private startResendTimer(): void {
+    this.otpResendTimer = 60;
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    this.timerInterval = setInterval(() => {
+      if (this.otpResendTimer > 0) {
+        this.otpResendTimer--;
+      } else {
+        clearInterval(this.timerInterval);
+      }
+      this.cdr.detectChanges();
+    }, 1000);
+  }
+
+  onOtpChange(value: string): void {
+    if (value.length === 6) {
+      this.verifyOtp(value);
+    }
+  }
+
+  resetOtp(): void {
+    this.otpSent = false;
+    this.emailVerified = false;
+    this.otpError = null;
+    this.cdr.detectChanges();
   }
   // ── Blur sur dateNaissance (dernier champ état civil étranger) ──
   onDateNaissanceBlur(): void {
@@ -258,17 +359,17 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     if (this.nationalityMode === 'tunisian' && this.studentMode === 'new') {
       // ✅ selectedFiles suffit — le fichier est toujours stocké scan réussi ou non
       docsOk = this.selectedFiles.has(TypeDocument.DIPLOME_BAC)
-        && this.selectedFiles.has(TypeDocument.RELEVE_NOTES);
+        && this.selectedFiles.has(TypeDocument.RELEVE_NOTES_BAC);
     }
     if (this.nationalityMode === 'foreign' && this.studentMode === 'new') {
       docsOk = this.selectedFiles.has(TypeDocument.DIPLOME_BAC)
-        && this.selectedFiles.has(TypeDocument.RELEVE_NOTES)
+        && this.selectedFiles.has(TypeDocument.RELEVE_NOTES_BAC)
         && this.selectedFiles.has(TypeDocument.CARTE_IDENTITE);
       const diplome = pi.get('dernierDiplome')?.value?.toUpperCase();
       if (diplome && diplome !== 'BACCALAUREAT') {
         docsOk = docsOk
           && this.selectedFiles.has(this.getDiplomeTypeFor(diplome) as any)
-          && this.selectedFiles.has(TypeDocument.RELEVE_NOTES_SUPERIEUR as any);
+          && this.selectedFiles.has(this.getReleveTypeFor(diplome) as any);
       }
     }
     return basic && docsOk && this.cursusValidated;
@@ -292,11 +393,11 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     const diplome = pi?.get('dernierDiplome')?.value?.toUpperCase();
     if (!diplome) return false;
     const base = this.selectedFiles.has(TypeDocument.DIPLOME_BAC)
-      && this.selectedFiles.has(TypeDocument.RELEVE_NOTES);
+      && this.selectedFiles.has(TypeDocument.RELEVE_NOTES_BAC);
     if (diplome === 'BACCALAUREAT') return base;
     return base
       && this.selectedFiles.has(this.getDiplomeTypeFor(diplome) as any)
-      && this.selectedFiles.has(TypeDocument.RELEVE_NOTES_SUPERIEUR as any);
+      && this.selectedFiles.has(this.getReleveTypeFor(diplome) as any);
   }
   // ── Getter helper : docs tunisien complets ───────────────────────
   // get isTunisianDocsComplete(): boolean {
@@ -309,11 +410,11 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     if (this.nationalityMode !== 'tunisian' || this.studentMode !== 'new') return true;
     const diplome = this.personalInfo?.get('dernierDiplome')?.value?.toUpperCase();
     const base = this.selectedFiles.has(TypeDocument.DIPLOME_BAC)
-      && this.selectedFiles.has(TypeDocument.RELEVE_NOTES);
+      && this.selectedFiles.has(TypeDocument.RELEVE_NOTES_BAC);
     if (diplome === 'PREPARATOIRE') {
       return base
         && this.selectedFiles.has(TypeDocument.DIPLOME_PREPARATOIRE as any)
-        && this.selectedFiles.has(TypeDocument.RELEVE_NOTES_SUPERIEUR as any);
+        && this.selectedFiles.has(TypeDocument.RELEVE_NOTES_PREPARATOIRE as any);
     }
     return base;
   }
@@ -478,14 +579,27 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
       if (this.studentMode === 'new') {
         docs.push({ type: TypeDocument.DIPLOME_BAC, label: 'Diplôme du Baccalauréat', required: true });
-        docs.push({ type: TypeDocument.RELEVE_NOTES, label: 'Relevé de notes BAC', required: true });
+        docs.push({ type: TypeDocument.RELEVE_NOTES_BAC, label: 'Relevé de notes BAC', required: true });
       }
       if (this.studentMode === 'existing' && this.needsSuperieurDocs) {
-        docs.push({ type: TypeDocument.RELEVE_NOTES_SUPERIEUR as any, label: 'Relevé de notes supérieur', required: true });
         const diplome = this.inscriptionForm?.get('personalInfo.dernierDiplome')?.value?.toUpperCase();
-        if (diplome === 'LICENCE') docs.push({ type: TypeDocument.DIPLOME_LICENCE, label: 'Diplôme de Licence', required: true });
-        if (diplome === 'MASTERE' || diplome === 'MASTER') docs.push({ type: TypeDocument.DIPLOME_MASTER, label: 'Diplôme de Master', required: true });
-        if (diplome === 'INGENIEUR') docs.push({ type: TypeDocument.DIPLOME_INGENIEUR as any, label: "Diplôme d'Ingénieur", required: true });
+
+        if (diplome === 'LICENCE') {
+          docs.push({ type: TypeDocument.DIPLOME_LICENCE, label: 'Diplôme de Licence', required: true });
+          docs.push({ type: TypeDocument.RELEVE_NOTES_LICENCE, label: 'Relevé de notes de la Licence', required: true });
+        }
+        else if (diplome === 'MASTERE' || diplome === 'MASTER') {
+          docs.push({ type: TypeDocument.DIPLOME_MASTER, label: 'Diplôme de Master', required: true });
+          docs.push({ type: TypeDocument.RELEVE_NOTES_MASTER, label: 'Relevé de notes du Master', required: true });
+        }
+        else if (diplome === 'INGENIEUR') {
+          docs.push({ type: TypeDocument.DIPLOME_INGENIEUR as any, label: "Diplôme d'Ingénieur", required: true });
+          docs.push({ type: TypeDocument.RELEVE_NOTES_INGENIEUR as any, label: "Relevé de notes d'Ingénieur", required: true });
+        }
+        else if (diplome === 'PREPARATOIRE') {
+          docs.push({ type: TypeDocument.DIPLOME_PREPARATOIRE as any, label: "Diplôme / Attestation Préparatoire", required: true });
+          docs.push({ type: TypeDocument.RELEVE_NOTES_PREPARATOIRE as any, label: "Relevé de notes Préparatoire", required: true });
+        }
       }
     } else {
       // ── LOGIQUE ÉTRANGER ──
@@ -495,18 +609,22 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
       // Documents BAC (Requis pour TOUS les diplômes étrangers, car c'est la base)
       docs.push({ type: TypeDocument.DIPLOME_BAC, label: 'Diplôme du Baccalauréat', required: true });
-      docs.push({ type: TypeDocument.RELEVE_NOTES, label: 'Relevé de notes BAC', required: true });
+      docs.push({ type: TypeDocument.RELEVE_NOTES_BAC, label: 'Relevé de notes BAC', required: true });
 
       // Documents du diplôme supérieur (Si le dernier diplôme n'est pas le BACCALAUREAT)
       if (diplome && diplome !== 'BACCALAUREAT') {
-        docs.push({ type: TypeDocument.RELEVE_NOTES_SUPERIEUR as any, label: 'Relevé de notes supérieur', required: true });
-
         if (diplome === 'LICENCE') {
           docs.push({ type: TypeDocument.DIPLOME_LICENCE, label: 'Diplôme de Licence', required: true });
+          docs.push({ type: TypeDocument.RELEVE_NOTES_LICENCE, label: 'Relevé de notes de la Licence', required: true });
         } else if (diplome === 'MASTERE' || diplome === 'MASTER') {
           docs.push({ type: TypeDocument.DIPLOME_MASTER, label: 'Diplôme de Master', required: true });
+          docs.push({ type: TypeDocument.RELEVE_NOTES_MASTER, label: 'Relevé de notes du Master', required: true });
         } else if (diplome === 'INGENIEUR') {
           docs.push({ type: TypeDocument.DIPLOME_INGENIEUR as any, label: "Diplôme d'Ingénieur", required: true });
+          docs.push({ type: TypeDocument.RELEVE_NOTES_INGENIEUR as any, label: "Relevé de notes d'Ingénieur", required: true });
+        } else if (diplome === 'PREPARATOIRE') {
+          docs.push({ type: TypeDocument.DIPLOME_PREPARATOIRE as any, label: "Diplôme / Attestation Préparatoire", required: true });
+          docs.push({ type: TypeDocument.RELEVE_NOTES_PREPARATOIRE as any, label: "Relevé de notes Préparatoire", required: true });
         }
       }
     }
@@ -564,6 +682,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     private phoneValidationService: PhoneValidationService,
     private studentService: StudentService,
     private scolariteService: ScolariteService,
+    private emailVerificationService: EmailVerificationService,
     private alertService: AlertService,
     private cdr: ChangeDetectorRef
   ) { }
@@ -571,7 +690,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.initForm();
     this.loadAcademicYearSettings();
-    this.loadInitialData();
+    // loadInitialData() sera appelé à l'intérieur de loadAcademicYearSettings() une fois l'année récupérée.
     this.startDraftExpiryTimer();
     interval(60_000).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.checkScanExpiry();
@@ -614,6 +733,12 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
           this.currentYearObj = year;
           this.checkRegistrationInterval(year);
           this.inscriptionForm.get('academicInfo.session')?.setValue(year.annee);
+
+          // 🚀 Une fois l'année chargée, on charge les diplômes filtrés par cette année
+          this.loadInitialData(year.annee);
+        } else {
+          // Fallback si aucune année n'est définie
+          this.loadInitialData();
         }
       },
       error: (err) => console.error('Erreur chargement config année:', err)
@@ -811,7 +936,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     switch (type) {
       case TypeDocument.DIPLOME_BAC:
         return this.bacDiplomeData !== null && this.bacDiplomeData.success === true;
-      case TypeDocument.RELEVE_NOTES:
+      case TypeDocument.RELEVE_NOTES_BAC:
         return this.bacReleveData !== null && this.bacReleveData.success === true;
       default:
         return false;
@@ -1013,9 +1138,14 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
         ).subscribe(demande => {
           setTimeout(() => {
             this.existingDemande = demande;
-            // Candidat existant : tous les champs sauf email/phone sont verrouillés
-            this.inscriptionForm.get('personalInfo.dernierDiplome')?.disable({ emitEvent: false });
-            this.inscriptionForm.get('personalInfo.anneeDernierDiplome')?.disable({ emitEvent: false });
+            // On n'active les champs QUE si la demande n'est pas récente (isRecentDemande)
+            if (!this.isRecentDemande) {
+              this.inscriptionForm.get('personalInfo.dernierDiplome')?.enable({ emitEvent: false });
+              this.inscriptionForm.get('personalInfo.anneeDernierDiplome')?.enable({ emitEvent: false });
+            } else {
+              this.inscriptionForm.get('personalInfo.dernierDiplome')?.disable({ emitEvent: false });
+              this.inscriptionForm.get('personalInfo.anneeDernierDiplome')?.disable({ emitEvent: false });
+            }
             this.cdr.detectChanges();
           }, 0);
         });
@@ -1078,13 +1208,21 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       this.sessionBac = (s as any).anneeDernierDiplome;
     }
 
-    // ✅ Candidat existant : TOUT désactiver sauf email et phone
-    ['nom', 'prenom', 'dateNaissance', 'gendre', 'cin', 'numPassport', 'typeBac',
-      'dernierDiplome', 'anneeDernierDiplome'].forEach(field => {
-        pi.get(field)?.disable({ emitEvent: false });
-        pi.get(field)?.markAsUntouched();
-        pi.get(field)?.markAsPristine();
-      });
+    // ✅ Candidat existant : Verrouiller l'identité, mais laisser le diplôme modifiable si session ancienne
+    const fieldsToLockAlways = ['nom', 'prenom', 'dateNaissance', 'gendre', 'cin', 'numPassport', 'typeBac'];
+    fieldsToLockAlways.forEach(field => {
+      pi.get(field)?.disable({ emitEvent: false });
+      pi.get(field)?.markAsUntouched();
+      pi.get(field)?.markAsPristine();
+    });
+
+    // 🎓 Gestion intelligente du cursus
+    const diplomeFields = ['dernierDiplome', 'anneeDernierDiplome'];
+    if (this.isRecentDemande) {
+      diplomeFields.forEach(f => pi.get(f)?.disable({ emitEvent: false }));
+    } else {
+      diplomeFields.forEach(f => pi.get(f)?.enable({ emitEvent: false }));
+    }
   }
   private checkScanExpiry(): void {
     let expired = false;
@@ -1128,11 +1266,14 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     if (this.nationalityMode === 'foreign') {
       this.selectedFiles.delete(TypeDocument.CARTE_IDENTITE);
       this.selectedFiles.delete(TypeDocument.DIPLOME_BAC);
-      this.selectedFiles.delete(TypeDocument.RELEVE_NOTES);
-      this.selectedFiles.delete(TypeDocument.DIPLOME_LICENCE);
+      this.selectedFiles.delete(TypeDocument.RELEVE_NOTES_BAC);
       this.selectedFiles.delete(TypeDocument.DIPLOME_MASTER);
       this.selectedFiles.delete(TypeDocument.DIPLOME_INGENIEUR as any);
-      this.selectedFiles.delete(TypeDocument.RELEVE_NOTES_SUPERIEUR as any);
+      this.selectedFiles.delete(TypeDocument.DIPLOME_PREPARATOIRE as any);
+      this.selectedFiles.delete(TypeDocument.RELEVE_NOTES_LICENCE as any);
+      this.selectedFiles.delete(TypeDocument.RELEVE_NOTES_MASTER as any);
+      this.selectedFiles.delete(TypeDocument.RELEVE_NOTES_INGENIEUR as any);
+      this.selectedFiles.delete(TypeDocument.RELEVE_NOTES_PREPARATOIRE as any);
     }
     this.sessionBac = null;
     // Réactiver tous les champs
@@ -1231,7 +1372,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       this.alertService.info("Les scans BAC ont réussi, utilisez le bouton de vérification classique.");
       return;
     }
-    if (!this.selectedFiles.has(TypeDocument.DIPLOME_BAC) || !this.selectedFiles.has(TypeDocument.RELEVE_NOTES)) {
+    if (!this.selectedFiles.has(TypeDocument.DIPLOME_BAC) || !this.selectedFiles.has(TypeDocument.RELEVE_NOTES_BAC)) {
       this.alertService.error('Veuillez uploader votre Diplôme et Relevé de notes BAC avant de continuer.');
       return;
     }
@@ -1375,7 +1516,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
     // ✅ TOUJOURS stocker le fichier
     if ((result as any).file) {
-      this.selectedFiles.set(TypeDocument.RELEVE_NOTES, (result as any).file);
+      this.selectedFiles.set(TypeDocument.RELEVE_NOTES_BAC, (result as any).file);
     }
 
     if (!result.success) {
@@ -1404,7 +1545,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     const anneeCtrl = pi.get('anneeDernierDiplome');
 
     if (this.isBacForced) {
-      // Cas où on force BACCALAUREAT
+      // Cas où on force BACCALAUREAT (Bac très récent)
       diplomeCtrl?.setValue('BACCALAUREAT', { emitEvent: false });
       diplomeCtrl?.disable({ emitEvent: false });
 
@@ -1412,14 +1553,15 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       anneeCtrl?.disable({ emitEvent: false });
       anneeCtrl?.clearValidators();
     } else {
-      // Cas où le candidat peut choisir
-      diplomeCtrl?.enable({ emitEvent: false });
+      // Cas où le candidat peut choisir (Bac ancien)
+      // On ne désactive QUE si on est en mode "RecentDemande" (déjà géré par prefill)
+      if (!this.isRecentDemande) {
+        diplomeCtrl?.enable({ emitEvent: false });
+        anneeCtrl?.enable({ emitEvent: false });
+      }
 
-      // Si le diplôme est déjà BACCALAUREAT, on pré-remplit l'année
       if (diplomeCtrl?.value === 'BACCALAUREAT') {
         anneeCtrl?.setValue(year, { emitEvent: false });
-        anneeCtrl?.disable({ emitEvent: false });
-        anneeCtrl?.clearValidators();
       }
     }
     anneeCtrl?.updateValueAndValidity({ emitEvent: false });
@@ -1561,7 +1703,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       if (this.nationalityMode === 'tunisian' && this.studentMode === 'new') {
         // ✅ selectedFiles suffit — le fichier est toujours stocké scan réussi ou non
         if (!this.selectedFiles.has(TypeDocument.DIPLOME_BAC)) return false;
-        if (!this.selectedFiles.has(TypeDocument.RELEVE_NOTES)) return false;
+        if (!this.selectedFiles.has(TypeDocument.RELEVE_NOTES_BAC)) return false;
       }
 
       // ── 7. Tunisien NOUVEAU avec diplôme supérieur : docs supplémentaires
@@ -1569,7 +1711,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
         const diplome = pi.get('dernierDiplome')?.value?.toUpperCase();
         const typeSup = this.getDiplomeTypeFor(diplome);
         if (!this.selectedFiles.has(typeSup as any)) return false;
-        if (!this.selectedFiles.has(TypeDocument.RELEVE_NOTES_SUPERIEUR as any)) return false;
+        if (!this.selectedFiles.has(this.getReleveTypeFor(diplome) as any)) return false;
       }
 
       // ── 8. Étranger NOUVEAU : passeport + docs BAC + docs supérieurs ──
@@ -1579,14 +1721,14 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
 
         // Diplôme BAC + Relevé BAC obligatoires
         if (!this.selectedFiles.has(TypeDocument.DIPLOME_BAC)) return false;
-        if (!this.selectedFiles.has(TypeDocument.RELEVE_NOTES)) return false;
+        if (!this.selectedFiles.has(TypeDocument.RELEVE_NOTES_BAC)) return false;
 
         // Si diplôme supérieur : docs supplémentaires
         const diplome = pi.get('dernierDiplome')?.value?.toUpperCase();
         if (diplome && diplome !== 'BACCALAUREAT') {
           const typeSup = this.getDiplomeTypeFor(diplome);
           if (!this.selectedFiles.has(typeSup as any)) return false;
-          if (!this.selectedFiles.has(TypeDocument.RELEVE_NOTES_SUPERIEUR as any)) return false;
+          if (!this.selectedFiles.has(this.getReleveTypeFor(diplome) as any)) return false;
         }
       }
 
@@ -1604,7 +1746,7 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     if (this.currentStep === 2) {
       if (!this.academicInfo.valid) return false;
       // ✅ Relevé de niveau précédent requis si niveau > 1
-      if (this.needsNiveauReleve && !this.selectedFiles.has('RELEVE_NOTES_NIVEAU')) return false;
+      if (this.needsNiveauReleve && !this.selectedFiles.has(TypeDocument.RELEVE_NOTES_NIVEAU)) return false;
       return true;
     }
 
@@ -1681,17 +1823,21 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   // ════════════════════════════════════════════════════════════════════════
   // DATA LOADING
   // ════════════════════════════════════════════════════════════════════════
-  loadInitialData(): void {
+  loadInitialData(annee?: string): void {
     this.countryService.getCountriesWithIndicatifs().subscribe(data => {
       this.countries = data;
       this.filteredCountries = data; // Initialisation
     });
+
+    // On passe l'année au service pour n'avoir que les formations de la session en cours
     this.diplomaService.getDiplomas().subscribe(data => { this.diplomas = data; });
+
     forkJoin({
       types: this.diplomaService.getTypes(),
-      responsables: this.diplomaService.getDiplomesResponsables()
+      responsables: this.diplomaService.getDiplomesResponsables(annee)
     }).subscribe(({ types, responsables }) => {
       this.diplomesResponsables = responsables;
+      // On filtre les types pour ne garder que ceux qui ont des diplômes ouverts cette année
       const typesWithDiplomas = new Set(responsables.filter(r => r.typeNom).map(r => r.typeNom));
       this.typesDiplome = types.filter(t => typesWithDiplomas.has(t.nom));
     });
@@ -1843,6 +1989,8 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
   // SUBMIT
   // ════════════════════════════════════════════════════════════════════════
   onSubmit(): void {
+    if (this.isSubmitting) return; // Sécurité anti-double clic
+
     if (!this.inscriptionForm.valid) {
       this.markFormGroupTouched(this.inscriptionForm);
       this.alertService.warning('Veuillez remplir correctement tous les champs obligatoires.');
@@ -1859,14 +2007,23 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     this.triggerConfetti();
     const fv = this.inscriptionForm.getRawValue();
 
-    // Étudiant existant → PUT email/phone puis soumettre la demande
+    // Étudiant existant → Mise à jour Email/Phone/Diplôme puis soumission
     if (this.studentMode === 'existing' && this.existingStudent?.id) {
       const updateData: Partial<Student> = {
         email: fv.personalInfo.email,
-        phone: fv.personalInfo.indicatif + fv.personalInfo.phone
+        phone: fv.personalInfo.indicatif + fv.personalInfo.phone,
+        dernierDiplome: fv.personalInfo.dernierDiplome,
+        anneeDernierDiplome: Number(fv.personalInfo.anneeDernierDiplome)
       };
-      this.studentService.updateStudent(this.existingStudent.id, updateData).pipe(
-        catchError(() => of(this.existingStudent))
+
+      console.log('Mise à jour du profil étudiant existant:', updateData);
+
+      this.studentService.updateStudentProfile(this.existingStudent.id, updateData).pipe(
+        catchError((err) => {
+          console.error('Erreur lors de la mise à jour du profil:', err);
+          // On continue quand même la soumission de la demande même si le profil échoue (cas non critique)
+          return of(this.existingStudent);
+        })
       ).subscribe(() => {
         this.submitDemande(this.existingStudent!.id!, fv);
       });
@@ -1920,11 +2077,13 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       String(n.niveau) === String(niveauChoisiVal)
     );
 
-    const demande: DemandeInscription = {
+    const demande: any = {
       etudiantId: studentId,
       niveauSpecifiqueId: niveauObj?.id ?? null,
       typeDeDiplome: fv.academicInfo.typeVise,
-      dateCreation: new Date().toISOString()
+      dateCreation: new Date().toISOString(),
+      dernierDiplomeSnapshot: fv.personalInfo.dernierDiplome,
+      anneeDernierDiplomeSnapshot: fv.personalInfo.anneeDernierDiplome ? Number(fv.personalInfo.anneeDernierDiplome) : null
     };
 
     this.enrollmentService.postDemande(demande).pipe(
@@ -2041,13 +2200,26 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
     );
   }
 
-  getDiplomeTypeFor(diplome: string): string {
-    const d = diplome?.toUpperCase() || '';
+  getDiplomeTypeFor(diplome: string | null | undefined): TypeDocument {
+    if (!diplome) return TypeDocument.DIPLOME_BAC;
+    const d = diplome.toUpperCase();
+    if (d === 'BACCALAUREAT') return TypeDocument.DIPLOME_BAC;
+    if (d === 'MASTERE' || d === 'MASTER') return TypeDocument.DIPLOME_MASTER;
+    if (d === 'INGENIEUR') return TypeDocument.DIPLOME_INGENIEUR;
     if (d === 'LICENCE') return TypeDocument.DIPLOME_LICENCE;
-    if (d === 'MASTER' || d === 'MASTERE') return TypeDocument.DIPLOME_MASTER;
-    if (d === 'INGENIEUR') return TypeDocument.DIPLOME_INGENIEUR as any;
-    if (d === 'PREPARATOIRE') return TypeDocument.DIPLOME_BAC; // ← même doc que BAC
+    if (d === 'PREPARATOIRE') return TypeDocument.DIPLOME_PREPARATOIRE;
     return TypeDocument.AUTRE;
+  }
+
+  getReleveTypeFor(diplome: string | null | undefined): TypeDocument {
+    if (!diplome) return TypeDocument.RELEVE_NOTES_BAC;
+    const d = diplome.toUpperCase();
+    if (d === 'BACCALAUREAT') return TypeDocument.RELEVE_NOTES_BAC;
+    if (d === 'LICENCE') return TypeDocument.RELEVE_NOTES_LICENCE;
+    if (d === 'MASTERE' || d === 'MASTER') return TypeDocument.RELEVE_NOTES_MASTER;
+    if (d === 'INGENIEUR') return TypeDocument.RELEVE_NOTES_INGENIEUR;
+    if (d === 'PREPARATOIRE') return TypeDocument.RELEVE_NOTES_PREPARATOIRE;
+    return TypeDocument.RELEVE_NOTES_BAC; // fallback
   }
 
   /**
@@ -2123,7 +2295,18 @@ export class PreInscriptionComponent implements OnInit, OnDestroy {
       const sameDiplome = (d.nomDiplome ?? d.diplomeDemande ?? '').toLowerCase() === diplomeVise.toLowerCase();
       if (!sameDiplome) return false;
 
-      // Vérifier si la demande est "active" (pas de rejet)
+      // 🌟 Vérifier si la demande appartient à la même année universitaire 
+      if (this.currentYearObj?.dateOuverture) {
+        const ouvertureCampagne = new Date(this.currentYearObj.dateOuverture);
+        const creationDemande = new Date(d.dateCreation);
+        if (creationDemande < ouvertureCampagne) {
+          // Demande de l'année précédente : On ignore le fait que le diplôme soit en double
+          // L'étudiant a le droit de repostuler à la même formation !
+          return false;
+        }
+      }
+
+      // Vérifier si la demande est "active" (pas de rejet) dans l'année courante
       const statut = (d.statutActuel ?? d.statut ?? '').toUpperCase();
       const isRejected = rejectedStatuses.some(rs => statut.includes(rs));
       return !isRejected;
