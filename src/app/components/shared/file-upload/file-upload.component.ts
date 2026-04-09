@@ -10,7 +10,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
     <div class="mb-6">
       <label class="block text-sm font-bold text-slate-700 mb-3 ml-1">
         {{label}}
-        <span *ngIf="required" class="text-blue-500 ml-1">*</span>
+        <span *ngIf="required" class="text-[#0d47a1] ml-1">*</span>
       </label>
 
       <div *ngIf="!file; else previewTpl"
@@ -19,13 +19,13 @@ import { trigger, transition, style, animate } from '@angular/animations';
            (drop)="onDrop($event)"
            (click)="fileInput.click()"
            [class]="'border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all duration-300 ' + 
-                    (isDragActive ? 'border-blue-500 bg-blue-50/50 scale-[1.02] shadow-xl' : 'border-slate-200 bg-slate-50/30 hover:border-blue-400 hover:bg-white hover:shadow-lg hover:-translate-y-1')"
+                    (isDragActive ? 'border-[#0d47a1] bg-[#d6e5f5]/50 scale-[1.02] shadow-xl' : 'border-slate-200 bg-slate-50/30 hover:border-[#0d47a1]/40 hover:bg-white hover:shadow-lg hover:-translate-y-1')"
       >
         <input #fileInput type="file" [accept]="accept" (change)="onFileSelected($event)" class="hidden">
         
         <div class="transition-transform duration-300" [style.transform]="isDragActive ? 'translateY(-8px)' : 'none'">
-          <div class="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-            <svg class="h-10 w-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-20 h-20 bg-[#d6e5f5] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+            <svg class="h-10 w-10 text-[#0d47a1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
           </div>
@@ -35,7 +35,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
               📂 Déposez le fichier ici
             </ng-container>
             <ng-template #defaultText>
-              <span class="text-blue-600 hover:text-blue-700">Cliquez pour parcourir</span> ou glissez-déposez
+              <span class="text-[#0d47a1] hover:text-[#1565c0]">Cliquez pour parcourir</span> ou glissez-déposez
             </ng-template>
           </p>
           
@@ -64,7 +64,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <p class="text-sm font-medium text-gray-900 truncate">{{file?.name}}</p>
-                <div *ngIf="uploading" class="animate-spin text-blue-600">
+                <div *ngIf="uploading" class="animate-spin text-[#0d47a1]">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
@@ -77,7 +77,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
               <p class="text-xs text-gray-500 mt-1">{{ fileSizeMB }} MB</p>
 
               <div *ngIf="uploading" class="mt-2 w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                <div class="bg-blue-600 h-1.5 rounded-full transition-all duration-1000" [style.width]="'100%'"></div>
+                <div class="bg-[#0d47a1] h-1.5 rounded-full transition-all duration-1000" [style.width]="'100%'"></div>
               </div>
             </div>
 

@@ -26,6 +26,7 @@ export interface DemandeDetailDTO {
     tokenAcces?: string;
     dernierDiplomeSnapshot?: string;
     anneeDernierDiplomeSnapshot?: number;
+    student?: EtudiantInfoDTO;
 }
 
 export interface EtudiantInfoDTO {

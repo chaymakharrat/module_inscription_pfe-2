@@ -4,6 +4,8 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { Router } from '@angular/router';
 import { PreInscriptionComponent } from '../pre-inscription/pre-inscription.component';
 import { ScrollService } from '../../services/scroll.service';
+import { ScolariteService } from '../../services/scolarite.service';
+import { AnneeUniversitaire } from '../../models/academic-year.model';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -11,9 +13,9 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule, PreInscriptionComponent],
   template: `
-    <div class="w-full">
-      <!-- Landing Page Section -->
-      <div class="relative h-[100vh] w-full overflow-hidden font-sans" #landingSection>
+    <div class="flex flex-col lg:flex-row-reverse min-h-screen">
+      <!-- Right Side: Landing Content (Sticky on LG) -->
+      <div class="w-full lg:w-[40%] lg:h-screen lg:sticky lg:top-0 overflow-hidden relative" #landingSection>
         <!-- Vidéo en arrière-plan -->
         <video 
           #backgroundVideo
@@ -21,91 +23,56 @@ import { Subscription } from 'rxjs';
           loop 
           muted 
           playsinline
-          class="absolute inset-0 w-full h-full object-cover scale-105"
+          class="absolute inset-0 w-full h-full object-cover scale-110"
           [style.transform]="videoTransform"
         >
           <source src="assets/video_robot.mp4" type="video/mp4" />
         </video>
 
         <!-- Overlay gradient -->
-        <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(105, 125, 170, 0.75) 0%, rgba(30,58,138,0.50) 40%, rgba(49,46,129,0.55) 70%, rgba(15,23,42,0.80) 100%);"></div>
+        <div class="absolute inset-0 sidebar-overlay"></div>
 
         <!-- Floating Particles -->
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
           <div class="particle" *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]"></div>
         </div>
 
-        <!-- Contenu -->
-        <div class="relative z-10 flex flex-col items-center justify-center h-full text-white px-4">
-          <div [@fadeInUp] class="text-center max-w-5xl">
-            <div class="mb-12 hero-reveal">
-              <span class="px-4 py-2 rounded-full glass-morphism text-xs tracking-[0.4em] uppercase font-bold text-blue-300 mt-24 mb-6 inline-block">
-                ITECH UNIVERSITY • EXCELLENCE
+        <!-- Contenu Sidebar -->
+        <div class="relative z-10 flex flex-col justify-between h-full text-white p-8 lg:p-12">
+          
+          <div class="flex flex-col gap-8">
+            <div [@fadeInUp]>
+              <span class="px-4 py-2 rounded-full glass-morphism text-[10px] tracking-[0.4em] uppercase font-bold text-blue-300 mb-6 inline-block">
+                ITECH • EXCELLENCE
               </span>
-              <h1 class="text-4xl md:text-6xl font-black mb-6 tracking-tight hero-text-shadow text-white leading-tight">
-                Rejoignez <span class="inline-block">{{typedText}}<span class="cursor">|</span></span>
+              <h1 class="text-3xl md:text-5xl font-black mb-6 tracking-tight hero-text-shadow leading-tight">
+                Rejoignez <span class="text-blue-400">{{typedText}}<span class="cursor">|</span></span>
               </h1>
-              <p class="text-xl md:text-3xl mb-12 text-gray-300 font-light max-w-3xl mx-auto leading-relaxed">
+              <p class="text-lg text-gray-300 font-light max-w-md leading-relaxed">
                 Façonnez votre avenir dans une université à la pointe de l'innovation technologique.
               </p>
             </div>
 
-            <!-- Statistiques -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 max-w-4xl mx-auto">
-              <div class="stat-card glass-morphism rounded-2xl p-8 border border-white/10">
-                <div class="text-5xl font-black mb-2 text-white">{{studentsCount}}+</div>
-                <div class="text-sm font-bold tracking-widest uppercase text-blue-200">Étudiants</div>
-              </div>
-              <div class="stat-card glass-morphism rounded-2xl p-8 border border-white/10">
-                <div class="text-5xl font-black mb-2 text-white">{{employabilityRate}}%</div>
-                <div class="text-sm font-bold tracking-widest uppercase text-blue-200">Employabilité</div>
-              </div>
-              <div class="stat-card glass-morphism rounded-2xl p-8 border border-white/10">
-                <div class="text-5xl font-black mb-2 text-white">{{programsCount}}+</div>
-                <div class="text-sm font-bold tracking-widest uppercase text-blue-200">Programmes</div>
-              </div>
-            </div>
-
-            <!-- Dynamic Scroll Arrows Instead of Button -->
-            <div class="flex flex-col items-center justify-center mt-8">
-              <button
-                (click)="scrollToForm()"
-                class="scroll-arrows-container flex flex-col items-center gap-1 group cursor-pointer bg-transparent border-none p-4"
-              >
-                <span class="text-blue-300 text-xs tracking-[0.3em] uppercase mb-4 group-hover:text-white transition-colors">Défiler pour s'inscrire</span>
-                <div class="arrows-wrapper flex flex-col items-center">
-                  <div class="arrow-down"></div>
-                  <div class="arrow-down delay-1"></div>
-                  <div class="arrow-down delay-2"></div>
-                </div>
-              </button>
-            </div>
-
-            <p class="mt-8 text-sm text-gray-400 flex items-center justify-center gap-3">
-              <span class="flex h-3 w-3 relative">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-              </span>
-              Session d'inscription ouverte pour 2024-2025
-            </p>
           </div>
 
-          <!-- Scroll indicator Arrow -->
-          <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-gray-400">
-            <span class="text-[10px] uppercase tracking-[0.3em]">Découvrir</span>
-            <div class="w-px h-12 bg-gradient-to-b from-blue-500 to-transparent animate-bounce"></div>
+          <!-- Bottom Footer Info -->
+          <div class="pb-4 text-right">
+            <p class="text-xs text-blue-300/60 flex items-center justify-end gap-3">
+              Inscriptions {{currentYear}} • Ouvertes
+              <span class="flex h-2 w-2 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+              </span>
+            </p>
           </div>
         </div>
       </div>
 
-      <!-- Formulaire Section -->
-      <div #formSection class="w-full bg-gray-50">
-        <div class="hero-wave">
-          <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#f9fafb" d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z"/>
-          </svg>
-        </div>  
-        <app-pre-inscription></app-pre-inscription>
+      <!-- Left Side: Formulaire Section -->
+      <div #formSection class="w-full lg:w-[60%] mesh-bg relative lg:h-screen lg:overflow-y-auto custom-scrollbar">
+        <div class="py-10 px-4 md:px-8 lg:px-12">
+            <app-pre-inscription></app-pre-inscription>
+        </div>
       </div>
     </div>
   `,
@@ -135,7 +102,6 @@ export class HomeComponent implements AfterViewInit, OnInit, OnDestroy {
   private charIndex = 0;
   private isDeleting = false;
   private typingSpeed = 150;
-
   // Animated counters
   studentsCount = 0;
   employabilityRate = 0;
@@ -144,12 +110,22 @@ export class HomeComponent implements AfterViewInit, OnInit, OnDestroy {
   private scrollSubscription?: Subscription;
   private observer?: IntersectionObserver;
 
+  currentYear = '2024-2025';
+
   constructor(
     private router: Router,
-    private scrollService: ScrollService
+    private scrollService: ScrollService,
+    private scolariteService: ScolariteService
   ) { }
 
   ngOnInit() {
+    // 🆕 Charger l'année courante dynamiquement
+    this.scolariteService.getAnneeCouranteDetails().subscribe(res => {
+      if (res && res.annee) {
+        this.currentYear = res.annee;
+      }
+    });
+
     // Start counter animations after a short delay
     setTimeout(() => this.animateCounters(), 500);
 

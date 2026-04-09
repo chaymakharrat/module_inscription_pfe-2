@@ -12,12 +12,6 @@
 
       <!-- Desktop Navigation -->
       <ul class="hidden md:flex items-center space-x-6 lg:space-x-8">
-        <li>
-          <a routerLink="/" routerLinkActive="text-blue-600" [routerLinkActiveOptions]="{exact: true}"
-            class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-blue-50">
-            Accueil
-          </a>
-        </li>
         <li *ngIf="hasRole('AGENT_FINANCE')">
           <a routerLink="/dashboard-finance" routerLinkActive="text-blue-600"
             class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-blue-50">
@@ -76,13 +70,6 @@
     <!-- Mobile Menu -->
     <div *ngIf="isMobileMenuOpen" class="md:hidden pb-4 border-t border-gray-100 mt-2 pt-4 slide-down">
       <ul class="space-y-2">
-        <li>
-          <a routerLink="/" (click)="closeMobileMenu()" routerLinkActive="bg-blue-50 text-blue-600"
-            [routerLinkActiveOptions]="{exact: true}"
-            class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-medium transition-colors">
-            Accueil
-          </a>
-        </li>
         <li *ngIf="hasRole('AGENT_FINANCE')">
           <a routerLink="/dashboard-finance" (click)="closeMobileMenu()" routerLinkActive="bg-blue-50 text-blue-600"
             class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg font-medium transition-colors">

@@ -24,8 +24,11 @@ export class StudentService {
     }
 
     // ✅ PUBLIC — appelé depuis mon-dossier sans login
-    getDocumentsStatus(etudiantId: number, enrollmentId?: number): Observable<any[]> {
-        const params = enrollmentId ? `?enrollmentId=${enrollmentId}` : '';
+    getDocumentsStatus(etudiantId: number, enrollmentId?: number, dernierDiplome?: string): Observable<any[]> {
+        let params = enrollmentId ? `?enrollmentId=${enrollmentId}` : '';
+        if (dernierDiplome) {
+            params += (params ? '&' : '?') + `dernierDiplome=${dernierDiplome}`;
+        }
         return this.httpNoAuth.get<any[]>(
             `${environment.apiUrl}/ETUDIANT-SERVICE/api/documents/etudiant/${etudiantId}/status${params}`
         );
@@ -66,7 +69,7 @@ export class StudentService {
     }
 
     updateStudentProfile(id: number, data: Partial<Student>): Observable<Student> {
-        return this.http.put<Student>(`${this.apiUrl}/${id}`, data);
+        return this.http.patch<Student>(`${this.apiUrl}/${id}/profile`, data);
     }
 
     uploadDocument(studentId: number, type: string, file: File, enrollmentId?: number): Observable<any> {

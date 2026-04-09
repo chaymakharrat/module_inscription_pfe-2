@@ -39,7 +39,7 @@ function getKeycloakUrl(): string {
     return 'http://localhost:8180';
   }
   if (hostname.includes('ngrok')) {
-    return 'https://unlapped-nonpartially-shawanda.ngrok-free.dev';
+    return 'https://unloathed-lilla-overextreme.ngrok-free.dev';
   }
   return `http://${hostname}:8180`;
 }

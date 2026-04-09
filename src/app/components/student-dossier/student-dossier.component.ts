@@ -181,7 +181,7 @@ export class StudentDossierComponent implements OnInit, OnDestroy, AfterViewInit
                             return of(null);
                         })
                     ),
-                    documents: this.studentService.getDocumentsStatus(studentId, (enrollment as any).id).pipe(
+                    documents: this.studentService.getDocumentsStatus(studentId, enrollment.id, (enrollment as any).dernierDiplomeSnapshot).pipe(
                         catchError(e => {
                             console.error('❌ Erreur getDocumentsStatus:', e.status, e.message);
                             return of([]);
@@ -226,7 +226,7 @@ export class StudentDossierComponent implements OnInit, OnDestroy, AfterViewInit
                 return forkJoin({
                     enrollment: of(data.enrollment),
                     student: of(data.student),
-                    documents: this.studentService.getDocumentsStatus(data.student.id!, data.enrollment.id!).pipe(catchError(() => of([])))
+                    documents: this.studentService.getDocumentsStatus(data.student.id!, data.enrollment.id, (data.enrollment as any).dernierDiplomeSnapshot).pipe(catchError(() => of([])))
                 });
             })
         ).subscribe({

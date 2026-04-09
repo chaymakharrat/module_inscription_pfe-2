@@ -222,16 +222,27 @@ html {
   }
 }
 
+/* Sidebar Overlay Gradient */
+.sidebar-overlay {
+  background: linear-gradient(180deg, 
+    rgba(15, 23, 42, 0.88) 0%, 
+    rgba(30, 58, 138, 0.65) 50%, 
+    rgba(15, 23, 42, 0.95) 100%);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 /* 3D Card Hover Effect with Advanced Glassmorphism */
-.stat-card {
+.stat-card-mini {
   transform-style: preserve-3d;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
-.stat-card::before {
+.stat-card-mini::before {
   content: '';
   position: absolute;
   top: 0;
@@ -240,22 +251,64 @@ html {
   height: 100%;
   background: linear-gradient(120deg,
       transparent,
-      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.08),
       transparent);
   transition: 0.5s;
 }
 
-.stat-card:hover::before {
-  left: 100%;
+.stat-card-mini:hover {
+  transform: translateX(-15px) perspective(1000px) rotateY(10deg);
+  box-shadow:
+    -10px 15px 30px rgba(0, 0, 0, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.05);
+  border-color: rgba(66, 153, 225, 0.4) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
 }
 
-.stat-card:hover {
-  transform: perspective(1000px) rotateX(10deg) rotateY(10deg) translateY(-10px);
-  box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.4),
-    inset 0 0 20px rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.4) !important;
-  background: rgba(255, 255, 255, 0.15) !important;
+.stat-card-mini:hover .text-3xl {
+  color: #60a5fa;
+  text-shadow: 0 0 15px rgba(96, 165, 250, 0.5);
+}
+
+/* Mesh Gradient Background for Form Side - Iced Blue Minimalist theme */
+.mesh-bg {
+  background-color: #f8fafc; /* Very light slate white */
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(219, 234, 254, 0.4) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(239, 246, 255, 0.4) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(219, 234, 254, 0.4) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(239, 246, 255, 0.4) 0px, transparent 50%);
+  animation: bg-pulse 12s ease infinite alternate;
+  color: #1e293b;
+}
+
+/* Headings color for light background */
+.mesh-bg h1, .mesh-bg h2, .mesh-bg h3, .mesh-bg p {
+  color: #0f172a;
+}
+
+@keyframes bg-pulse {
+  0% { background-position: 0% 0%; filter: hue-rotate(0deg); }
+  100% { background-position: 100% 100%; filter: hue-rotate(5deg); }
+}
+
+/* Custom Premium Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.08);
+  border-radius: 99px;
+  border: 2px solid #f8fafc;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.15);
 }
 
 /* Dynamic Scroll Arrows Style */

@@ -165,17 +165,17 @@ interface EditableResult {
 
       <div class="ctrl-bar">
         <div class="ctrl-group">
-          <button class="ctrl-btn" (click)="adjustZoom(-0.12)">−</button>
+          <button type="button" class="ctrl-btn" (click)="adjustZoom(-0.12)">−</button>
           <input type="range" min="0.2" max="5" step="0.05" [value]="scale" (input)="onZoomSlider($event)" class="zoom-slider"/>
-          <button class="ctrl-btn" (click)="adjustZoom(0.12)">+</button>
+          <button type="button" class="ctrl-btn" (click)="adjustZoom(0.12)">+</button>
         </div>
         <div class="ctrl-sep"></div>
         <div class="ctrl-group">
-          <button class="ctrl-btn" (click)="rotate(-90)" title="Tourner gauche">⟲</button>
-          <button class="ctrl-btn" (click)="rotate(90)"  title="Tourner droite">⟳</button>
+          <button type="button" class="ctrl-btn" (click)="rotate(-90)" title="Tourner gauche">⟲</button>
+          <button type="button" class="ctrl-btn" (click)="rotate(90)"  title="Tourner droite">⟳</button>
         </div>
         <div class="ctrl-sep"></div>
-        <button class="ctrl-btn guide-btn"
+        <button type="button" class="ctrl-btn guide-btn"
                 [class.active]="showFieldGuide"
                 (click)="showFieldGuide = !showFieldGuide"
                 title="Afficher les zones OCR">

@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, Observable, of } from 'rxjs';
-import { CamundaTask, DemandeDetailDTO, PageResponse, ScolariteService } from '../../services/scolarite.service';
+import { CamundaTask, DemandeDetailDTO, EtudiantInfoDTO, PageResponse, ScolariteService } from '../../services/scolarite.service';
 import { AnneeUniversitaire } from '../../models/academic-year.model';
 import { SafePipe } from '../../pipes/safe.pipe';
 import { HostListener } from '@angular/core';
@@ -61,6 +61,13 @@ export class ScolariteDashboardComponent implements OnInit {
   // Tri du tableau
   sortColumn: string = '';
   sortDirection: 'asc' | 'desc' = 'asc';
+
+  /** Retourne les infos de l'étudiant (vient du champ 'student' du DTO qui gère déjà le snapshot) */
+  get effectiveEtudiant(): EtudiantInfoDTO | undefined {
+    if (!this.selectedDemande) return undefined;
+    // On utilise 'student' (peuplé avec snapshot ou live par le backend) ou 'etudiant' en fallback
+    return (this.selectedDemande as any).student || this.selectedDemande.etudiant;
+  }
 
   // Recherche avancée
   searchHistory: string[] = [];
@@ -122,6 +129,10 @@ export class ScolariteDashboardComponent implements OnInit {
   actionLoading = false;
   private readonly ETUDIANT_SERVICE_URL = 'http://localhost:8888/ETUDIANT-SERVICE';
   private currentDocumentBlobUrl: string | null = null;
+
+  // 📜 Documents historiques pour les dossiers rejetés (lecture seule)
+  rejectedHistoryDocs: any[] = [];
+  loadingRejectedDocs = false;
 
   // Filtres
   currentFilter: 'tous' | 'nouveaux' | 'urgents' | 'valides' | 'rejetes' | 'enAttente' | 'relances' = 'tous';
@@ -755,9 +766,11 @@ export class ScolariteDashboardComponent implements OnInit {
     this.commentaire = '';
     this.loadingDocs = true;
 
-    // 🆕 Forcer un rafraîchissement des statuts de documents avec l'ID d'inscription
-    console.log(`🔎 [Scolarité] Fetch documents pour etudiantId=${demande.etudiantId}, enrollmentId=${demande.id}`);
-    this.studentService.getDocumentsStatus(demande.etudiantId, demande.id).subscribe({
+    // 🆕 Forcer un rafraîchissement des statuts de documents avec l'ID d'inscription et le snapshot du diplôme
+    const snapDegree = demande.dernierDiplomeSnapshot || (demande.etudiant?.dernierDiplome as any);
+    console.log(`🔎 [Scolarité] Fetch documents pour etudiantId=${demande.etudiantId}, enrollmentId=${demande.id}, degree=${snapDegree}`);
+    
+    this.studentService.getDocumentsStatus(demande.etudiantId, demande.id, snapDegree).subscribe({
       next: (docs) => {
         console.log('📦 API /status response (scolarite):', JSON.stringify(docs));
         if (this.selectedDemande && this.selectedDemande.id === demande.id) {
@@ -795,6 +808,20 @@ export class ScolariteDashboardComponent implements OnInit {
       this.preparePieceRequestComment();
     }
     this.loadStudentHistory(demande.etudiant.id);
+
+    // 📜 Pour les dossiers rejetés scolarité : charger les documents bruts comme historique
+    const isRejected = demande.statutActuel === 'REJETE_SCOLARITE';
+    this.rejectedHistoryDocs = [];
+    if (isRejected) {
+      this.loadingRejectedDocs = true;
+      this.studentService.getDocumentsByEtudiant(demande.etudiantId, demande.id).subscribe({
+        next: (docs) => {
+          this.rejectedHistoryDocs = docs;
+          this.loadingRejectedDocs = false;
+        },
+        error: () => { this.loadingRejectedDocs = false; }
+      });
+    }
   }
 
   preparePieceRequestComment() {
@@ -867,8 +894,8 @@ export class ScolariteDashboardComponent implements OnInit {
   openRejetDialog() {
     this.showRejetDialog = true;
     this.showValidationDialog = false;
-    // Juste un champ motif vide, pas de construction d'email
-    this.commentaire = '';
+    // On pré-remplit le motif pour les cas d'incohérence de données
+    this.commentaire = 'Les données saisies dans le formulaire sont incohérentes avec les pièces justificatives fournies.';
   }
   demanderPiecesDirectement() {
     if (!this.selectedDemande || !this.taskId || this.actionLoading) return;
@@ -1074,16 +1101,16 @@ export class ScolariteDashboardComponent implements OnInit {
       if (docIndex === -1) {
         docIndex = this.selectedDemande.documents.findIndex(d => d.type === this.selectedDocToReject.type);
       }
-      
+
       if (docIndex > -1) {
         this.selectedDemande.documents[docIndex].statut = 'REJETE';
         this.selectedDemande.documents[docIndex].typeEnvoie = 'REJETE';
         this.selectedDemande.documents[docIndex].commentaireValidation = this.rejectionDocComment;
       }
     }
-    this.pendingDocChanges.set(this.selectedDocToReject.documentId, { 
-      statut: 'REJETE', 
-      commentaire: this.rejectionDocComment 
+    this.pendingDocChanges.set(this.selectedDocToReject.documentId, {
+      statut: 'REJETE',
+      commentaire: this.rejectionDocComment
     });
 
     this.showNotification('Document marqué comme rejeté (en attente de décision finale)', 'success');
@@ -1186,11 +1213,28 @@ export class ScolariteDashboardComponent implements OnInit {
   }
 
   isOldRejectedDocument(doc: any): boolean {
-    // Un document est "ancien rejeté" uniquement si son statut effectif est REJETE
-    // ET qu'il n'est PAS un doc promu RELANCE (qui a été re-soumis)
     if (!doc) return false;
+
+    // Si le rejet vient d'être fait localement (non commité), ce n'est pas un "ancien" rejet.
+    if (this.pendingDocChanges && this.pendingDocChanges.has(doc.documentId)) {
+      const pendingChange = this.pendingDocChanges.get(doc.documentId);
+      if (pendingChange && pendingChange.statut === 'REJETE') {
+        return false;
+      }
+    }
+
     const effectiveStatus = this.getEffectiveStatus(doc);
-    return effectiveStatus === 'REJETE';
+    if (effectiveStatus !== 'REJETE') return false;
+
+    // Un document est grisé "déjà rejeté" uniquement si le dossier entier a été renvoyé 
+    // à l'étudiant pour correction (RELANCE ou EN_ATTENTE_DOCUMENT).
+    // Si le dossier est toujours "SOUMIS" ou "EN_COURS_SCOLARITE", le rejet appartient 
+    // au cycle d'évaluation actuel, il ne doit donc pas être verrouillé.
+    const isRelance = this.selectedDemande &&
+      (this.selectedDemande.statutActuel === 'RELANCE' ||
+        this.selectedDemande.statutActuel === 'EN_ATTENTE_DOCUMENT');
+
+    return !!isRelance;
   }
 
   getDocumentStatusClass(statut: string): string {

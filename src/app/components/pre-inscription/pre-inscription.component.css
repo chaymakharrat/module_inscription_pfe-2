@@ -5,7 +5,7 @@
 }
 
 .page-container-blue {
-    background: linear-gradient(135deg, #ffffff 0%, #e0e7ef 100%) !important;
+    background: transparent !important;
 }
 
 /* ── Background ──────────────────────────────────────────────────── */
@@ -42,7 +42,7 @@
 .blob-1 {
     width: 600px;
     height: 600px;
-    background: linear-gradient(135deg, rgba(59, 130, 246, .4), rgba(96, 165, 250, .4));
+    background: #f8fafc;
     top: -10%;
     right: -10%;
     animation-duration: 30s;
@@ -51,7 +51,7 @@
 .blob-2 {
     width: 500px;
     height: 500px;
-    background: linear-gradient(135deg, rgba(139, 92, 246, .3), rgba(167, 139, 250, .3));
+    background: #f8fafc;
     bottom: -10%;
     left: -10%;
     animation-duration: 35s;
@@ -61,7 +61,7 @@
 .blob-3 {
     width: 450px;
     height: 450px;
-    background: linear-gradient(135deg, rgba(14, 165, 233, .2), rgba(56, 189, 248, .2));
+    background: linear-gradient(135deg, rgba(186, 230, 253, 0.08), rgba(224, 242, 254, 0.08));
     top: 30%;
     left: 20%;
     animation-duration: 28s;
@@ -86,24 +86,47 @@
     }
 }
 
-/* ── Card ────────────────────────────────────────────────────────── */
-.form-card {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+/* ── Main Form Wrapper (Master Glass Card - Synced with Stepper) ── */
+.glass-form-wrapper {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(214, 229, 245, 0.7) 100%);
+    backdrop-filter: blur(25px) saturate(200%);
+    -webkit-backdrop-filter: blur(25px) saturate(200%);
     border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow:
-        0 4px 6px -1px rgba(0, 0, 0, 0.02),
-        0 20px 40px -8px rgba(0, 0, 0, 0.05),
-        0 40px 80px -12px rgba(37, 99, 235, 0.05);
-    /* very soft blue hue */
-    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     border-radius: 2.5rem;
+    box-shadow: 
+        0 4px 24px -1px rgba(0,0,0,0.03),
+        0 40px 80px -20px rgba(13, 71, 161, 0.08);
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
 }
 
-.form-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 40px 100px -12px rgba(37, 99, 235, 0.1);
+.glass-form-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(13, 71, 161, 0.03), transparent 70%);
+    pointer-events: none;
+}
+
+/* ── Inner Cards (Seamless - Inside Master Card) ────────────────── */
+.white-inner-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.white-inner-card:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: transparent;
+}
+
+/* Old .form-card support (deprecated but kept for fallback) */
+.form-card {
+    @extend .glass-form-wrapper;
 }
 
 /* ── Section Header (Premium) ──────────────────────────────────── */
@@ -119,13 +142,13 @@
 .header-icon-box {
     width: 42px;
     height: 42px;
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    background: linear-gradient(135deg, #f8fafc 0%, #d6e5f5 100%);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #2563eb;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+    color: #0d47a1;
+    box-shadow: 0 4px 12px rgba(13, 71, 161, 0.1);
 }
 
 .header-title-text h3 {
@@ -335,8 +358,8 @@
 
 /* ── Vibrant Continue Button Enhancement ────────────────────────── */
 :ng-deep app-action-buttons button:not(:disabled).bg-blue-600 {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
-    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4) !important;
+    background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%) !important;
+    box-shadow: 0 10px 25px -5px rgba(13, 71, 161, 0.4) !important;
     border: none !important;
     position: relative;
     overflow: hidden;
@@ -391,7 +414,7 @@
 }
 
 .step-badge {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
     color: white;
     width: 3rem;
     height: 3rem;
@@ -401,7 +424,7 @@
     justify-content: center;
     font-size: 1.25rem;
     font-weight: 900;
-    box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 10px 20px -5px rgba(13, 71, 161, 0.3);
     flex-shrink: 0;
     position: relative;
     border: 2px solid rgba(255, 255, 255, 0.2);
@@ -508,15 +531,17 @@
 
 /* ── Identification card ─────────────────────────────────────────── */
 .id-verify-card {
-    background: rgba(248, 250, 252, 0.7);
-    border: 2px solid #e2e8f0;
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
     border-radius: 1.5rem;
     padding: 1.5rem;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(13, 71, 161, 0.03);
 }
 
 .id-verify-card:focus-within {
-    border-color: #3b82f6;
+    border-color: #0d47a1;
+    box-shadow: 0 10px 20px rgba(13, 71, 161, 0.06);
 }
 
 .id-verify-header {
@@ -541,7 +566,7 @@
 
 /* ── Verify button ───────────────────────────────────────────────── */
 .verify-btn {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    background: linear-gradient(135deg, #0d47a1, #1565c0);
     color: white;
     font-weight: 800;
     font-size: 0.75rem;
@@ -552,7 +577,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 12px rgba(13, 71, 161, 0.3);
     flex-shrink: 0;
     height: fit-content;
     align-self: flex-end;
@@ -836,22 +861,21 @@ select:focus {
 
 /* ── Identity card (Redesign) ─────────────────────────────────── */
 .identity-card-v2 {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(12px);
-    border: 1.5px solid rgba(255, 255, 255, 0.7);
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
     border-radius: 2rem;
     padding: 2rem;
     position: relative;
     box-shadow:
         0 4px 6px -1px rgba(0, 0, 0, 0.02),
-        0 10px 15px -3px rgba(0, 0, 0, 0.03);
+        0 10px 15px -3px rgba(13, 71, 161, 0.05);
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .identity-card-v2:hover {
-    border-color: #3b82f6;
+    border-color: #0d47a1;
     transform: translateY(-4px);
-    box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 20px 25px -5px rgba(13, 71, 161, 0.1);
 }
 
 .id-header-row {
@@ -888,9 +912,9 @@ select:focus {
 }
 
 .id-btn-edit:hover {
-    background: #eff6ff;
-    color: #2563eb;
-    border-color: #2563eb;
+    background: #f8fafc;
+    color: #0d47a1;
+    border-color: #0d47a1;
 }
 
 .id-grid-v2 {
@@ -921,15 +945,15 @@ select:focus {
 
 /* ── Helper Boards (Foreign) ────────────────────────────────────── */
 .helper-board {
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(8px);
-    border: 1.5px dashed rgba(37, 99, 235, 0.2);
+    background: #ffffff;
+    border: 1.5px dashed rgba(13, 71, 161, 0.1);
     border-radius: 1.5rem;
     padding: 1.5rem;
     margin-bottom: 2rem;
     display: flex;
     gap: 1.5rem;
     animation: fadeIn 0.6s ease-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
 .helper-icon-wrap {
@@ -941,7 +965,7 @@ select:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #2563eb;
+    color: #0d47a1;
     flex-shrink: 0;
 }
 
@@ -969,8 +993,8 @@ select:focus {
 .helper-tip {
     font-size: 0.7rem;
     font-weight: 700;
-    color: #2563eb;
-    background: #eff6ff;
+    color: #0d47a1;
+    background: #f1f5f9;
     padding: 0.2rem 0.6rem;
     border-radius: 6px;
     cursor: default;
@@ -996,15 +1020,16 @@ select:focus {
 
 /* ── Upload zone ─────────────────────────────────────────────────── */
 .upload-zone {
-    background: rgba(248, 250, 252, 0.4);
-    border: 2px dashed rgba(37, 99, 235, 0.2);
+    background: #ffffff;
+    border: 2px dashed rgba(13, 71, 161, 0.1);
     border-radius: 1.5rem;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .upload-zone:hover {
-    border-color: #3b82f6;
-    background: rgba(59, 130, 246, 0.03);
+    border-color: #0d47a1;
+    background: rgba(13, 71, 161, 0.03);
     transform: translateY(-2px);
 }
 
@@ -1034,14 +1059,14 @@ select:focus {
     letter-spacing: 0.05em;
     cursor: pointer;
     transition: all 0.25s ease;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #0d47a1, #1565c0);
     color: white;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 4px 14px rgba(13, 71, 161, 0.35);
 }
 
 .verify-fill-btn:hover:not(:disabled) {
     transform: translateY(-1.5px);
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
+    box-shadow: 0 8px 20px rgba(13, 71, 161, 0.45);
 }
 
 .verify-fill-btn:disabled {
@@ -1126,10 +1151,11 @@ select:focus {
 
 /* -- Premium Summary Card ------------------------------------------ */
 .summary-card-premium {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 249, 255, 0.9) 100%);
-    border: 1.5px solid rgba(59, 130, 246, 0.2);
-    box-shadow: 0 20px 50px -15px rgba(37, 99, 235, 0.15);
-    backdrop-filter: blur(10px);
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.02),
+        0 20px 40px -10px rgba(13, 71, 161, 0.08);
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1178,7 +1204,7 @@ select:focus {
 
 .summary-block-premium:hover {
     background: white;
-    border-color: rgba(37, 99, 235, 0.15);
+    border-color: rgba(13, 71, 161, 0.15);
     transform: translateY(-2px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.03);
 }
@@ -1247,6 +1273,7 @@ input#otpInput::-webkit-inner-spin-button {
 /* Firefox */
 input#otpInput[type=number] {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .animate-shine {
@@ -1269,16 +1296,6 @@ input#otpInput[type=number] {
             transparent 100%);
     transform: rotate(45deg);
     animation: shine-effect 4s infinite;
-}
-
-@keyframes shine-effect {
-    0% {
-        transform: translate(-100%, -100%) rotate(45deg);
-    }
-
-    100% {
-        transform: translate(100%, 100%) rotate(45deg);
-    }
 }
 
 @keyframes shine-effect {

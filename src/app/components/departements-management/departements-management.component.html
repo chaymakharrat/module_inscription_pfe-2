@@ -1411,7 +1411,7 @@
 
 <!-- ═══════════════════ MODAL CONFIRMATION DÉVERROUILLAGE ═══════════════════ -->
 <div class="modal-overlay security-overlay" *ngIf="showUnlockConfirmationModal"
-    (click)="showUnlockConfirmationModal = false" style="z-index:1100">
+    (click)="showUnlockConfirmationModal = false" style="z-index:3100">
     <div class="security-confirm-card" (click)="$event.stopPropagation()">
         <div class="security-banner"></div>
         <div class="security-content">
@@ -1437,7 +1437,7 @@
 
 
 <!-- ═══════════════════ MODAL CONFIRM PROFESSIONNEL ═══════════════════ -->
-<div class="modal-overlay confirm-overlay" *ngIf="showConfirmModal" (click)="confirmConfig.resolve(false)">
+<div class="modal-overlay confirm-overlay" *ngIf="showConfirmModal" (click)="confirmConfig.resolve(false)" style="z-index:3100">
     <div class="confirm-card" (click)="$event.stopPropagation()">
         <div class="confirm-icon-animate">
             <div class="icon-circle">
@@ -1463,7 +1463,7 @@
 
 
 <!-- ═══════════════════ MODAL ERREUR CLONAGE ═══════════════════ -->
-<div class="modal-overlay clone-error-overlay" *ngIf="showCloneErrorModal" (click)="showCloneErrorModal = false">
+<div class="modal-overlay clone-error-overlay" *ngIf="showCloneErrorModal" (click)="showCloneErrorModal = false" style="z-index:3100">
     <div class="clone-error-card" (click)="$event.stopPropagation()">
         <div class="clone-error-icon-wrap">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

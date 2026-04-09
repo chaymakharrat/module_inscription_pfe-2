@@ -626,6 +626,36 @@
                     </div>
                 </div>
 
+                <!-- ─── FIN CAMPAGNE / CAPACITÉ ─── -->
+                <div *ngIf="cap.finCampagneStatut && cap.finCampagneStatut.cas !== 'AUCUN'" class="mt-3 pt-3 border-t border-dashed"
+                    [class.border-red-200]="cap.finCampagneStatut.cas === 'CAS_3C'"
+                    [class.border-blue-200]="cap.finCampagneStatut.cas === 'CAS_3B'">
+                    
+                    <!-- CAS 3C : Seuil Atteint -->
+                    <div *ngIf="cap.finCampagneStatut.cas === 'CAS_3C'" class="flex flex-col gap-2 p-2 bg-red-50 rounded-xl border border-red-100">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-red-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            <div class="flex flex-col flex-1">
+                                <span class="text-[11px] font-bold text-red-800">Seuil d'ouverture atteint</span>
+                                <span class="text-[9px] text-red-600 leading-tight block pr-1">{{ cap.finCampagneStatut.candidatsSansGroupe }} candidats en file d'attente.</span>
+                            </div>
+                        </div>
+                        <button (click)="openFinCampagneDialog(cap); $event.stopPropagation()" class="mt-1 w-full text-center py-1.5 bg-red-600 text-white text-[10px] uppercase tracking-wider font-extrabold rounded-lg hover:bg-red-700 transition">Gérer la capacité</button>
+                    </div>
+
+                    <!-- CAS 3B : Groupe Incomplet (Campagne Fermée) -->
+                    <div *ngIf="cap.finCampagneStatut.cas === 'CAS_3B'" class="flex flex-col gap-2 p-2 bg-blue-50 rounded-xl border border-blue-100">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <div class="flex flex-col flex-1">
+                                <span class="text-[11px] font-bold text-blue-800">Campagne Clôturée</span>
+                                <span class="text-[9px] text-blue-600 leading-tight block pr-1">Groupe incomplet ({{ cap.finCampagneStatut.groupeEnFormationTaille }}/{{ cap.finCampagneStatut.tailleGroupe }} inscrits).</span>
+                            </div>
+                        </div>
+                        <button (click)="openFinCampagneDialog(cap); $event.stopPropagation()" class="mt-1 w-full text-center py-1.5 bg-blue-600 text-white text-[10px] uppercase tracking-wider font-extrabold rounded-lg hover:bg-blue-700 transition">Gérer la clôture</button>
+                    </div>
+                </div>
+
                 <!-- Bouton rejet masse -->
                 <div *ngIf="cap.listeAttente > 0 && isCurrentYear" (click)="$event.stopPropagation()"
                     style="margin-top:12px;padding-top:12px;border-top:1px dashed #fcd34d;">
@@ -1887,3 +1917,93 @@
         [class.toast-error]="toastType === 'error'">
         {{ toastMessage }}
     </div>
+
+    <!-- ══ MODAL GESTION FIN CAMPAGNE ════════════════════════════════════════════════ -->
+    <div *ngIf="showFinCampagneModal && selectedCapaciteCampagne?.finCampagneStatut" 
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+        <div class="bg-white rounded-[24px] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col [@media(max-height:800px)]:max-h-[90vh]" [@modalAnim]>
+            
+            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M2 21h20M9 21v-4a2 2 0 012-2h2a2 2 0 012 2v4m-5-4v4" /></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold text-[#0f1117] tracking-tight leading-tight">Clôture & Capacité</h3>
+                        <p class="text-[11px] font-bold text-gray-400 mt-0.5 uppercase tracking-widest">{{ selectedCapaciteCampagne?.nomDiplome }} (Nv. {{ selectedCapaciteCampagne?.niveau }})</p>
+                    </div>
+                </div>
+                <button (click)="closeFinCampagneDialog()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto">
+                <ng-container *ngIf="selectedCapaciteCampagne?.finCampagneStatut as status">
+                    
+                    <!-- CAS 3C / Seuil Atteint -->
+                    <div *ngIf="status.cas === 'CAS_3C'" class="flex flex-col gap-6">
+                        <div class="p-4 bg-red-50 border border-red-100 rounded-[16px] flex items-start gap-4 shadow-sm">
+                            <div class="p-2 bg-white rounded-xl shadow-sm border border-red-100"><svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                            <div>
+                                <h4 class="text-[14px] font-extrabold text-[#0f1117] mb-1">Capacité maximale ({{ status.capaciteMax }}) atteinte</h4>
+                                <p class="text-[12px] font-medium text-gray-600 leading-relaxed mb-2">
+                                    Il y a actuellement <strong class="text-red-600">{{ status.candidatsSansGroupe }} candidats</strong> en attente. 
+                                    Le seuil conseillé pour un nouveau groupe est de <strong>{{ status.seuilSansGroupe }}</strong> pour {{ status.tailleGroupe }} places.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-3">
+                            <button *ngIf="status.peutCreerNouveauGroupe" [disabled]="decisionCampagneLoading" (click)="appliquerDecisionCampagne('NOUVEAU_GROUPE')" class="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-[16px] hover:border-green-400 hover:bg-green-50 hover:shadow-md transition-all group disabled:opacity-50 min-h-[80px]">
+                                <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></div>
+                                <div><div class="text-[13px] font-bold text-green-900 leading-tight">Ouvrir un groupe supplémentaire</div><div class="text-[11px] font-medium text-green-700 mt-1 leading-tight">Augmente la capacité max. de {{ status.tailleGroupe }} places.</div></div>
+                            </button>
+
+                            <button *ngIf="status.peutRepartir" [disabled]="decisionCampagneLoading" (click)="appliquerDecisionCampagne('REPARTIR')" class="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-[16px] hover:border-amber-400 hover:bg-amber-50 hover:shadow-md transition-all group disabled:opacity-50 min-h-[80px]">
+                                <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg></div>
+                                <div><div class="text-[13px] font-bold text-amber-900 leading-tight">Répartir dans les groupes existants</div><div class="text-[11px] font-medium text-amber-700 mt-1 leading-tight">Maintient la capacité max., surcharge les groupes.</div></div>
+                            </button>
+
+                            <button [disabled]="decisionCampagneLoading" (click)="appliquerDecisionCampagne('REJETER')" class="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-[16px] hover:border-gray-400 hover:bg-gray-50 hover:shadow-md transition-all group disabled:opacity-50 min-h-[80px]">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center group-hover:scale-110 transition-transform"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></div>
+                                <div><div class="text-[13px] font-bold text-gray-700 leading-tight">Rejeter les dossiers restants</div><div class="text-[11px] font-medium text-gray-500 mt-1 leading-tight">Refus définitif des {{ status.candidatsSansGroupe }} candidats avec notification.</div></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- CAS 3B / Groupe incomplet -->
+                    <div *ngIf="status.cas === 'CAS_3B'" class="flex flex-col gap-6">
+                        <div class="p-4 bg-blue-50 border border-blue-100 rounded-[16px] flex items-start gap-4 shadow-sm">
+                            <div class="p-2 bg-white rounded-xl shadow-sm border border-blue-100"><svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                            <div>
+                                <h4 class="text-[14px] font-extrabold text-[#0f1117] mb-1">Fin de campagne</h4>
+                                <p class="text-[12px] font-medium text-gray-600 leading-relaxed mb-1">
+                                    La campagne est terminée, mais le groupe "<strong>{{ status.groupeEnFormationNom }}</strong>" est incomplet ({{ status.groupeEnFormationTaille }}/{{ status.tailleGroupe }}).
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-3">
+                            <button *ngIf="status.peutValiderPartiellement" [disabled]="decisionCampagneLoading" (click)="appliquerDecisionCampagne('VALIDER_PARTIEL')" class="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-[16px] hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-md transition-all group disabled:opacity-50 min-h-[80px]">
+                                <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>
+                                <div><div class="text-[13px] font-bold text-emerald-900 leading-tight">Valider l'effectif actuel</div><div class="text-[11px] font-medium text-emerald-700 mt-1 leading-tight">Le ratio est atteint, le groupe démarre tel quel.</div></div>
+                            </button>
+
+                            <button *ngIf="status.peutRepartir" [disabled]="decisionCampagneLoading" (click)="appliquerDecisionCampagne('REPARTIR')" class="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-[16px] hover:border-amber-400 hover:bg-amber-50 hover:shadow-md transition-all group disabled:opacity-50 min-h-[80px]">
+                                <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg></div>
+                                <div><div class="text-[13px] font-bold text-amber-900 leading-tight">Fondre dans d'autres groupes</div><div class="text-[11px] font-medium text-amber-700 mt-1 leading-tight">Supprime ce groupe et redistribue les inscrits.</div></div>
+                            </button>
+                            
+                            <button [disabled]="decisionCampagneLoading" (click)="appliquerDecisionCampagne('REJETER')" class="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-[16px] hover:border-gray-400 hover:bg-gray-50 hover:shadow-md transition-all group disabled:opacity-50 min-h-[80px]">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center group-hover:scale-110 transition-transform"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></div>
+                                <div><div class="text-[13px] font-bold text-gray-700 leading-tight">Annuler le groupe</div><div class="text-[11px] font-medium text-gray-500 mt-1 leading-tight">Efface le groupe et rejette les candidats (effectif trop faible).</div></div>
+                            </button>
+                        </div>
+                    </div>
+
+                </ng-container>
+            </div>
+        </div>
+    </div>
+</main>

@@ -49,6 +49,32 @@ export interface CapaciteNiveauDTO {
   groups?: EnrollmentGroup[];
   loadingGroups?: boolean;
   showGroups?: boolean;
+  finCampagneStatut?: FinCampagneStatutDTO;
+  finCampagneLoading?: boolean;
+}
+
+export interface FinCampagneStatutDTO {
+  cas: string;
+  campagneOuverte: boolean;
+  capaciteMax: number;
+  inscritsConfirmes: number;
+  placesRestantes: number;
+  candidatsSansGroupe: number;
+  seuilSansGroupe: number;
+  tailleGroupe: number;
+  groupeEnFormationTaille: number;
+  groupeEnFormationNom: string;
+  peutCreerNouveauGroupe: boolean;
+  peutRepartir: boolean;
+  peutValiderPartiellement: boolean;
+}
+
+export interface DecisionFinCampagneRequest {
+  nomDiplome: string;
+  langue: string;
+  niveau: string;
+  decision: 'NOUVEAU_GROUPE' | 'REPARTIR' | 'VALIDER_PARTIEL' | 'REJETER';
+  agentEmail?: string;
 }
 
 export interface EnrollmentGroup {
@@ -254,6 +280,11 @@ export class DashboardDepartementComponent implements OnInit {
   ];
   showParametrage = false;
 
+  // ─── FIN CAMPAGNE STATE ──────────────────────────────────────────────────
+  showFinCampagneModal = false;
+  selectedCapaciteCampagne: CapaciteNiveauDTO | null = null;
+  decisionCampagneLoading = false;
+
   constructor(
     private http: HttpClient,
     private keycloak: KeycloakService,
@@ -364,6 +395,11 @@ export class DashboardDepartementComponent implements OnInit {
         this.totalPages = demandes.totalPages;
         this.filteredDemandes = demandes.content;
         this.loading = false;
+
+        // Load the statuts asynchronously
+        if (this.dashboard.capacites) {
+          this.loadFinCampagneStatutForAll(this.dashboard.capacites);
+        }
       },
       error: (err) => { console.error('❌ Erreur dashboard:', err); this.loading = false; }
     });
@@ -394,6 +430,10 @@ export class DashboardDepartementComponent implements OnInit {
         this.filteredDemandes = demandes.content;
         this.totalElements = demandes.totalElements;
         this.totalPages = demandes.totalPages;
+
+        if (this.dashboard.capacites) {
+          this.loadFinCampagneStatutForAll(this.dashboard.capacites);
+        }
       },
       error: (err) => console.error('❌ Erreur refresh:', err)
     });
@@ -1578,5 +1618,88 @@ export class DashboardDepartementComponent implements OnInit {
     }
 
     this.fermerRejetPrerequis();
+  }
+
+  // ─── LOGIQUE FIN DE CAMPAGNE ─────────────────────────────────────────────
+
+  loadFinCampagneStatutForAll(capacites: CapaciteNiveauDTO[]): void {
+    capacites.forEach(cap => this.loadFinCampagneStatut(cap));
+  }
+
+  loadFinCampagneStatut(cap: CapaciteNiveauDTO): void {
+    cap.finCampagneLoading = true;
+    const params = {
+      nomDiplome: cap.nomDiplomeResponsable || cap.nomDiplome,
+      langue: cap.langue,
+      niveau: cap.niveau.toString()
+    };
+    this.http.get<any>(`${this.apiUrl}/groupes/fin-campagne/statut`, { params })
+      .subscribe({
+        next: (backendStatut) => {
+          if (!backendStatut || backendStatut.cas === 'AUCUN' || !backendStatut.cas) {
+            cap.finCampagneStatut = undefined;
+          } else {
+            cap.finCampagneStatut = {
+              cas: backendStatut.cas,
+              campagneOuverte: !backendStatut.campagneFermee,
+              capaciteMax: cap.capaciteMax || 0,
+              inscritsConfirmes: cap.inscritsConfirmes || 0,
+              placesRestantes: cap.placesRestantes || 0,
+              candidatsSansGroupe: backendStatut.countSansGroupe || 0,
+              seuilSansGroupe: backendStatut.seuilMinimum || 0,
+              tailleGroupe: backendStatut.tailleGroupe || 0,
+              groupeEnFormationTaille: backendStatut.countDansGroupeEnFormation || 0,
+              groupeEnFormationNom: backendStatut.groupeEnFormationNom || '',
+              peutCreerNouveauGroupe: backendStatut.cas === 'CAS_3C',
+              peutRepartir: true,
+              peutValiderPartiellement: backendStatut.cas === 'CAS_3B'
+            };
+          }
+          cap.finCampagneLoading = false;
+        },
+        error: (err) => { cap.finCampagneLoading = false; console.error('Erreur chargement statut fin campagne', err); }
+      });
+  }
+
+  openFinCampagneDialog(cap: CapaciteNiveauDTO): void {
+    this.selectedCapaciteCampagne = cap;
+    this.showFinCampagneModal = true;
+  }
+
+  closeFinCampagneDialog(): void {
+    this.showFinCampagneModal = false;
+    this.selectedCapaciteCampagne = null;
+  }
+
+  appliquerDecisionCampagne(decision: 'NOUVEAU_GROUPE' | 'REPARTIR' | 'VALIDER_PARTIEL' | 'REJETER'): void {
+    if (!this.selectedCapaciteCampagne) return;
+
+    // Quick confirm pour REJETER ou REPARTIR car ce sont des actions destructives
+    if (decision === 'REJETER') {
+      if (!window.confirm('⚠️ Êtes-vous sûr de vouloir rejeter les candidats sans groupe restants pour ce diplôme ? Cette action est irréversible.')) return;
+    }
+
+    this.decisionCampagneLoading = true;
+    const req: DecisionFinCampagneRequest = {
+      nomDiplome: this.selectedCapaciteCampagne.nomDiplomeResponsable || this.selectedCapaciteCampagne.nomDiplome,
+      langue: this.selectedCapaciteCampagne.langue,
+      niveau: this.selectedCapaciteCampagne.niveau.toString(),
+      decision: decision,
+      agentEmail: this.emailEnseignant
+    };
+
+    this.http.post<{ message: string }>(`${environment.workflowServiceUrl}/api/workflow/fin-campagne/appliquer-decision`, req).subscribe({
+      next: (res) => {
+        this.showToast(`✅ ${res.message || 'Décision appliquée avec succès'}`, 'success');
+        this.decisionCampagneLoading = false;
+        this.closeFinCampagneDialog();
+        // Délai pour que le backend commit bien les actions camunda
+        setTimeout(() => this.refreshAfterDecision(), 1000);
+      },
+      error: (err) => {
+        this.showToast(`❌ Erreur lors de l'application de la décision`, 'error');
+        this.decisionCampagneLoading = false;
+      }
+    });
   }
 }
